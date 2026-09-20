@@ -85,6 +85,10 @@
         "APP_URL": "https://ptv-lms.luongtamanh2.workers.dev",
         // Not a secret. Google sign in stays off until GOOGLE_CLIENT_SECRET is also set.
         "GOOGLE_CLIENT_ID": "1007469535016-vhgeueo74sp7s8cjs33eocshnajvdgme.apps.googleusercontent.com",
+        // Not a secret. Same bot as staging (a Telegram bot can only have one webhook,
+        // so it points here once this is set up; staging's Telegram linking then stops).
+        // Notifications on Telegram stay off until TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET are also set.
+        "TELEGRAM_BOT_USERNAME": "ptv_lms_noti_bot",
       },
       "d1_databases": [
         {
