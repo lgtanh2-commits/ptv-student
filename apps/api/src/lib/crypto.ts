@@ -1,0 +1,68 @@
+const encoder = new TextEncoder();
+
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Random secret token (session, magic link, invite, reset). 256 bits by default. */
+export function randomToken(bytes = 32): string {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return toBase64Url(buf);
+}
+
+/**
+ * Tokens are stored only as a SHA-256 hash. A database leak then does not give
+ * anyone a usable token. Tokens are random, so a plain hash (no salt) is enough.
+ */
+export async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** SHA-256 as base64url, the form PKCE (the Google sign in code check) needs. */
+export async function sha256Base64Url(value: string): Promise<string> {
+  return toBase64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value))));
+}
+
+/** Reads a base64url string (as used in tokens) back to text. Throws on bad input. */
+export function fromBase64Url(value: string): string {
+  const b64 = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = atob(b64);
+  return new TextDecoder().decode(Uint8Array.from(binary, (ch) => ch.charCodeAt(0)));
+}
+
+/** Text as base64url. */
+export function toBase64UrlText(value: string): string {
+  return toBase64Url(encoder.encode(value));
+}
+
+/** Constant-time string comparison, to avoid leaking how many characters matched. */
+export function timingSafeEqual(a: string, b: string): boolean {
+  const ab = encoder.encode(a);
+  const bb = encoder.encode(b);
+  if (ab.byteLength !== bb.byteLength) {
+    // Still do a comparison so the time does not depend on where the lengths differ.
+    crypto.subtle.timingSafeEqual(ab, ab);
+    return false;
+  }
+  return crypto.subtle.timingSafeEqual(ab, bb);
+}
+
+/** Keyed hash (HMAC-SHA-256). Used so raw emails and IP addresses never appear in counters or logs. */
+export async function hmacHex(key: string, value: string): Promise<string> {
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(key),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(value));
+  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");
+}

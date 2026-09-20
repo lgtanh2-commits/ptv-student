@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Only these packages may run install scripts (needed by wrangler / vite).
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# Safe versions of tools used only while developing (not part of the deployed app).
+minimumReleaseAgeExclude:
+  - daisyui@5.7.42
+
+overrides:
+  sharp: ">=0.35.4"

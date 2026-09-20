@@ -1,0 +1,96 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ptv-lms",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "observability": { "enabled": true },
+
+  // Only the one workers.dev address. Preview URLs would add more addresses that reach the same database.
+  "workers_dev": true,
+  "preview_urls": false,
+
+  // The web app is built to apps/web/dist and served as static assets.
+  // Only /api/* runs the Worker code, everything else is served straight from the edge.
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+
+  "vars": {
+    "ENVIRONMENT": "local",
+    "APP_URL": "http://localhost:8787",
+    // "dev" writes emails to the outbox table so they can be read in the admin screen.
+    // No custom domain yet, so real sending is off (see docs/spikes.md).
+    "EMAIL_MODE": "dev",
+    // "dev" replaces Google with a local stand-in page. Ignored on staging and production.
+    "GOOGLE_MODE": "dev",
+  },
+
+  // Local development uses a local D1 database. The ids below are placeholders:
+  // run `wrangler d1 create ptv-lms-<env>` and paste the real id (see docs/deploy.md).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ptv-lms-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+
+  "env": {
+    "staging": {
+      "name": "ptv-lms-staging",
+      // Once an hour: reminders (in the app) for work that is due soon, and removing old notifications.
+      "triggers": { "crons": ["0 * * * *"] },
+      "vars": {
+        "ENVIRONMENT": "staging",
+        // Real email through an SMTP server. The account and its password are secrets (docs/deploy.md, "Sending email").
+        "EMAIL_MODE": "smtp",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_PORT": "465",
+        "SMTP_FROM_NAME": "LMS",
+        // Set to the real address after the first deploy, for example https://ptv-lms-staging.<account>.workers.dev
+        "APP_URL": "https://ptv-lms-staging.luongtamanh2.workers.dev",
+        // Not a secret. Google sign in stays off until GOOGLE_CLIENT_SECRET is also set (docs/deploy.md).
+        "GOOGLE_CLIENT_ID": "1007469535016-vhgeueo74sp7s8cjs33eocshnajvdgme.apps.googleusercontent.com",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ptv-lms-staging",
+          "database_id": "8eb57ba0-5e1d-4eda-a837-978cf5ca5d48",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+    "production": {
+      "name": "ptv-lms",
+      // Once an hour: reminders for work that is due soon, the next lessons of repeats with no end date, and clean up.
+      // Without this, none of those would ever run.
+      "triggers": { "crons": ["0 * * * *"] },
+      "vars": {
+        "ENVIRONMENT": "production",
+        // Real email through an SMTP server. The account and its password are secrets (docs/production.md).
+        // "dev" is refused in production.
+        "EMAIL_MODE": "smtp",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_PORT": "465",
+        "SMTP_FROM_NAME": "LMS",
+        // Must be the address people use. It goes into email links and into the Google redirect address.
+        "APP_URL": "https://ptv-lms.luongtamanh2.workers.dev",
+        // Not a secret. Google sign in stays off until GOOGLE_CLIENT_SECRET is also set.
+        "GOOGLE_CLIENT_ID": "1007469535016-vhgeueo74sp7s8cjs33eocshnajvdgme.apps.googleusercontent.com",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ptv-lms-production",
+          "database_id": "83a48959-c1d0-485e-a33c-7ec34cd96f54",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+  },
+}
