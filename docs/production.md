@@ -37,6 +37,7 @@ Secrets set with `wrangler secret put`, all with `--env production`:
 | `GOOGLE_CLIENT_SECRET`   | Lets the server ask Google who signed in            | Make a new one in Google Cloud Console       |
 | `SMTP_USER`, `SMTP_PASS` | Sending email                                       | Make a new app password                      |
 | `TURNSTILE_SECRET`       | Bot check on sign in by email link                  | Rotate in the dashboard                      |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` | Optional: a teacher's notifications also on Telegram (see deploy.md, "Telegram notifications") | Make a new bot token in @BotFather; make up a new webhook secret; call `setWebhook` again |
 
 ## 2. Security review (September 2026)
 

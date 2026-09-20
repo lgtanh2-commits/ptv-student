@@ -22,6 +22,7 @@ import { lessons } from "./routes/lessons";
 import { my } from "./routes/my";
 import { notifications } from "./routes/notifications";
 import { students } from "./routes/students";
+import { telegram } from "./routes/telegram";
 
 /** The most a request can carry. */
 export const MAX_REQUEST_BYTES = 512 * 1024;
@@ -62,6 +63,7 @@ export function createApp() {
   api.route("/", grading);
   api.route("/", invoices);
   api.route("/", notifications);
+  api.route("/", telegram);
   api.route("/", dev);
   app.route("/api", api);
 

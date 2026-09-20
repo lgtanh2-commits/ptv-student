@@ -33,6 +33,8 @@ export const LIMITS = {
   maxFileBytes: 25 * 1024 * 1024,
   maxLinkLength: 2048,
   magicLinkMinutes: 15,
+  /** How long a "/start <code>" link to the Telegram bot stays valid. */
+  telegramLinkMinutes: 15,
   inviteDays: 7,
   /** Signed in on a device the person marked as their own. Fewer emails and fewer sign ins. */
   trustedIdleDays: 30,

@@ -11,6 +11,15 @@ export type Kind =
 
 const NEW_ID = `lower(hex(randomblob(16)))`;
 
+/** What comes back for each notification actually made (a conflict, e.g. a dedupe hit, returns nothing for that row). */
+export interface NotifiedRow {
+  user_id: string;
+  kind: string;
+  title: string;
+  body: string;
+  link: string;
+}
+
 /** One notification for one student, with the words given. Nothing happens for a student who has no account yet. */
 export const notifyStudentStatement = (
   db: D1Database,
@@ -30,7 +39,8 @@ export const notifyStudentStatement = (
        SELECT ${NEW_ID}, s.tenant_id, s.user_id, ?1, ?2, ?3, ?4, ?5, ?6
        FROM students s
        WHERE s.tenant_id = ?7 AND s.id = ?8 AND s.user_id IS NOT NULL
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, kind, title, body, link`,
     )
     .bind(o.kind, o.title, o.body, o.link, nowIso(), o.dedupe, o.tenantId, o.studentId);
 
@@ -53,7 +63,8 @@ export const notifyWorkStatement = (
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND a.deleted_at IS NULL
          JOIN students s ON s.tenant_id = a.tenant_id AND s.id = ?5 AND s.user_id IS NOT NULL
        WHERE a.tenant_id = ?6 AND a.id = ?7
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, kind, title, body, link`,
     )
     .bind(o.kind, o.prefix, nowIso(), o.dedupe, o.studentId, o.tenantId, o.assignmentId);
 
@@ -70,7 +81,8 @@ export const notifyHandInStatement = (
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND a.deleted_at IS NULL
          JOIN students s ON s.tenant_id = a.tenant_id AND s.id = ?2
          JOIN memberships m ON m.tenant_id = a.tenant_id AND m.role = 'teacher'
-       WHERE a.tenant_id = ?3 AND a.id = ?4`,
+       WHERE a.tenant_id = ?3 AND a.id = ?4
+       RETURNING user_id, kind, title, body, link`,
     )
     .bind(nowIso(), o.studentId, o.tenantId, o.assignmentId);
 
@@ -93,7 +105,8 @@ export const notifyPublishedStatement = (
          JOIN students s ON s.id = e.student_id AND s.tenant_id = a.tenant_id AND s.user_id IS NOT NULL AND s.status != 'archived'
        WHERE a.tenant_id = ?2 AND a.id = ?3 AND a.status = 'published'
          AND (a.target_mode = 'all' OR EXISTS (SELECT 1 FROM assignment_targets g WHERE g.assignment_id = a.id AND g.student_id = s.id))
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, kind, title, body, link`,
     )
     .bind(nowIso(), tenantId, assignmentId);
 
@@ -118,7 +131,8 @@ export const notifyDueSoonStatement = (
        WHERE a.status = 'published' AND a.due_at > ?2 AND a.due_at <= ?3
          AND (sub.id IS NULL OR sub.status IN ('drafted', 'revision_requested'))
          AND (a.target_mode = 'all' OR EXISTS (SELECT 1 FROM assignment_targets g WHERE g.assignment_id = a.id AND g.student_id = s.id))
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, kind, title, body, link`,
     )
     .bind(nowIso(), fromIso, untilIso);
 

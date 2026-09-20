@@ -970,3 +970,18 @@ export const markReadBody = z.object({
   /** Leave out to mark everything as read. */
   ids: z.array(z.string().min(1).max(64)).max(100).optional(),
 });
+
+// ------------------------------------------------------------- Telegram notifications
+
+export interface TelegramStatus {
+  /** The app owner set up a Telegram bot at all. When false, the app hides the whole feature. */
+  enabled: boolean;
+  /** This person already linked a Telegram chat. */
+  linked: boolean;
+}
+
+export interface TelegramLinkCode {
+  /** Open this to start the bot with the code already filled in (as if the person had typed "/start <code>"). */
+  deepLink: string;
+  expiresInMinutes: number;
+}

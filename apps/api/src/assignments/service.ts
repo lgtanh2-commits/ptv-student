@@ -230,7 +230,7 @@ async function change(
   await load(ctx, tenantId, id);
   const res = await statement(ctx.env.DB, tenantId, id).run();
   if (!res.meta.changes) throw new AppError("CONFLICT", { message: conflict });
-  if (action === "publish") await tell(notifyPublishedStatement(ctx.env.DB, tenantId, id));
+  if (action === "publish") await tell(ctx, notifyPublishedStatement(ctx.env.DB, tenantId, id));
   await audit(ctx.env.DB, {
     action: `assignment.${action === "publish" ? "published" : "closed"}`,
     actorUserId: actor.userId,

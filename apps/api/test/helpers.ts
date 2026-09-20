@@ -19,6 +19,12 @@ export const googleFake: {
   asked: URLSearchParams[];
 } = { answer: null, asked: [] };
 
+/** Every "send a message" call the app made to the Telegram Bot API. `ok`: what Telegram answers back. */
+export const telegramFake: { asked: { chatId: string; text: string }[]; ok: boolean } = {
+  asked: [],
+  ok: true,
+};
+
 vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input instanceof Request ? input.url : input);
   if (url.includes("challenges.cloudflare.com")) return Response.json(turnstileAnswer);
@@ -26,6 +32,11 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const form = new URLSearchParams(String(init?.body));
     googleFake.asked.push(form);
     return googleFake.answer(form);
+  }
+  if (/^https:\/\/api\.telegram\.org\/bot[^/]+\/sendMessage$/.test(url)) {
+    const body = JSON.parse(String(init?.body)) as { chat_id: string; text: string };
+    telegramFake.asked.push({ chatId: String(body.chat_id), text: body.text });
+    return telegramFake.ok ? Response.json({ ok: true }) : new Response("nope", { status: 403 });
   }
   throw new Error(`Unexpected network call in test: ${url}`);
 });

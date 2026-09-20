@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { SessionInfo } from "@lms/shared";
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "@/features/auth/api";
 import { useSession } from "@/features/auth/session";
 import { usePaging } from "@/features/paging";
+import { useTelegramLink } from "@/features/telegram/useTelegram";
 import { useToast } from "@/features/toast/useToast";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -18,6 +19,7 @@ import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
 
 const t = messages.devices;
+const tg = messages.telegram;
 const router = useRouter();
 const session = useSession();
 const toast = useToast();
@@ -25,6 +27,18 @@ const sessions = ref<SessionInfo[]>([]);
 const paging = usePaging(sessions);
 const loading = ref(true);
 const error = ref<string | null>(null);
+
+const telegram = useTelegramLink();
+watch(
+  () => telegram.status.value?.linked,
+  (linked, was) => {
+    if (linked && was === false) toast.success(tg.linkedNow);
+  },
+);
+async function unlinkTelegram() {
+  await telegram.unlink();
+  toast.success(tg.unlinkedNow);
+}
 
 async function load() {
   sessions.value = (await authApi.sessions()).sessions;
@@ -84,6 +98,54 @@ onMounted(load);
         </li>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
+    </AppCard>
+
+    <AppCard v-if="!telegram.loading.value && telegram.status.value?.enabled" :title="tg.title">
+      <AppAlert v-if="telegram.error.value" kind="error">{{ telegram.error.value }}</AppAlert>
+
+      <template v-if="telegram.status.value?.linked">
+        <div class="flex flex-wrap items-center gap-3">
+          <AppBadge tone="success">{{ tg.linkedTitle }}</AppBadge>
+          <p class="text-base-content/70">{{ tg.linkedText }}</p>
+        </div>
+        <div>
+          <AppButton
+            variant="secondary"
+            compact
+            :loading="telegram.unlinking.value"
+            @click="unlinkTelegram"
+            >{{ tg.unlinkButton }}</AppButton
+          >
+        </div>
+      </template>
+
+      <template v-else>
+        <p class="text-base-content/70">{{ tg.text }}</p>
+        <div v-if="telegram.deepLink.value" class="flex flex-wrap items-center gap-2">
+          <a
+            :href="telegram.deepLink.value"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-primary min-h-11 gap-2 font-medium"
+            ><AppIcon name="send" :size="16" />{{ tg.openButton }}</a
+          >
+          <AppButton
+            variant="ghost"
+            compact
+            :loading="telegram.requesting.value"
+            @click="telegram.requestLink"
+            >{{ tg.askAgain }}</AppButton
+          >
+        </div>
+        <div v-else>
+          <AppButton :loading="telegram.requesting.value" @click="telegram.requestLink"
+            ><AppIcon name="link" :size="16" />{{ tg.linkButton }}</AppButton
+          >
+        </div>
+        <p v-if="telegram.deepLink.value" class="flex items-center gap-2 text-sm text-base-content/60">
+          <span class="loading loading-spinner loading-xs" aria-hidden="true" />{{ tg.waiting }}
+        </p>
+      </template>
     </AppCard>
   </AppPage>
 </template>

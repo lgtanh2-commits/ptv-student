@@ -40,6 +40,8 @@ The address is printed at the end, like `https://ptv-lms-staging.<your-account>.
 | `TURNSTILE_SECRET`        | `wrangler secret put TURNSTILE_SECRET --env <env>`                                          | Bot check on the server. The app refuses to run without it in staging and production.                                                                                                   |
 | `VITE_TURNSTILE_SITE_KEY` | Set when building the web app (`VITE_TURNSTILE_SITE_KEY=... pnpm --filter @lms/web build`)  | Shows the bot check on the forms. Create a Turnstile widget in the Cloudflare dashboard and allow the `workers.dev` address.                                                            |
 
+Telegram notifications (below) are optional and need three more settings, but the app runs fine without them.
+
 ## Sign in with Google
 
 Students and teachers can sign in with one click, so nobody has to wait for an email each time. It is free.
@@ -68,6 +70,30 @@ sensitive actions itself; this rule covers the rest.
 3. Add the repository variable `DEPLOY_ENABLED` = `true`.
 
 Pushes to `develop` deploy to staging. Production is a manual run of the workflow.
+
+## Telegram notifications (optional)
+
+A teacher can also get the notifications that ring the bell in the app (a student handing in work, work due
+soon...) as Telegram messages. Nobody has to set this up: without it, the "Telegram notifications" card on the
+Devices page simply does not show.
+
+1. Message [@BotFather](https://t.me/BotFather) on Telegram, `/newbot`, and follow the steps. It gives a token and
+   an `@username`.
+2. Set the settings: `wrangler secret put TELEGRAM_BOT_TOKEN --env <env>` (the token from BotFather),
+   `TELEGRAM_BOT_USERNAME` as a plain `vars` entry in `wrangler.jsonc` (the `@username`, without the `@`), and
+   `wrangler secret put TELEGRAM_WEBHOOK_SECRET --env <env>` (any long random text you make up yourself — it is
+   never sent to Telegram, only checked against what Telegram sends back).
+3. Tell Telegram where to send messages a person sends the bot (run once per environment, after the settings above
+   are set and the app is deployed):
+   ```bash
+   curl "https://api.telegram.org/bot<the bot token>/setWebhook" \
+     -d "url=<APP_URL>/api/telegram/webhook" \
+     -d "secret_token=<the webhook secret>"
+   ```
+4. On the Devices page, a teacher presses "Link Telegram", opens the link it gives in Telegram, and presses Start.
+
+Local development needs the same three settings in `apps/api/.dev.vars` (already gitignored) to try the feature;
+without them it is simply off, same as in production.
 
 ## Rules
 
