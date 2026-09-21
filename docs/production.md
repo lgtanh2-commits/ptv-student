@@ -15,19 +15,25 @@ Done by the team (in the repository and on staging):
 
 Done by the owner of the account (these need a login or a secret that only the owner has):
 
-1. **Google sign in.** In Google Cloud Console, the OAuth client for production needs the redirect address exactly
-   `https://ptv-lms.<account>.workers.dev/api/auth/google/callback`. Use a **new** client secret (the old one was shown in a chat and must be replaced), then
-   `pnpm --filter @lms/api exec wrangler secret put GOOGLE_CLIENT_SECRET --env production`.
-2. **Email (SMTP).** `wrangler secret put SMTP_USER --env production` and `wrangler secret put SMTP_PASS --env production` (for Gmail: the address and an app password).
-3. **Bot check (Turnstile).** Cloudflare dashboard, Turnstile, add a widget for the production address. Then
+1. [x] **Google sign in** (done 2026-09-21). A new client secret was made in Google Cloud Console (the old one had been
+   shown in a chat) and set on both staging and production, since they share one OAuth client; the old secret is being
+   deleted from the console so it works nowhere. Redirect address `https://ptv-lms.<account>.workers.dev/api/auth/google/callback`.
+2. [x] **Email (SMTP)** (done 2026-09-21). Same Gmail account and app password as staging (fine to share — unlike a
+   Telegram bot's one webhook, sending mail has no such limit).
+3. **Bot check (Turnstile).** Not done yet, left for later on purpose. Cloudflare dashboard, Turnstile, add a widget for the production address. Then
    `wrangler secret put TURNSTILE_SECRET --env production`, and build the web app with the site key:
    `VITE_TURNSTILE_SITE_KEY=<site key> pnpm --filter @lms/web build`. In GitHub, set the repository variable `VITE_TURNSTILE_SITE_KEY`.
-   Without it, sign in by an email link is hidden and only Google works (that is safe, only less convenient).
-4. **Rate limiting rule.** Cloudflare dashboard, Security, WAF, Rate limiting rules: `/api/*`, 120 requests per minute per IP, action block for 1 minute.
+   Without it, sign in by an email link stays hidden and only Google works (that is safe, only less convenient).
+4. **Rate limiting rule.** Not done yet. Cloudflare dashboard, Security, WAF, Rate limiting rules: `/api/*`, 120 requests per minute per IP, action block for 1 minute.
    The app already limits sign in, sign up, invites and emails itself; this rule covers the rest.
-5. **GitHub.** Environment `production` with a required reviewer, secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, variables `DEPLOY_ENABLED=true` and `PRODUCTION_URL`.
-6. Run `bash scripts/smoke.sh https://ptv-lms.<account>.workers.dev --production` and `node scripts/preflight-production.mjs --secrets`. Both must pass.
-7. Sign in once as the first teacher and try: create a course, add a student, invite, take attendance, make and send a receipt.
+5. **GitHub.** Not done yet. Environment `production` with a required reviewer, secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, variables `DEPLOY_ENABLED=true` and `PRODUCTION_URL`. Until this is done, production is deployed by hand (as it was on 2026-09-21).
+6. [x] `bash scripts/smoke.sh https://ptv-lms.<account>.workers.dev --production` and `node scripts/preflight-production.mjs --secrets` (secrets check passes except the optional `TURNSTILE_SECRET`).
+7. Not done yet. Sign in once as the first teacher and try: create a course, add a student, invite, take attendance, make and send a receipt.
+
+Telegram notifications also went live on 2026-09-21, reusing staging's bot (`docs/deploy.md`, "Telegram notifications"):
+its own `TELEGRAM_WEBHOOK_SECRET`, migration `0020_telegram.sql` applied to the production database, `setWebhook`
+pointed at the production address. Because one bot has only one webhook, staging's own Telegram linking stopped
+working at that point (expected, not a bug).
 
 Secrets set with `wrangler secret put`, all with `--env production`:
 
@@ -59,10 +65,13 @@ What was checked, and the result. "Tests" means an automatic test that runs in e
 | Errors                                                          | The user sees a short message and a request id; the detail (never a password or a link) goes to the log                                                                                                                                                                                      |
 | Logs                                                            | Only messages about what failed; no email text, no password, no token                                                                                                                                                                                                                        |
 | Sign in by email link                                           | New: hidden while the bot check is not set up (before, the form showed and always failed)                                                                                                                                                                                                    |
+| Telegram notifications (added 2026-09-21 review)                | The webhook checks a secret header with a timing-safe compare and is closed, not open, if the secret is not set (live-checked: wrong or missing secret always answers `404`, same as an unknown route). The 512 KB request size limit also covers this route (live-checked: `413`). The link code is 192 bits, stored only as a hash, single use, time limited. A chat can only ever be linked to one user (unique index, atomic swap). Forwarding to Telegram can never fail or slow down the action it came from (`ctx.defer`, `Promise.allSettled`). The CSRF exemption for this one route is an exact path match, tested to not spread to the other three Telegram routes |
 
 Found and fixed in this review: no size limit on requests; production settings without the hourly schedule (reminders,
 repeating lessons and clean up would not have run) and with the test outbox for email; sign in by email link failing with an error
-when the bot check is not set; sessions, sign in links and counters never removed.
+when the bot check is not set; sessions, sign in links and counters never removed. Found and fixed in the 2026-09-21 review: the
+Telegram migration had been deployed to the production Worker without being applied to the production database yet (a manual
+deploy done out of the normal order); applied it and re-ran the checks.
 
 Not a problem, but to know:
 
