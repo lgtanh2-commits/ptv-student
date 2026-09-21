@@ -50,7 +50,7 @@
         "EMAIL_MODE": "smtp",
         "SMTP_HOST": "smtp.gmail.com",
         "SMTP_PORT": "465",
-        "SMTP_FROM_NAME": "LMS",
+        "SMTP_FROM_NAME": "Tutorio",
         // Set to the real address after the first deploy, for example https://ptv-lms-staging.<account>.workers.dev
         "APP_URL": "https://ptv-lms-staging.luongtamanh2.workers.dev",
         // Not a secret. Google sign in stays off until GOOGLE_CLIENT_SECRET is also set (docs/deploy.md).
@@ -80,7 +80,7 @@
         "EMAIL_MODE": "smtp",
         "SMTP_HOST": "smtp.gmail.com",
         "SMTP_PORT": "465",
-        "SMTP_FROM_NAME": "LMS",
+        "SMTP_FROM_NAME": "Tutorio",
         // Must be the address people use. It goes into email links and into the Google redirect address.
         "APP_URL": "https://ptv-lms.luongtamanh2.workers.dev",
         // Not a secret. Google sign in stays off until GOOGLE_CLIENT_SECRET is also set.

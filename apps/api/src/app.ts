@@ -73,7 +73,7 @@ export function createApp() {
     return c.json(
       api.getOpenAPI31Document({
         openapi: "3.1.0",
-        info: { title: "LMS API", version: "0.0.0" },
+        info: { title: "Tutorio API", version: "0.0.0" },
       }),
     );
   });

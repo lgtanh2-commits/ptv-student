@@ -6,7 +6,7 @@ import { GLOSSARY } from "@lms/shared";
  * Only English for now; a new language is a new file with the same keys.
  */
 export const en = {
-  app: { name: "LMS" },
+  app: { name: "Tutorio" },
   common: {
     email: "Email",
     name: "Your name",
