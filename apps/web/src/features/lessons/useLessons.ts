@@ -7,7 +7,7 @@ import {
 } from "@lms/shared";
 import { computed, onMounted, ref } from "vue";
 import { api } from "@/api/client";
-import { addDays, today } from "@/features/format";
+import { today } from "@/features/format";
 import { useForm } from "@/features/forms/useForm";
 import { useToast } from "@/features/toast/useToast";
 
@@ -92,8 +92,6 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
         method: "POST",
         body: lessonPayload(v),
       });
-      // The next lesson of a weekly series is suggested for the week after the last one made.
-      form.values.date = addDays(res.lessons.at(-1)?.date ?? v.date, 7);
       await load();
       toast.success(text.added(res.lessons.length));
     },

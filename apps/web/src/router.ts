@@ -16,7 +16,8 @@ export const router = createRouter({
     { path: "/verify-email", component: () => import("@/pages/VerifyEmailPage.vue") },
     { path: "/magic-link", component: () => import("@/pages/MagicLinkPage.vue") },
     { path: "/accept-invite", component: () => import("@/pages/AcceptInvitePage.vue") },
-    { path: "/devices", component: () => import("@/pages/DevicesPage.vue"), meta: { requiresAuth: true } },
+    // Hidden from students for now (temporary).
+    { path: "/devices", component: () => import("@/pages/DevicesPage.vue"), meta: { requiresTeacher: true } },
     { path: "/courses", component: () => import("@/pages/CoursesPage.vue"), meta: { requiresTeacher: true } },
     {
       path: "/courses/new",
