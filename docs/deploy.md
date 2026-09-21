@@ -77,6 +77,11 @@ A teacher can also get the notifications that ring the bell in the app (a studen
 soon...) as Telegram messages. Nobody has to set this up: without it, the "Telegram notifications" card on the
 Devices page simply does not show.
 
+A bot can only have **one** webhook address. Using the same bot for two environments (as staging and production
+do now) means only the one last set with `setWebhook` actually receives updates; the other environment's card
+still shows but linking silently does nothing. For two environments that both need to work at the same time,
+make a second bot with @BotFather instead (free, one more `/newbot`) and give it its own settings.
+
 1. Message [@BotFather](https://t.me/BotFather) on Telegram, `/newbot`, and follow the steps. It gives a token and
    an `@username`.
 2. Set the settings: `wrangler secret put TELEGRAM_BOT_TOKEN --env <env>` (the token from BotFather),
