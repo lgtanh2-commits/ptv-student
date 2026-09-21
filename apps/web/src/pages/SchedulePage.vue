@@ -80,7 +80,9 @@ const statusTone = {
           <AppIcon name="right" />
         </button>
       </div>
-      <AppButton @click="openAdd"><AppIcon name="calendar-plus" :size="18" />{{ t.addLesson }}</AppButton>
+      <AppButton v-if="lessons.length > 0" @click="openAdd"
+        ><AppIcon name="calendar-plus" :size="18" />{{ t.addLesson }}</AppButton
+      >
     </template>
 
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>

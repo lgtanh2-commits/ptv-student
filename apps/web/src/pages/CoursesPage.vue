@@ -33,7 +33,7 @@ const statusTone = { draft: "warning", active: "success", archived: "neutral" } 
 
 <template>
   <AppPage :title="t.title" :subtitle="t.subtitle">
-    <template #actions>
+    <template v-if="courses.length > 0" #actions>
       <AppButton @click="router.push('/courses/new')"
         ><AppIcon name="plus" :size="18" />{{ t.new }}</AppButton
       >
