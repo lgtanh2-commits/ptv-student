@@ -45,8 +45,10 @@ async function load() {
   loading.value = false;
 }
 
+const endingId = ref<string | null>(null);
 async function end(s: SessionInfo) {
   error.value = null;
+  endingId.value = s.id;
   try {
     await authApi.endSession(s.id);
     if (s.current) {
@@ -58,13 +60,21 @@ async function end(s: SessionInfo) {
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
+  } finally {
+    endingId.value = null;
   }
 }
 
+const endingAll = ref(false);
 async function endAll() {
-  await authApi.signOutEverywhere();
-  await session.load(true);
-  await router.replace("/");
+  endingAll.value = true;
+  try {
+    await authApi.signOutEverywhere();
+    await session.load(true);
+    await router.replace("/");
+  } finally {
+    endingAll.value = false;
+  }
 }
 
 // A rough guess of the kind of device, only to pick an icon.
@@ -76,7 +86,7 @@ onMounted(load);
 <template>
   <AppPage :title="t.title" :subtitle="t.intro">
     <template #actions>
-      <AppButton variant="danger" compact @click="endAll"
+      <AppButton variant="danger" compact :loading="endingAll" @click="endAll"
         ><AppIcon name="sign-out" :size="16" />{{ t.signOutAll }}</AppButton
       >
     </template>
@@ -94,7 +104,9 @@ onMounted(load);
             <p class="text-sm text-base-content/60">{{ t.lastUsed }}: {{ when(s.lastSeenAt) }}</p>
           </div>
           <AppBadge v-if="s.current" tone="success">{{ t.thisDevice }}</AppBadge>
-          <AppButton variant="secondary" compact @click="end(s)">{{ t.signOut }}</AppButton>
+          <AppButton variant="secondary" compact :loading="endingId === s.id" @click="end(s)">{{
+            t.signOut
+          }}</AppButton>
         </li>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />

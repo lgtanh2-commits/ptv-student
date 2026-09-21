@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import StudentCourses from "@/components/StudentCourses.vue";
 import { formatDayShort } from "@/features/format";
@@ -41,9 +41,25 @@ async function save() {
   await form.submit();
   if (!form.formError.value && Object.keys(form.errors.value).length === 0) toast.success(t.saved);
 }
+const inviting = ref(false);
 async function sendInvite() {
-  await invite();
-  toast.success(t.inviteSent);
+  inviting.value = true;
+  try {
+    await invite();
+    toast.success(t.inviteSent);
+  } finally {
+    inviting.value = false;
+  }
+}
+
+const archiving = ref(false);
+async function toggleArchived(archived: boolean) {
+  archiving.value = true;
+  try {
+    await setArchived(archived);
+  } finally {
+    archiving.value = false;
+  }
 }
 </script>
 
@@ -53,13 +69,18 @@ async function sendInvite() {
       <AppBadge :tone="student.archived ? 'neutral' : accessTone[student.access]">
         {{ student.archived ? s.archived : accessText[student.access] }}
       </AppBadge>
-      <AppButton v-if="canInvite" variant="secondary" compact @click="sendInvite"
+      <AppButton v-if="canInvite" variant="secondary" compact :loading="inviting" @click="sendInvite"
         ><AppIcon name="send" :size="16" />{{ t.invite }}</AppButton
       >
-      <AppButton v-if="!student.archived" variant="secondary" compact @click="setArchived(true)"
+      <AppButton
+        v-if="!student.archived"
+        variant="secondary"
+        compact
+        :loading="archiving"
+        @click="toggleArchived(true)"
         ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
       >
-      <AppButton v-else variant="secondary" compact @click="setArchived(false)"
+      <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
         ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
       >
     </template>

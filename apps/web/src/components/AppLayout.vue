@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import AppToaster from "@/components/AppToaster.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
@@ -21,9 +21,15 @@ const t = messages.nav;
 useUnreadPolling(() => session.me !== null);
 const role = computed(() => (session.isTeacher ? t.teacher : t.student));
 
+const signingOut = ref(false);
 async function signOut() {
-  await session.signOut();
-  await router.replace("/");
+  signingOut.value = true;
+  try {
+    await session.signOut();
+    await router.replace("/");
+  } finally {
+    signingOut.value = false; // harmless if this view already unmounted after the navigation
+  }
 }
 </script>
 
@@ -58,10 +64,13 @@ async function signOut() {
         <button
           type="button"
           class="btn btn-square btn-ghost btn-sm"
+          :disabled="signingOut"
+          :aria-busy="signingOut || undefined"
           :aria-label="t.signOut"
           @click="signOut"
         >
-          <AppIcon name="sign-out" :size="18" />
+          <span v-if="signingOut" class="loading loading-spinner loading-sm" aria-hidden="true" />
+          <AppIcon v-else name="sign-out" :size="18" />
         </button>
       </div>
     </template>

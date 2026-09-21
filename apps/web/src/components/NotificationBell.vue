@@ -84,9 +84,14 @@ watch(
     >
       <div class="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-3">
         <h2 class="font-semibold">{{ t.title }}</h2>
-        <AppButton variant="ghost" compact :disabled="!list.hasUnread.value" @click="list.readAll">{{
-          t.readAll
-        }}</AppButton>
+        <AppButton
+          variant="ghost"
+          compact
+          :disabled="!list.hasUnread.value"
+          :loading="list.marking.value"
+          @click="list.readAll"
+          >{{ t.readAll }}</AppButton
+        >
       </div>
       <AppAlert v-if="list.error.value" kind="error">{{ list.error.value }}</AppAlert>
       <AppLoading v-if="list.loading.value" :label="messages.common.loading" />

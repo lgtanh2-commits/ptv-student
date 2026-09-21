@@ -67,14 +67,36 @@ const statusTone = {
 
 // A lesson in a weekly series asks what to cancel; a single lesson is cancelled at once.
 const asking = ref<LessonInfo | null>(null);
+const cancellingId = ref<string | null>(null);
 function askCancel(l: LessonInfo) {
-  if (l.seriesId) asking.value = l;
-  else void cancel(l.id, "this", cancelledText);
+  if (l.seriesId) {
+    asking.value = l;
+    return;
+  }
+  cancellingId.value = l.id;
+  void cancel(l.id, "this", cancelledText).finally(() => (cancellingId.value = null));
 }
+const confirmingScope = ref<"this" | "following" | null>(null);
 async function doCancel(scope: "this" | "following") {
   const l = asking.value;
-  asking.value = null;
-  if (l) await cancel(l.id, scope, cancelledText);
+  if (!l) return;
+  confirmingScope.value = scope;
+  try {
+    await cancel(l.id, scope, cancelledText);
+  } finally {
+    confirmingScope.value = null;
+    asking.value = null;
+  }
+}
+
+const restoringId = ref<string | null>(null);
+async function doRestore(l: LessonInfo) {
+  restoringId.value = l.id;
+  try {
+    await restore(l.id, t.restored);
+  } finally {
+    restoringId.value = null;
+  }
 }
 </script>
 
@@ -156,14 +178,20 @@ async function doCancel(scope: "this" | "following") {
               <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="edit.open(l)"
                 ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
               >
-              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="askCancel(l)">{{
-                t.cancel
-              }}</AppButton>
+              <AppButton
+                v-if="l.status === 'scheduled'"
+                variant="ghost"
+                compact
+                :loading="cancellingId === l.id"
+                @click="askCancel(l)"
+                >{{ t.cancel }}</AppButton
+              >
               <AppButton
                 v-if="l.status === 'cancelled'"
                 variant="ghost"
                 compact
-                @click="restore(l.id, t.restored)"
+                :loading="restoringId === l.id"
+                @click="doRestore(l)"
                 ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
               >
             </div>
@@ -181,8 +209,15 @@ async function doCancel(scope: "this" | "following") {
     >
       <p>{{ t.cancelText }}</p>
       <template #actions>
-        <AppButton variant="secondary" @click="doCancel('this')">{{ t.cancelOnly }}</AppButton>
-        <AppButton variant="danger" @click="doCancel('following')">{{ t.cancelFollowing }}</AppButton>
+        <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+          t.cancelOnly
+        }}</AppButton>
+        <AppButton
+          variant="danger"
+          :loading="confirmingScope === 'following'"
+          @click="doCancel('following')"
+          >{{ t.cancelFollowing }}</AppButton
+        >
       </template>
     </AppModal>
 

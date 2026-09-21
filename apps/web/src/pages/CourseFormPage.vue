@@ -59,6 +59,16 @@ const tabs = [
 const tab = ref(tabs.some((x) => x.key === route.query.tab) ? String(route.query.tab) : "overview");
 watch(tab, (key) => void router.replace({ query: { ...route.query, tab: key } }));
 
+const archiving = ref(false);
+async function toggleArchived(next: boolean) {
+  archiving.value = true;
+  try {
+    await setArchived(next);
+  } finally {
+    archiving.value = false;
+  }
+}
+
 const statusTone = { draft: "warning", active: "success", archived: "neutral" } as const;
 const statusText = {
   draft: messages.courses.statusDraft,
@@ -76,10 +86,15 @@ const statusText = {
   >
     <template v-if="course" #actions>
       <AppBadge :tone="statusTone[course.status]">{{ statusText[course.status] }}</AppBadge>
-      <AppButton v-if="!archived" variant="secondary" compact @click="setArchived(true)"
+      <AppButton
+        v-if="!archived"
+        variant="secondary"
+        compact
+        :loading="archiving"
+        @click="toggleArchived(true)"
         ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
       >
-      <AppButton v-else variant="secondary" compact @click="setArchived(false)"
+      <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
         ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
       >
     </template>

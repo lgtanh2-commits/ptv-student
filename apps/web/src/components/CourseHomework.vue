@@ -36,10 +36,17 @@ const deleteWords = computed(() => {
     ...(a.counts.handedIn > 0 ? [fill(t.deleteHandedIn, { n: a.counts.handedIn })] : []),
   ];
 });
+const removing = ref(false);
 async function confirmDelete() {
   const a = deleting.value;
-  deleting.value = null;
-  if (a) await remove(a.id);
+  if (!a) return;
+  removing.value = true;
+  try {
+    await remove(a.id);
+  } finally {
+    removing.value = false;
+    deleting.value = null;
+  }
 }
 </script>
 
@@ -100,7 +107,7 @@ async function confirmDelete() {
     <p v-for="(line, i) in deleteWords" :key="i">{{ line }}</p>
     <template #actions>
       <AppButton variant="ghost" @click="deleting = null">{{ messages.common.cancel }}</AppButton>
-      <AppButton variant="danger" @click="confirmDelete">{{ t.delete }}</AppButton>
+      <AppButton variant="danger" :loading="removing" @click="confirmDelete">{{ t.delete }}</AppButton>
     </template>
   </AppModal>
 </template>
