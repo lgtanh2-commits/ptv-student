@@ -78,6 +78,29 @@ export async function seriesFrom(db: D1Database, tenantId: string, seriesId: str
   return res.results;
 }
 
+/**
+ * Whether any of `ranges` would overlap a lesson of this tenant that is not cancelled and not one of `excludeIds`
+ * (the lessons being moved, which must not be compared against their own old time). Across all courses, because
+ * one teacher cannot be in two lessons at once.
+ */
+export async function hasOverlap(
+  db: D1Database,
+  tenantId: string,
+  excludeIds: string[],
+  ranges: { startsAt: string; endsAt: string }[],
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT 1 FROM lessons l, json_each(?1) j
+       WHERE l.tenant_id = ?2 AND l.status != 'cancelled' AND l.id NOT IN (SELECT value FROM json_each(?3))
+         AND l.starts_at < json_extract(j.value, '$.endsAt') AND l.ends_at > json_extract(j.value, '$.startsAt')
+       LIMIT 1`,
+    )
+    .bind(JSON.stringify(ranges), tenantId, JSON.stringify(excludeIds))
+    .first();
+  return row !== null;
+}
+
 /** These lessons, in time order. The ids travel as one JSON list, so the number of lessons does not matter. */
 export async function lessonsByIds(db: D1Database, tenantId: string, ids: string[]) {
   const res = await db
@@ -164,6 +187,23 @@ export const updateLessonsStatement = (
       o.targetId,
       o.version,
     );
+
+/**
+ * Removes lessons that are still "scheduled" (never held, so never attended) to make room for a new repeat
+ * pattern from the same moment on. The person must have been looking at the current version of `targetId`;
+ * if that lesson was saved by someone else meanwhile, nothing is removed. `meta.changes` is how many were removed.
+ */
+export const deleteScheduledLessonsStatement = (
+  db: D1Database,
+  o: { tenantId: string; targetId: string; version: number; ids: string[] },
+): D1PreparedStatement =>
+  db
+    .prepare(
+      `DELETE FROM lessons
+       WHERE tenant_id = ?1 AND status = 'scheduled' AND id IN (SELECT value FROM json_each(?2))
+         AND (SELECT version FROM lessons t WHERE t.id = ?3 AND t.tenant_id = ?1 AND t.status = 'scheduled') = ?4`,
+    )
+    .bind(o.tenantId, JSON.stringify(o.ids), o.targetId, o.version);
 
 /** A repeat with no end date. It only exists for a course of this tenant that is not archived. */
 export const insertSeriesStatement = (

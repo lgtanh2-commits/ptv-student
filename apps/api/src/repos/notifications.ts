@@ -7,7 +7,8 @@ export type Kind =
   | "homework_returned"
   | "homework_again"
   | "receipt_sent"
-  | "work_handed_in";
+  | "work_handed_in"
+  | "lesson_changed";
 
 const NEW_ID = `lower(hex(randomblob(16)))`;
 
@@ -135,6 +136,24 @@ export const notifyDueSoonStatement = (
        RETURNING user_id, kind, title, body, link`,
     )
     .bind(nowIso(), fromIso, untilIso);
+
+/** Every active, non-archived student of a course is told its time or details changed, once per change. */
+export const notifyLessonChangedStatement = (
+  db: D1Database,
+  o: { tenantId: string; courseId: string; title: string; body: string; link: string; dedupe: string },
+): D1PreparedStatement =>
+  db
+    .prepare(
+      `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at, dedupe_key)
+       SELECT ${NEW_ID}, e.tenant_id, s.user_id, 'lesson_changed', ?1, ?2, ?3, ?4, ?5
+       FROM enrollments e
+         JOIN students s ON s.id = e.student_id AND s.tenant_id = e.tenant_id AND s.user_id IS NOT NULL
+           AND s.status != 'archived'
+       WHERE e.tenant_id = ?6 AND e.course_id = ?7 AND e.status = 'active'
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, kind, title, body, link`,
+    )
+    .bind(o.title, o.body, o.link, nowIso(), o.dedupe, o.tenantId, o.courseId);
 
 // ---------------------------------------------------------------------- reading
 

@@ -3,7 +3,7 @@ import { lessonLabel } from "@/features/lessons/status";
 import type { LessonInfo } from "@lms/shared";
 import { computed, ref } from "vue";
 import LessonFields from "@/components/LessonFields.vue";
-import { useCourseLessons } from "@/features/lessons/useLessons";
+import { LESSON_LENGTHS, useCourseLessons, useEditLesson } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
 import { formatDayShort } from "@/features/format";
 import { fill } from "@/features/text";
@@ -12,20 +12,36 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
+import AppInput from "@/ui/AppInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
+import AppSelect from "@/ui/AppSelect.vue";
 import { useRouter } from "vue-router";
 
 const props = defineProps<{ courseId: string }>();
 const t = messages.lessons;
 const router = useRouter();
 
-const { loading, error, form, cancel, restore, parts } = useCourseLessons(props.courseId, {
+const { loading, error, load, form, cancel, restore, parts } = useCourseLessons(props.courseId, {
   added: (n) => (n === 1 ? t.addedOne : fill(t.added, { n })),
 });
+
+const edit = useEditLesson({ updated: (n) => (n === 1 ? t.updatedOne : fill(t.updated, { n })) }, load);
+const lengthText: Record<number, string> = { 30: t.len30, 60: t.len60, 90: t.len90, 120: t.len120 };
+const lengths = LESSON_LENGTHS.map((m) => ({ value: String(m), label: lengthText[m]! }));
+const scopeOptions = [
+  { value: "this", label: t.editScopeThis },
+  { value: "following", label: t.editScopeFollowing },
+];
+const repeatOptions = [
+  { value: "none", label: t.repeatNone },
+  { value: "weekly", label: t.repeatWeekly },
+  { value: "every_2_weeks", label: t.repeatBiweekly },
+];
 
 // Ten lessons a page, in the lessons to come and in the earlier ones (each has its own pages).
 const upcomingPaging = usePaging(() => parts.value.upcoming);
@@ -137,6 +153,9 @@ async function doCancel(scope: "this" | "following") {
                 @click="router.push(`/lessons/${l.id}/attendance`)"
                 ><AppIcon name="attendance" :size="16" />{{ t.takeAttendance }}</AppButton
               >
+              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="edit.open(l)"
+                ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
+              >
               <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="askCancel(l)">{{
                 t.cancel
               }}</AppButton>
@@ -164,6 +183,92 @@ async function doCancel(scope: "this" | "following") {
       <template #actions>
         <AppButton variant="secondary" @click="doCancel('this')">{{ t.cancelOnly }}</AppButton>
         <AppButton variant="danger" @click="doCancel('following')">{{ t.cancelFollowing }}</AppButton>
+      </template>
+    </AppModal>
+
+    <AppModal
+      :model-value="edit.editing.value !== null"
+      :title="t.editTitle"
+      :close-label="messages.common.close"
+      @update:model-value="(v) => !v && (edit.editing.value = null)"
+    >
+      <form
+        id="edit-lesson"
+        class="grid gap-x-4 gap-y-3 md:grid-cols-2"
+        novalidate
+        @submit.prevent="edit.form.submit"
+      >
+        <AppAlert v-if="edit.form.formError.value" kind="error" class="md:col-span-2">{{
+          edit.form.formError.value
+        }}</AppAlert>
+        <AppInput
+          v-model="edit.form.values.date"
+          :label="t.date"
+          type="date"
+          :error="edit.form.errors.value.date"
+        />
+        <AppInput
+          v-model="edit.form.values.startTime"
+          :label="t.startTime"
+          type="time"
+          :error="edit.form.errors.value.startTime"
+        />
+        <AppSelect
+          v-model="edit.form.values.durationMinutes"
+          :label="t.duration"
+          :options="lengths"
+          required
+          :error="edit.form.errors.value.durationMinutes"
+        />
+        <AppInput
+          v-model="edit.form.values.title"
+          :label="t.lessonTitle"
+          :error="edit.form.errors.value.title"
+        />
+        <AppInput
+          v-model="edit.form.values.onlineUrl"
+          :label="t.online"
+          type="url"
+          :hint="t.onlineHint"
+          :error="edit.form.errors.value.onlineUrl"
+        />
+        <div v-if="edit.editing.value?.seriesId" class="md:col-span-2">
+          <AppSelect
+            v-model="edit.form.values.scope"
+            :label="t.editScopeLabel"
+            :options="scopeOptions"
+            :hint="t.editScopeText"
+            required
+          />
+        </div>
+        <template v-if="edit.editing.value?.seriesId && edit.form.values.scope === 'following'">
+          <div class="md:col-span-2">
+            <AppCheckbox v-model="edit.form.values.changeRepeat" :label="t.editChangeRepeat" />
+          </div>
+          <template v-if="edit.form.values.changeRepeat">
+            <AppSelect
+              v-model="edit.form.values.repeat"
+              :label="t.repeat"
+              :options="repeatOptions"
+              required
+              :error="edit.form.errors.value.repeat"
+            />
+            <AppInput
+              v-if="edit.form.values.repeat !== 'none'"
+              v-model="edit.form.values.repeatUntil"
+              :label="t.repeatUntil"
+              type="date"
+              :hint="t.repeatUntilHint"
+              :error="edit.form.errors.value.repeatUntil"
+            />
+          </template>
+        </template>
+      </form>
+      <template #actions>
+        <AppButton variant="ghost" @click="edit.editing.value = null">{{ messages.common.cancel }}</AppButton>
+        <AppButton type="submit" form="edit-lesson" :loading="edit.form.submitting.value">{{
+          t.saveChanges
+        }}</AppButton>
       </template>
     </AppModal>
   </div>

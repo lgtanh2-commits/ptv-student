@@ -1,5 +1,6 @@
 import {
   createLessonsBody,
+  updateLessonBody,
   type CourseInfo,
   type LessonInfo,
   type LessonScope,
@@ -48,6 +49,97 @@ export const lessonPayload = (v: LessonFormValues) => ({
   repeat: v.repeat,
   repeatUntil: v.repeat === "none" || v.repeatUntil === "" ? null : v.repeatUntil,
 });
+
+/** The minutes from one HH:mm time to another, on the same day. */
+const minutesBetween = (start: string, end: string): number => {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return eh! * 60 + em! - (sh! * 60 + sm!);
+};
+
+export type LessonEditValues = {
+  title: string;
+  date: string;
+  startTime: string;
+  durationMinutes: string;
+  onlineUrl: string;
+  /** Only asked when the lesson is part of a weekly series. */
+  scope: LessonScope;
+  /** Only offered with scope "following": also change how it repeats from here on, instead of only moving it. */
+  changeRepeat: boolean;
+  repeat: Repeat;
+  repeatUntil: string;
+  version: number;
+};
+
+const lessonEditDefaults = (): LessonEditValues => ({
+  title: "",
+  date: today(),
+  startTime: "18:00",
+  durationMinutes: "90",
+  onlineUrl: "",
+  scope: "this",
+  changeRepeat: false,
+  repeat: "weekly",
+  repeatUntil: "",
+  version: 1,
+});
+
+/** What is sent to change a lesson already made. The place is not asked for any more (see `lessonPayload`). */
+const editPayload = (v: LessonEditValues) => ({
+  title: v.title,
+  date: v.date,
+  startTime: v.startTime,
+  durationMinutes: num(v.durationMinutes),
+  place: "",
+  onlineUrl: v.onlineUrl.trim() === "" ? null : v.onlineUrl,
+  version: v.version,
+  scope: v.scope,
+  ...(v.scope === "following" && v.changeRepeat
+    ? { repeat: v.repeat, repeatUntil: v.repeat === "none" || v.repeatUntil === "" ? null : v.repeatUntil }
+    : {}),
+});
+
+/**
+ * Changing the date, time or details of one lesson already made. `reload` is how the page that shows
+ * lessons gets the fresh list; it is called after a successful change. Logic only.
+ */
+export function useEditLesson(text: { updated: (n: number) => string }, reload: () => Promise<void>) {
+  const toast = useToast();
+  const editing = ref<LessonInfo | null>(null);
+
+  const form = useForm<LessonEditValues>(lessonEditDefaults(), {
+    schema: updateLessonBody,
+    toPayload: editPayload,
+    submit: async (v) => {
+      if (!editing.value) return;
+      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${editing.value.id}`, {
+        method: "PUT",
+        body: editPayload(v),
+      });
+      editing.value = null;
+      await reload();
+      toast.success(text.updated(res.lessons.length));
+    },
+  });
+
+  /** Fills the form with a lesson's current details, ready to change. */
+  function open(lesson: LessonInfo) {
+    editing.value = lesson;
+    form.errors.value = {};
+    form.formError.value = null;
+    Object.assign(form.values, lessonEditDefaults(), {
+      title: lesson.title,
+      date: lesson.date,
+      startTime: lesson.startTime,
+      durationMinutes: String(minutesBetween(lesson.startTime, lesson.endTime)),
+      onlineUrl: lesson.onlineUrl ?? "",
+      version: lesson.version,
+    });
+  }
+
+  return { editing, form, open };
+}
 
 /** Lessons that are still to come, then the ones that are over. Cancelled ones go to the end of their part. */
 export function splitLessons(lessons: LessonInfo[], now: Date = new Date()) {
