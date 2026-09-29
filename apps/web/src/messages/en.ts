@@ -440,6 +440,8 @@ export const en = {
     cancelOnly: "Only this lesson",
     cancelFollowing: "This and the next lessons",
     cancelText: "This lesson is part of a weekly series. What do you want to cancel?",
+    cancelConfirmText: "You can restore it later if you change your mind.",
+    cancelYes: "Cancel lesson",
     cancelled: "Lesson cancelled.",
     cancelledMany: "{n} lessons cancelled.",
     restored: "Lesson restored.",

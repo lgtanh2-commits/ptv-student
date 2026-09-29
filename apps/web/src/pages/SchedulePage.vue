@@ -3,7 +3,13 @@ import { computed, ref } from "vue";
 import LessonFields from "@/components/LessonFields.vue";
 import { formatDayShort, formatWeek, startOfWeek, today } from "@/features/format";
 import { lessonLabel } from "@/features/lessons/status";
-import { LESSON_LENGTHS, useEditLesson, useLessonCancel, useNewLesson } from "@/features/lessons/useLessons";
+import {
+  LESSON_LENGTHS,
+  useEditLesson,
+  useLessonCancel,
+  useLessonRestore,
+  useNewLesson,
+} from "@/features/lessons/useLessons";
 import { useSchedule } from "@/features/lessons/useSchedule";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
@@ -26,10 +32,8 @@ const { monday, days, lessons, loading, error, next, previous, thisWeek, goToWee
 
 const edit = useEditLesson({ updated: (n) => (n === 1 ? l.updatedOne : fill(l.updated, { n })) }, load);
 const cancelledText = (n: number) => (n === 1 ? l.cancelled : fill(l.cancelledMany, { n }));
-const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLessonCancel(
-  { cancelled: cancelledText },
-  load,
-);
+const { asking, confirmingScope, askCancel, doCancel } = useLessonCancel({ cancelled: cancelledText }, load);
+const { restoringId, restore } = useLessonRestore({ restored: l.restored }, load);
 const lengthText: Record<number, string> = { 30: l.len30, 60: l.len60, 90: l.len90, 120: l.len120 };
 const lengths = LESSON_LENGTHS.map((m) => ({ value: String(m), label: lengthText[m]! }));
 const scopeOptions = [
@@ -159,11 +163,20 @@ const statusTone = {
               type="button"
               class="btn btn-ghost btn-square shrink-0"
               :aria-label="l.cancel"
-              :disabled="cancellingId === lesson.id"
               @click="askCancel(lesson)"
             >
-              <span v-if="cancellingId === lesson.id" class="loading loading-spinner loading-xs" />
-              <AppIcon v-else name="ban" :size="18" />
+              <AppIcon name="ban" :size="18" />
+            </button>
+            <button
+              v-if="lesson.status === 'cancelled'"
+              type="button"
+              class="btn btn-ghost btn-square shrink-0"
+              :aria-label="l.restore"
+              :disabled="restoringId === lesson.id"
+              @click="restore(lesson.id)"
+            >
+              <span v-if="restoringId === lesson.id" class="loading loading-spinner loading-xs" />
+              <AppIcon v-else name="restore" :size="18" />
             </button>
           </li>
         </ul>
@@ -176,17 +189,23 @@ const statusTone = {
       :close-label="messages.common.close"
       @update:model-value="asking = null"
     >
-      <p>{{ l.cancelText }}</p>
+      <p>{{ asking?.seriesId ? l.cancelText : l.cancelConfirmText }}</p>
       <template #actions>
-        <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
-          l.cancelOnly
+        <AppButton variant="ghost" @click="asking = null">{{ messages.common.cancel }}</AppButton>
+        <template v-if="asking?.seriesId">
+          <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+            l.cancelOnly
+          }}</AppButton>
+          <AppButton
+            variant="danger"
+            :loading="confirmingScope === 'following'"
+            @click="doCancel('following')"
+            >{{ l.cancelFollowing }}</AppButton
+          >
+        </template>
+        <AppButton v-else variant="danger" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+          l.cancelYes
         }}</AppButton>
-        <AppButton
-          variant="danger"
-          :loading="confirmingScope === 'following'"
-          @click="doCancel('following')"
-          >{{ l.cancelFollowing }}</AppButton
-        >
       </template>
     </AppModal>
 

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { lessonLabel } from "@/features/lessons/status";
-import type { LessonInfo } from "@lms/shared";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import LessonFields from "@/components/LessonFields.vue";
 import {
   LESSON_LENGTHS,
   useCourseLessons,
   useEditLesson,
   useLessonCancel,
+  useLessonRestore,
 } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
 import { formatDayShort } from "@/features/format";
@@ -31,7 +31,7 @@ const props = defineProps<{ courseId: string }>();
 const t = messages.lessons;
 const router = useRouter();
 
-const { loading, error, load, form, restore, parts } = useCourseLessons(props.courseId, {
+const { loading, error, load, form, parts } = useCourseLessons(props.courseId, {
   added: (n) => (n === 1 ? t.addedOne : fill(t.added, { n })),
 });
 
@@ -57,10 +57,8 @@ const groups = computed(() => [
 ]);
 
 const cancelledText = (n: number) => (n === 1 ? t.cancelled : fill(t.cancelledMany, { n }));
-const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLessonCancel(
-  { cancelled: cancelledText },
-  load,
-);
+const { asking, confirmingScope, askCancel, doCancel } = useLessonCancel({ cancelled: cancelledText }, load);
+const { restoringId, restore } = useLessonRestore({ restored: t.restored }, load);
 const statusText = {
   scheduled: t.statusScheduled,
   held: t.statusHeld,
@@ -73,16 +71,6 @@ const statusTone = {
   cancelled: "neutral",
   needs_attendance: "warning",
 } as const;
-
-const restoringId = ref<string | null>(null);
-async function doRestore(l: LessonInfo) {
-  restoringId.value = l.id;
-  try {
-    await restore(l.id, t.restored);
-  } finally {
-    restoringId.value = null;
-  }
-}
 </script>
 
 <template>
@@ -163,20 +151,15 @@ async function doRestore(l: LessonInfo) {
               <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="edit.open(l)"
                 ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
               >
-              <AppButton
-                v-if="l.status === 'scheduled'"
-                variant="ghost"
-                compact
-                :loading="cancellingId === l.id"
-                @click="askCancel(l)"
-                >{{ t.cancel }}</AppButton
-              >
+              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="askCancel(l)">{{
+                t.cancel
+              }}</AppButton>
               <AppButton
                 v-if="l.status === 'cancelled'"
                 variant="ghost"
                 compact
                 :loading="restoringId === l.id"
-                @click="doRestore(l)"
+                @click="restore(l.id)"
                 ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
               >
             </div>
@@ -192,17 +175,23 @@ async function doRestore(l: LessonInfo) {
       :close-label="messages.common.close"
       @update:model-value="asking = null"
     >
-      <p>{{ t.cancelText }}</p>
+      <p>{{ asking?.seriesId ? t.cancelText : t.cancelConfirmText }}</p>
       <template #actions>
-        <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
-          t.cancelOnly
+        <AppButton variant="ghost" @click="asking = null">{{ messages.common.cancel }}</AppButton>
+        <template v-if="asking?.seriesId">
+          <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+            t.cancelOnly
+          }}</AppButton>
+          <AppButton
+            variant="danger"
+            :loading="confirmingScope === 'following'"
+            @click="doCancel('following')"
+            >{{ t.cancelFollowing }}</AppButton
+          >
+        </template>
+        <AppButton v-else variant="danger" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+          t.cancelYes
         }}</AppButton>
-        <AppButton
-          variant="danger"
-          :loading="confirmingScope === 'following'"
-          @click="doCancel('following')"
-          >{{ t.cancelFollowing }}</AppButton
-        >
       </template>
     </AppModal>
 

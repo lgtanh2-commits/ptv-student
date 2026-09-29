@@ -148,30 +148,12 @@ export function useEditLesson(text: { updated: (n: number) => string }, reload: 
  */
 export function useLessonCancel(text: { cancelled: (n: number) => string }, reload: () => Promise<void>) {
   const toast = useToast();
+  /** The lesson being asked about. Always confirmed before it is cancelled. */
   const asking = ref<LessonInfo | null>(null);
-  const cancellingId = ref<string | null>(null);
   const confirmingScope = ref<LessonScope | null>(null);
 
-  async function run(id: string, scope: LessonScope) {
-    try {
-      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${id}/cancel`, {
-        method: "POST",
-        body: { scope },
-      });
-      await reload();
-      toast.success(text.cancelled(res.lessons.length));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    }
-  }
-
   function askCancel(l: LessonInfo) {
-    if (l.seriesId) {
-      asking.value = l;
-      return;
-    }
-    cancellingId.value = l.id;
-    void run(l.id, "this").finally(() => (cancellingId.value = null));
+    asking.value = l;
   }
 
   async function doCancel(scope: LessonScope) {
@@ -179,14 +161,42 @@ export function useLessonCancel(text: { cancelled: (n: number) => string }, relo
     if (!l) return;
     confirmingScope.value = scope;
     try {
-      await run(l.id, scope);
+      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${l.id}/cancel`, {
+        method: "POST",
+        body: { scope },
+      });
+      await reload();
+      toast.success(text.cancelled(res.lessons.length));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       confirmingScope.value = null;
       asking.value = null;
     }
   }
 
-  return { asking, cancellingId, confirmingScope, askCancel, doCancel };
+  return { asking, confirmingScope, askCancel, doCancel };
+}
+
+/** Restoring a lesson that was cancelled, wherever it is shown. Logic only. */
+export function useLessonRestore(text: { restored: string }, reload: () => Promise<void>) {
+  const toast = useToast();
+  const restoringId = ref<string | null>(null);
+
+  async function restore(id: string) {
+    restoringId.value = id;
+    try {
+      await api(`/lessons/${id}/restore`, { method: "POST", body: {} });
+      await reload();
+      toast.success(text.restored);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      restoringId.value = null;
+    }
+  }
+
+  return { restoringId, restore };
 }
 
 /** Lessons that are still to come, then the ones that are over. Cancelled ones go to the end of their part. */
@@ -206,7 +216,7 @@ export function recentLessons(lessons: LessonInfo[], now: Date = new Date()): Le
   return lessons.filter((l) => l.endsAt >= oldest);
 }
 
-/** The lessons of one course, and making, cancelling and restoring them. Logic only. */
+/** The lessons of one course, and making new ones. Logic only. */
 export function useCourseLessons(courseId: string, text: { added: (n: number) => string }) {
   const toast = useToast();
   const lessons = ref<LessonInfo[]>([]);
@@ -237,25 +247,9 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
     },
   });
 
-  async function act(run: () => Promise<string>) {
-    try {
-      const done = await run();
-      await load();
-      toast.success(done);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    }
-  }
-
-  const restore = (id: string, done: string) =>
-    act(async () => {
-      await api(`/lessons/${id}/restore`, { method: "POST", body: {} });
-      return done;
-    });
-
   const parts = computed(() => splitLessons(recentLessons(lessons.value)));
   onMounted(load);
-  return { lessons, loading, error, load, form, restore, parts };
+  return { lessons, loading, error, load, form, parts };
 }
 
 /**
