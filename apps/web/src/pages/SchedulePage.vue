@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import LessonFields from "@/components/LessonFields.vue";
 import { formatDayShort, formatWeek, startOfWeek, today } from "@/features/format";
 import { lessonLabel } from "@/features/lessons/status";
-import { LESSON_LENGTHS, useEditLesson, useNewLesson } from "@/features/lessons/useLessons";
+import { LESSON_LENGTHS, useEditLesson, useLessonCancel, useNewLesson } from "@/features/lessons/useLessons";
 import { useSchedule } from "@/features/lessons/useSchedule";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
@@ -25,6 +25,11 @@ const l = messages.lessons;
 const { monday, days, lessons, loading, error, next, previous, thisWeek, goToWeekOf, load } = useSchedule();
 
 const edit = useEditLesson({ updated: (n) => (n === 1 ? l.updatedOne : fill(l.updated, { n })) }, load);
+const cancelledText = (n: number) => (n === 1 ? l.cancelled : fill(l.cancelledMany, { n }));
+const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLessonCancel(
+  { cancelled: cancelledText },
+  load,
+);
 const lengthText: Record<number, string> = { 30: l.len30, 60: l.len60, 90: l.len90, 120: l.len120 };
 const lengths = LESSON_LENGTHS.map((m) => ({ value: String(m), label: lengthText[m]! }));
 const scopeOptions = [
@@ -149,10 +154,41 @@ const statusTone = {
             >
               <AppIcon name="edit" :size="18" />
             </button>
+            <button
+              v-if="lesson.status === 'scheduled'"
+              type="button"
+              class="btn btn-ghost btn-square shrink-0"
+              :aria-label="l.cancel"
+              :disabled="cancellingId === lesson.id"
+              @click="askCancel(lesson)"
+            >
+              <span v-if="cancellingId === lesson.id" class="loading loading-spinner loading-xs" />
+              <AppIcon v-else name="ban" :size="18" />
+            </button>
           </li>
         </ul>
       </section>
     </div>
+
+    <AppModal
+      :model-value="asking !== null"
+      :title="l.cancelTitle"
+      :close-label="messages.common.close"
+      @update:model-value="asking = null"
+    >
+      <p>{{ l.cancelText }}</p>
+      <template #actions>
+        <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+          l.cancelOnly
+        }}</AppButton>
+        <AppButton
+          variant="danger"
+          :loading="confirmingScope === 'following'"
+          @click="doCancel('following')"
+          >{{ l.cancelFollowing }}</AppButton
+        >
+      </template>
+    </AppModal>
 
     <AppModal v-model="adding" :title="t.addLesson" :close-label="messages.common.close">
       <AppLoading v-if="made.loadingCourses.value" :label="messages.common.loading" />

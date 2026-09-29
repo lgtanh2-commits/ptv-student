@@ -3,7 +3,12 @@ import { lessonLabel } from "@/features/lessons/status";
 import type { LessonInfo } from "@lms/shared";
 import { computed, ref } from "vue";
 import LessonFields from "@/components/LessonFields.vue";
-import { LESSON_LENGTHS, useCourseLessons, useEditLesson } from "@/features/lessons/useLessons";
+import {
+  LESSON_LENGTHS,
+  useCourseLessons,
+  useEditLesson,
+  useLessonCancel,
+} from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
 import { formatDayShort } from "@/features/format";
 import { fill } from "@/features/text";
@@ -26,7 +31,7 @@ const props = defineProps<{ courseId: string }>();
 const t = messages.lessons;
 const router = useRouter();
 
-const { loading, error, load, form, cancel, restore, parts } = useCourseLessons(props.courseId, {
+const { loading, error, load, form, restore, parts } = useCourseLessons(props.courseId, {
   added: (n) => (n === 1 ? t.addedOne : fill(t.added, { n })),
 });
 
@@ -52,6 +57,10 @@ const groups = computed(() => [
 ]);
 
 const cancelledText = (n: number) => (n === 1 ? t.cancelled : fill(t.cancelledMany, { n }));
+const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLessonCancel(
+  { cancelled: cancelledText },
+  load,
+);
 const statusText = {
   scheduled: t.statusScheduled,
   held: t.statusHeld,
@@ -64,30 +73,6 @@ const statusTone = {
   cancelled: "neutral",
   needs_attendance: "warning",
 } as const;
-
-// A lesson in a weekly series asks what to cancel; a single lesson is cancelled at once.
-const asking = ref<LessonInfo | null>(null);
-const cancellingId = ref<string | null>(null);
-function askCancel(l: LessonInfo) {
-  if (l.seriesId) {
-    asking.value = l;
-    return;
-  }
-  cancellingId.value = l.id;
-  void cancel(l.id, "this", cancelledText).finally(() => (cancellingId.value = null));
-}
-const confirmingScope = ref<"this" | "following" | null>(null);
-async function doCancel(scope: "this" | "following") {
-  const l = asking.value;
-  if (!l) return;
-  confirmingScope.value = scope;
-  try {
-    await cancel(l.id, scope, cancelledText);
-  } finally {
-    confirmingScope.value = null;
-    asking.value = null;
-  }
-}
 
 const restoringId = ref<string | null>(null);
 async function doRestore(l: LessonInfo) {

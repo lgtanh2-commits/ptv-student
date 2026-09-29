@@ -141,6 +141,54 @@ export function useEditLesson(text: { updated: (n: number) => string }, reload: 
   return { editing, form, open };
 }
 
+/**
+ * Cancelling a lesson already made, wherever it is shown (course page, schedule, attendance page).
+ * A lesson in a weekly series asks what to cancel; a single lesson is cancelled at once. `reload` is
+ * how the page that shows the lesson gets the fresh state; it is called after a successful cancel.
+ */
+export function useLessonCancel(text: { cancelled: (n: number) => string }, reload: () => Promise<void>) {
+  const toast = useToast();
+  const asking = ref<LessonInfo | null>(null);
+  const cancellingId = ref<string | null>(null);
+  const confirmingScope = ref<LessonScope | null>(null);
+
+  async function run(id: string, scope: LessonScope) {
+    try {
+      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${id}/cancel`, {
+        method: "POST",
+        body: { scope },
+      });
+      await reload();
+      toast.success(text.cancelled(res.lessons.length));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
+  }
+
+  function askCancel(l: LessonInfo) {
+    if (l.seriesId) {
+      asking.value = l;
+      return;
+    }
+    cancellingId.value = l.id;
+    void run(l.id, "this").finally(() => (cancellingId.value = null));
+  }
+
+  async function doCancel(scope: LessonScope) {
+    const l = asking.value;
+    if (!l) return;
+    confirmingScope.value = scope;
+    try {
+      await run(l.id, scope);
+    } finally {
+      confirmingScope.value = null;
+      asking.value = null;
+    }
+  }
+
+  return { asking, cancellingId, confirmingScope, askCancel, doCancel };
+}
+
 /** Lessons that are still to come, then the ones that are over. Cancelled ones go to the end of their part. */
 export function splitLessons(lessons: LessonInfo[], now: Date = new Date()) {
   const cutoff = now.toISOString();
@@ -199,15 +247,6 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
     }
   }
 
-  /** `message` says what happened, given how many lessons were cancelled. */
-  const cancel = (id: string, scope: LessonScope, message: (n: number) => string) =>
-    act(async () => {
-      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${id}/cancel`, {
-        method: "POST",
-        body: { scope },
-      });
-      return message(res.lessons.length);
-    });
   const restore = (id: string, done: string) =>
     act(async () => {
       await api(`/lessons/${id}/restore`, { method: "POST", body: {} });
@@ -216,7 +255,7 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
 
   const parts = computed(() => splitLessons(recentLessons(lessons.value)));
   onMounted(load);
-  return { lessons, loading, error, load, form, cancel, restore, parts };
+  return { lessons, loading, error, load, form, restore, parts };
 }
 
 /**

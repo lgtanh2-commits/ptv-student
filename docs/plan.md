@@ -352,6 +352,7 @@ Thao tác này làm thay đổi cấu trúc repo nên sẽ xin xác nhận lại
 **Còn mở (không chặn M0):**
 
 1. Gửi email thật cần một tên miền. Chưa cần quyết ngay: M0 đến M3 chạy được hoàn toàn với email dev (ghi vào `email_outbox`). Chỉ cần quyết trước M4/beta, khi giáo viên và học sinh thật cần nhận magic link và hóa đơn qua email. Lúc đó có 2 lựa chọn: mua một tên miền rẻ chỉ để gửi email, hoặc dùng tên miền anh đã có.
+2. **Backlog (2026-09-24): duyệt tài khoản giáo viên trước khi dùng được.** Hiện tại `auth.sign_up`/`auth.google_sign_up` cho phép bất kỳ ai tự đăng ký làm giáo viên và tự tạo tenant, không ai duyệt — phát sinh từ việc phát hiện 1 tài khoản lạ tự đăng ký (`ntnb397@gmail.com`, đã disable thủ công qua `users.disabled_at`). Hướng đề xuất: thêm trạng thái `pending_approval` cho user mới có vai trò teacher, chặn ở middleware giống cách `disabled_at` đang chặn, admin duyệt thủ công hoặc allowlist domain email. Học sinh KHÔNG cần thêm lớp duyệt — họ chỉ vào hệ thống qua invite của giáo viên (`src/students/invites.ts`), bản thân invite đã là bước duyệt. Chưa quyết ngày làm, cân nhắc đưa vào milestone sau.
 
 ---
 

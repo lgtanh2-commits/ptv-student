@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { formatDayLong } from "@/features/format";
 import { useAttendance } from "@/features/lessons/useAttendance";
+import { useLessonCancel } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
@@ -14,12 +15,14 @@ import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppSegmented from "@/ui/AppSegmented.vue";
 import AppStat from "@/ui/AppStat.vue";
 
 const t = messages.attendance;
+const l = messages.lessons;
 const route = useRoute();
 const a = useAttendance(String(route.params.id));
 // Ten students a page. The marks of all pages are saved together.
@@ -31,6 +34,12 @@ const options = [
   { value: "attended", label: t.attended, tone: "success" as const },
   { value: "absent", label: t.absent, tone: "error" as const },
 ];
+
+const cancelledText = (n: number) => (n === 1 ? l.cancelled : fill(l.cancelledMany, { n }));
+const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLessonCancel(
+  { cancelled: cancelledText },
+  a.load,
+);
 </script>
 
 <template>
@@ -40,6 +49,12 @@ const options = [
     :back-to="lesson ? `/courses/${lesson.courseId}?tab=lessons` : '/schedule'"
     :back-label="t.back"
   >
+    <template v-if="lesson?.status === 'scheduled'" #actions>
+      <AppButton variant="ghost" :loading="cancellingId === lesson.id" @click="askCancel(lesson)">{{
+        l.cancel
+      }}</AppButton>
+    </template>
+
     <AppLoading v-if="a.loading.value" :label="messages.common.loading" />
     <AppAlert v-else-if="a.notFound.value" kind="error">{{ t.notFound }}</AppAlert>
     <template v-else-if="lesson">
@@ -128,5 +143,25 @@ const options = [
         </AppButton>
       </div>
     </template>
+
+    <AppModal
+      :model-value="asking !== null"
+      :title="l.cancelTitle"
+      :close-label="messages.common.close"
+      @update:model-value="asking = null"
+    >
+      <p>{{ l.cancelText }}</p>
+      <template #actions>
+        <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+          l.cancelOnly
+        }}</AppButton>
+        <AppButton
+          variant="danger"
+          :loading="confirmingScope === 'following'"
+          @click="doCancel('following')"
+          >{{ l.cancelFollowing }}</AppButton
+        >
+      </template>
+    </AppModal>
   </AppPage>
 </template>

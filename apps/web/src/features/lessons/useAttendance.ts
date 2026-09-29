@@ -100,6 +100,7 @@ export function useAttendance(lessonId: string) {
     isPast,
     setAll,
     save,
+    load,
     statuses: ATTENDANCE_STATUSES,
   };
 }
