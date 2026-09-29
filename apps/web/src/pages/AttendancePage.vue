@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { formatDayLong } from "@/features/format";
 import { useAttendance } from "@/features/lessons/useAttendance";
-import { useLessonCancel } from "@/features/lessons/useLessons";
+import { useLessonCancel, useLessonRestore } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
@@ -36,10 +36,11 @@ const options = [
 ];
 
 const cancelledText = (n: number) => (n === 1 ? l.cancelled : fill(l.cancelledMany, { n }));
-const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLessonCancel(
+const { asking, confirmingScope, askCancel, doCancel } = useLessonCancel(
   { cancelled: cancelledText },
   a.load,
 );
+const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.load);
 </script>
 
 <template>
@@ -50,9 +51,12 @@ const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLesson
     :back-label="t.back"
   >
     <template v-if="lesson?.status === 'scheduled'" #actions>
-      <AppButton variant="ghost" :loading="cancellingId === lesson.id" @click="askCancel(lesson)">{{
-        l.cancel
-      }}</AppButton>
+      <AppButton variant="ghost" @click="askCancel(lesson)">{{ l.cancel }}</AppButton>
+    </template>
+    <template v-else-if="lesson?.status === 'cancelled'" #actions>
+      <AppButton variant="ghost" :loading="restoringId === lesson.id" @click="restore(lesson.id)">
+        <AppIcon name="restore" :size="18" />{{ l.restore }}
+      </AppButton>
     </template>
 
     <AppLoading v-if="a.loading.value" :label="messages.common.loading" />
@@ -150,17 +154,23 @@ const { asking, cancellingId, confirmingScope, askCancel, doCancel } = useLesson
       :close-label="messages.common.close"
       @update:model-value="asking = null"
     >
-      <p>{{ l.cancelText }}</p>
+      <p>{{ asking?.seriesId ? l.cancelText : l.cancelConfirmText }}</p>
       <template #actions>
-        <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
-          l.cancelOnly
+        <AppButton variant="ghost" @click="asking = null">{{ messages.common.cancel }}</AppButton>
+        <template v-if="asking?.seriesId">
+          <AppButton variant="secondary" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+            l.cancelOnly
+          }}</AppButton>
+          <AppButton
+            variant="danger"
+            :loading="confirmingScope === 'following'"
+            @click="doCancel('following')"
+            >{{ l.cancelFollowing }}</AppButton
+          >
+        </template>
+        <AppButton v-else variant="danger" :loading="confirmingScope === 'this'" @click="doCancel('this')">{{
+          l.cancelYes
         }}</AppButton>
-        <AppButton
-          variant="danger"
-          :loading="confirmingScope === 'following'"
-          @click="doCancel('following')"
-          >{{ l.cancelFollowing }}</AppButton
-        >
       </template>
     </AppModal>
   </AppPage>
