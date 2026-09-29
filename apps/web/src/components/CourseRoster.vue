@@ -53,6 +53,17 @@ const seats = computed(() =>
 );
 const summary = computed(() => (add.lastResult.value ? describeEnroll(add.lastResult.value, t) : ""));
 
+// A row's own status/price change, tracked by student id so only that row's button shows busy.
+const busyId = ref<string | null>(null);
+async function setStatus(id: string, status: "active" | "completed" | "dropped", price: number | null) {
+  busyId.value = id;
+  try {
+    await roster.setStatus(id, status, price);
+  } finally {
+    busyId.value = null;
+  }
+}
+
 // Changing one student's own price
 const editing = ref<string | null>(null);
 const priceText = ref("");
@@ -63,7 +74,7 @@ function startEdit(id: string, current: number | null) {
 async function savePrice(id: string, status: "active" | "completed" | "dropped") {
   const text = priceText.value.trim();
   if (text !== "" && !/^\d+$/.test(text)) return;
-  await roster.setStatus(id, status, text === "" ? null : Number(text));
+  await setStatus(id, status, text === "" ? null : Number(text));
   editing.value = null;
 }
 </script>
@@ -114,13 +125,15 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
                 <AppButton
                   variant="ghost"
                   compact
-                  @click="roster.setStatus(s.studentId, 'completed', s.customPrice)"
+                  :loading="busyId === s.studentId"
+                  @click="setStatus(s.studentId, 'completed', s.customPrice)"
                   >{{ t.finish }}</AppButton
                 >
                 <AppButton
                   variant="ghost"
                   compact
-                  @click="roster.setStatus(s.studentId, 'dropped', s.customPrice)"
+                  :loading="busyId === s.studentId"
+                  @click="setStatus(s.studentId, 'dropped', s.customPrice)"
                   >{{ t.remove }}</AppButton
                 >
               </template>
@@ -128,7 +141,8 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
                 v-else
                 variant="ghost"
                 compact
-                @click="roster.setStatus(s.studentId, 'active', s.customPrice)"
+                :loading="busyId === s.studentId"
+                @click="setStatus(s.studentId, 'active', s.customPrice)"
                 >{{ t.addBack }}</AppButton
               >
             </div>
@@ -138,9 +152,11 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
             class="flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
           >
             <AppMoneyInput v-model="priceText" :label="t.price" :hint="t.useCoursePrice" />
-            <AppButton @click="savePrice(s.studentId, s.status === 'pending' ? 'active' : s.status)">{{
-              t.savePrice
-            }}</AppButton>
+            <AppButton
+              :loading="busyId === s.studentId"
+              @click="savePrice(s.studentId, s.status === 'pending' ? 'active' : s.status)"
+              >{{ t.savePrice }}</AppButton
+            >
           </div>
         </li>
       </ul>

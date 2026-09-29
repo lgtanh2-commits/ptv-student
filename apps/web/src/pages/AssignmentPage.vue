@@ -51,30 +51,60 @@ const rowsPaging = usePaging(() => p.rows.value);
 const extendFor = ref<string | null>(null);
 const extDate = ref("");
 const extTime = ref("18:00");
+const takingTime = ref(false);
+async function takeTime() {
+  if (!extendFor.value) return;
+  takingTime.value = true;
+  try {
+    await p.takeTime(extendFor.value);
+    extendFor.value = null;
+  } finally {
+    takingTime.value = false;
+  }
+}
+
+const givingTime = ref(false);
 async function giveTime() {
   if (!extendFor.value) return;
-  await p.giveTime(extendFor.value, extDate.value, extTime.value);
-  extendFor.value = null;
+  givingTime.value = true;
+  try {
+    await p.giveTime(extendFor.value, extDate.value, extTime.value);
+    extendFor.value = null;
+  } finally {
+    givingTime.value = false;
+  }
 }
 
 // Accepting one more answer for a short answer question
 const acceptFor = ref<string | null>(null);
 const acceptText = ref("");
+const accepting = ref(false);
 async function accept() {
   const qid = acceptFor.value;
   if (!qid || acceptText.value.trim() === "") return;
-  if (await p.acceptAnswer(qid, acceptText.value.trim())) {
-    acceptFor.value = null;
-    acceptText.value = "";
+  accepting.value = true;
+  try {
+    if (await p.acceptAnswer(qid, acceptText.value.trim())) {
+      acceptFor.value = null;
+      acceptText.value = "";
+    }
+  } finally {
+    accepting.value = false;
   }
 }
 
 const deleting = ref(false);
+const removing = ref(false);
 async function remove() {
-  deleting.value = false;
-  if (await p.remove()) {
-    toast.success(t.deleted);
-    void router.replace(`/courses/${a.value?.courseId}?tab=homework`);
+  removing.value = true;
+  try {
+    if (await p.remove()) {
+      toast.success(t.deleted);
+      void router.replace(`/courses/${a.value?.courseId}?tab=homework`);
+    }
+  } finally {
+    removing.value = false;
+    deleting.value = false;
   }
 }
 // What the confirm window says: the work, and what happens to what students handed in.
@@ -251,13 +281,11 @@ const deleteWords = computed(() => {
         <AppButton
           v-if="p.rows.value.find((r) => r.studentId === extendFor)?.extensionUntil"
           variant="ghost"
-          @click="
-            p.takeTime(extendFor!);
-            extendFor = null;
-          "
+          :loading="takingTime"
+          @click="takeTime"
           >{{ t.extendTake }}</AppButton
         >
-        <AppButton :disabled="!extDate" @click="giveTime">{{ t.extendGive }}</AppButton>
+        <AppButton :disabled="!extDate" :loading="givingTime" @click="giveTime">{{ t.extendGive }}</AppButton>
       </template>
     </AppModal>
 
@@ -271,7 +299,9 @@ const deleteWords = computed(() => {
       <AppInput v-model="acceptText" :label="t.acceptLabel" />
       <template #actions>
         <AppButton variant="ghost" @click="acceptFor = null">{{ messages.common.cancel }}</AppButton>
-        <AppButton :disabled="acceptText.trim() === ''" @click="accept">{{ t.acceptButton }}</AppButton>
+        <AppButton :disabled="acceptText.trim() === ''" :loading="accepting" @click="accept">{{
+          t.acceptButton
+        }}</AppButton>
       </template>
     </AppModal>
 
@@ -279,7 +309,7 @@ const deleteWords = computed(() => {
       <p v-for="(line, i) in deleteWords" :key="i">{{ line }}</p>
       <template #actions>
         <AppButton variant="ghost" @click="deleting = false">{{ messages.common.cancel }}</AppButton>
-        <AppButton variant="danger" @click="remove">{{ t.delete }}</AppButton>
+        <AppButton variant="danger" :loading="removing" @click="remove">{{ t.delete }}</AppButton>
       </template>
     </AppModal>
   </AppPage>

@@ -1,5 +1,6 @@
 import {
   createLessonsBody,
+  updateLessonBody,
   type CourseInfo,
   type LessonInfo,
   type LessonScope,
@@ -7,7 +8,7 @@ import {
 } from "@lms/shared";
 import { computed, onMounted, ref } from "vue";
 import { api } from "@/api/client";
-import { addDays, today } from "@/features/format";
+import { today } from "@/features/format";
 import { useForm } from "@/features/forms/useForm";
 import { useToast } from "@/features/toast/useToast";
 
@@ -48,6 +49,145 @@ export const lessonPayload = (v: LessonFormValues) => ({
   repeat: v.repeat,
   repeatUntil: v.repeat === "none" || v.repeatUntil === "" ? null : v.repeatUntil,
 });
+
+/** The minutes from one HH:mm time to another, on the same day. */
+const minutesBetween = (start: string, end: string): number => {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  return eh! * 60 + em! - (sh! * 60 + sm!);
+};
+
+export type LessonEditValues = {
+  title: string;
+  date: string;
+  startTime: string;
+  durationMinutes: string;
+  onlineUrl: string;
+  /** Only asked when the lesson is part of a weekly series. */
+  scope: LessonScope;
+  /** Only offered with scope "following": also change how it repeats from here on, instead of only moving it. */
+  changeRepeat: boolean;
+  repeat: Repeat;
+  repeatUntil: string;
+  version: number;
+};
+
+const lessonEditDefaults = (): LessonEditValues => ({
+  title: "",
+  date: today(),
+  startTime: "18:00",
+  durationMinutes: "90",
+  onlineUrl: "",
+  scope: "this",
+  changeRepeat: false,
+  repeat: "weekly",
+  repeatUntil: "",
+  version: 1,
+});
+
+/** What is sent to change a lesson already made. The place is not asked for any more (see `lessonPayload`). */
+const editPayload = (v: LessonEditValues) => ({
+  title: v.title,
+  date: v.date,
+  startTime: v.startTime,
+  durationMinutes: num(v.durationMinutes),
+  place: "",
+  onlineUrl: v.onlineUrl.trim() === "" ? null : v.onlineUrl,
+  version: v.version,
+  scope: v.scope,
+  ...(v.scope === "following" && v.changeRepeat
+    ? { repeat: v.repeat, repeatUntil: v.repeat === "none" || v.repeatUntil === "" ? null : v.repeatUntil }
+    : {}),
+});
+
+/**
+ * Changing the date, time or details of one lesson already made. `reload` is how the page that shows
+ * lessons gets the fresh list; it is called after a successful change. Logic only.
+ */
+export function useEditLesson(text: { updated: (n: number) => string }, reload: () => Promise<void>) {
+  const toast = useToast();
+  const editing = ref<LessonInfo | null>(null);
+
+  const form = useForm<LessonEditValues>(lessonEditDefaults(), {
+    schema: updateLessonBody,
+    toPayload: editPayload,
+    submit: async (v) => {
+      if (!editing.value) return;
+      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${editing.value.id}`, {
+        method: "PUT",
+        body: editPayload(v),
+      });
+      editing.value = null;
+      await reload();
+      toast.success(text.updated(res.lessons.length));
+    },
+  });
+
+  /** Fills the form with a lesson's current details, ready to change. */
+  function open(lesson: LessonInfo) {
+    editing.value = lesson;
+    form.errors.value = {};
+    form.formError.value = null;
+    Object.assign(form.values, lessonEditDefaults(), {
+      title: lesson.title,
+      date: lesson.date,
+      startTime: lesson.startTime,
+      durationMinutes: String(minutesBetween(lesson.startTime, lesson.endTime)),
+      onlineUrl: lesson.onlineUrl ?? "",
+      version: lesson.version,
+    });
+  }
+
+  return { editing, form, open };
+}
+
+/**
+ * Cancelling a lesson already made, wherever it is shown (course page, schedule, attendance page).
+ * A lesson in a weekly series asks what to cancel; a single lesson is cancelled at once. `reload` is
+ * how the page that shows the lesson gets the fresh state; it is called after a successful cancel.
+ */
+export function useLessonCancel(text: { cancelled: (n: number) => string }, reload: () => Promise<void>) {
+  const toast = useToast();
+  const asking = ref<LessonInfo | null>(null);
+  const cancellingId = ref<string | null>(null);
+  const confirmingScope = ref<LessonScope | null>(null);
+
+  async function run(id: string, scope: LessonScope) {
+    try {
+      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${id}/cancel`, {
+        method: "POST",
+        body: { scope },
+      });
+      await reload();
+      toast.success(text.cancelled(res.lessons.length));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
+  }
+
+  function askCancel(l: LessonInfo) {
+    if (l.seriesId) {
+      asking.value = l;
+      return;
+    }
+    cancellingId.value = l.id;
+    void run(l.id, "this").finally(() => (cancellingId.value = null));
+  }
+
+  async function doCancel(scope: LessonScope) {
+    const l = asking.value;
+    if (!l) return;
+    confirmingScope.value = scope;
+    try {
+      await run(l.id, scope);
+    } finally {
+      confirmingScope.value = null;
+      asking.value = null;
+    }
+  }
+
+  return { asking, cancellingId, confirmingScope, askCancel, doCancel };
+}
 
 /** Lessons that are still to come, then the ones that are over. Cancelled ones go to the end of their part. */
 export function splitLessons(lessons: LessonInfo[], now: Date = new Date()) {
@@ -92,8 +232,6 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
         method: "POST",
         body: lessonPayload(v),
       });
-      // The next lesson of a weekly series is suggested for the week after the last one made.
-      form.values.date = addDays(res.lessons.at(-1)?.date ?? v.date, 7);
       await load();
       toast.success(text.added(res.lessons.length));
     },
@@ -109,15 +247,6 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
     }
   }
 
-  /** `message` says what happened, given how many lessons were cancelled. */
-  const cancel = (id: string, scope: LessonScope, message: (n: number) => string) =>
-    act(async () => {
-      const res = await api<{ lessons: LessonInfo[] }>(`/lessons/${id}/cancel`, {
-        method: "POST",
-        body: { scope },
-      });
-      return message(res.lessons.length);
-    });
   const restore = (id: string, done: string) =>
     act(async () => {
       await api(`/lessons/${id}/restore`, { method: "POST", body: {} });
@@ -126,7 +255,7 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
 
   const parts = computed(() => splitLessons(recentLessons(lessons.value)));
   onMounted(load);
-  return { lessons, loading, error, load, form, cancel, restore, parts };
+  return { lessons, loading, error, load, form, restore, parts };
 }
 
 /**

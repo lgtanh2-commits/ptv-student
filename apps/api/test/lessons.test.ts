@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { extendOpenSeries } from "../src/lessons/jobs";
 import { addStudent, call, createCourse, createTeacher, type Person } from "./helpers";
+import { joinedKid } from "./homework";
 
 const PAST = "2020-01-06"; // a Monday, long ago: attendance can be taken
 const FUTURE = "2099-01-05";
@@ -452,6 +453,25 @@ describe("change lessons", () => {
     expect(res.json.lessons.map((l: Lesson) => l.title)).toEqual(["Solo"]);
   });
 
+  it("tells every enrolled student with an account that the lesson's time changed", async () => {
+    const t = await createTeacher();
+    const { course, lessons } = await lessonsOf(t);
+    const kid = await joinedKid(t, course.id, "Mai");
+    const res = await update(t, lessons[0]!, { date: "2026-10-06", startTime: "19:00" });
+    expect(res.status).toBe(200);
+    const items = (await call("/api/notifications", { cookie: kid.cookie })).json.items as {
+      kind: string;
+      title: string;
+      link: string;
+    }[];
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: "lesson_changed",
+      title: "Your class time changed",
+      link: `/my/courses/${course.id}`,
+    });
+  });
+
   it("refuses a save made on an old version, and changes nothing (not even the later lessons)", async () => {
     const t = await createTeacher();
     const { course, lessons } = await lessonsOf(t, { weeks: 3 });
@@ -513,6 +533,126 @@ describe("change lessons", () => {
       ["Unit 1", "scheduled"],
       ["Unit 1", "scheduled"],
     ]);
+  });
+});
+
+describe('change how a lesson repeats (only with scope "following")', () => {
+  it("replaces the not-yet-held lessons of the series with a new pattern, leaving earlier ones alone", async () => {
+    const t = await createTeacher();
+    const { course, lessons } = await lessonsOf(t, { date: "2026-10-05", weeks: 4 }); // Mon 5, 12, 19, 26 Oct
+    const oldFollowingIds = lessons.slice(1).map((l) => l.id);
+    const res = await update(t, lessons[1]!, {
+      date: "2026-10-12",
+      startTime: "19:00",
+      scope: "following",
+      repeat: "every_2_weeks",
+      repeatUntil: "2026-11-09",
+    });
+    expect(res.status, JSON.stringify(res.json)).toBe(200);
+    const after = await list(t, course.id);
+    expect(after.map((l) => [l.date, l.startTime])).toEqual([
+      ["2026-10-05", "18:30"], // before the changed lesson: untouched
+      ["2026-10-12", "19:00"],
+      ["2026-10-26", "19:00"],
+      ["2026-11-09", "19:00"],
+    ]);
+    const afterIds = after.map((l) => l.id);
+    for (const oldId of oldFollowingIds) expect(afterIds).not.toContain(oldId);
+  });
+
+  it("stops an endless series from making more lessons when it changes to not repeat", async () => {
+    const t = await createTeacher();
+    const course = await createCourse(t);
+    const made = (await create(t, course.id, { date: FUTURE, repeat: "weekly" })).json.lessons as Lesson[];
+    const res = await update(t, made[0]!, { scope: "following", repeat: "none" });
+    expect(res.status, JSON.stringify(res.json)).toBe(200);
+    expect(res.json.lessons).toHaveLength(1);
+    expect(await list(t, course.id)).toHaveLength(1);
+    const now = new Date(Date.parse(`${FUTURE}T00:00:00Z`));
+    expect(await extendOpenSeries(env, now)).toBe(0); // nothing left that still repeats with no end
+  });
+
+  it("refuses a new end date that is before this lesson, and changes nothing", async () => {
+    const t = await createTeacher();
+    const { course, lessons } = await lessonsOf(t, { date: "2026-10-05", weeks: 3 });
+    const res = await update(t, lessons[0]!, {
+      scope: "following",
+      repeat: "weekly",
+      repeatUntil: "2026-09-01",
+    });
+    expect(res.status).toBe(400);
+    expect(res.json.error.fields.repeatUntil).toBeTruthy();
+    expect((await list(t, course.id)).map((l) => l.date)).toEqual(["2026-10-05", "2026-10-12", "2026-10-19"]);
+  });
+
+  it("refuses a save made on an old version, and removes nothing", async () => {
+    const t = await createTeacher();
+    const { course, lessons } = await lessonsOf(t, { date: "2026-10-05", weeks: 3 });
+    expect((await update(t, lessons[0]!, { title: "First" })).status).toBe(200); // now version 2
+    const stale = await update(t, lessons[0]!, {
+      scope: "following",
+      repeat: "every_2_weeks",
+      repeatUntil: "2026-12-01",
+    }); // still carries version 1
+    expect(stale.status).toBe(409);
+    expect((await list(t, course.id)).map((l) => l.title)).toEqual(["First", "Unit 1", "Unit 1"]);
+  });
+
+  it('with scope "this", the repeat fields are ignored (only the time of this lesson moves)', async () => {
+    const t = await createTeacher();
+    const { course, lessons } = await lessonsOf(t, { date: "2026-10-05", weeks: 3 });
+    const res = await update(t, lessons[0]!, {
+      startTime: "20:00",
+      scope: "this",
+      repeat: "every_2_weeks",
+      repeatUntil: "2026-12-01",
+    });
+    expect(res.status, JSON.stringify(res.json)).toBe(200);
+    expect(res.json.lessons).toHaveLength(1);
+    expect((await list(t, course.id)).map((l) => [l.date, l.startTime])).toEqual([
+      ["2026-10-05", "20:00"],
+      ["2026-10-12", "18:30"],
+      ["2026-10-19", "18:30"],
+    ]);
+  });
+});
+
+describe("a change never double-books the teacher", () => {
+  it("refuses to move a lesson onto a time that overlaps another one, and changes nothing", async () => {
+    const t = await createTeacher();
+    await lessonsOf(t, { date: "2026-10-05" }); // 18:30-20:00
+    const courseB = await createCourse(t);
+    const b = (await create(t, courseB.id, { date: "2026-10-06", startTime: "10:00" })).json
+      .lessons as Lesson[];
+    const res = await update(t, b[0]!, { date: "2026-10-05", startTime: "19:00" }); // inside 18:30-20:00
+    expect(res.status).toBe(409);
+    expect(res.json.error.message).toMatch(/overlaps/);
+    expect((await list(t, courseB.id)).map((l) => [l.date, l.startTime])).toEqual([["2026-10-06", "10:00"]]);
+  });
+
+  it("allows a lesson to start exactly when another one ends", async () => {
+    const t = await createTeacher();
+    await lessonsOf(t, { date: "2026-10-05" }); // 18:30-20:00
+    const courseB = await createCourse(t);
+    const b = (await create(t, courseB.id, { date: "2026-10-06", startTime: "10:00" })).json
+      .lessons as Lesson[];
+    const res = await update(t, b[0]!, { date: "2026-10-05", startTime: "20:00" });
+    expect(res.status, JSON.stringify(res.json)).toBe(200);
+  });
+
+  it("a reshape also refuses a new pattern that would overlap another lesson, and changes nothing", async () => {
+    const t = await createTeacher();
+    await lessonsOf(t, { date: "2026-10-05" }); // 18:30-20:00
+    const { course: courseB, lessons: b } = await lessonsOf(t, { date: "2026-10-12", weeks: 2 });
+    const res = await update(t, b[0]!, {
+      date: "2026-10-05",
+      startTime: "18:30",
+      scope: "following",
+      repeat: "weekly",
+      repeatUntil: "2026-10-19",
+    });
+    expect(res.status).toBe(409);
+    expect((await list(t, courseB.id)).map((l) => l.date)).toEqual(["2026-10-12", "2026-10-19"]);
   });
 });
 

@@ -6,5 +6,5 @@ const toast = useToast();
 </script>
 
 <template>
-  <AppToast :items="toast.items" />
+  <AppToast :items="toast.items" @dismiss="toast.dismiss" />
 </template>

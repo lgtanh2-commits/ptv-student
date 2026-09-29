@@ -16,6 +16,7 @@ import { AppError } from "../lib/errors";
 import { uuidv7 } from "../lib/id";
 import { nowIso } from "../lib/time";
 import { addDays, daysBetween, localToUtc, utcToLocal } from "../lib/zone";
+import { tell } from "../notifications/service";
 import { authorize } from "../policy";
 import { everyWeeks, repeatDays } from "./repeat";
 import {
@@ -29,7 +30,9 @@ import {
   activeStudentNames,
   cancelLessonsStatement,
   deleteEmptySeriesStatement,
+  deleteScheduledLessonsStatement,
   endSeriesStatement,
+  hasOverlap,
   insertSeriesStatement,
   findLesson,
   insertLessonsStatement,
@@ -42,6 +45,7 @@ import {
   updateLessonsStatement,
   type LessonRow,
 } from "../repos/lessons";
+import { notifyLessonChangedStatement } from "../repos/notifications";
 import { findStudent } from "../repos/students";
 
 const toInfo = (r: LessonRow, zone: string): LessonInfo => {
@@ -191,22 +195,33 @@ async function targetsOf(ctx: Ctx, tenantId: string, lesson: LessonRow, scope: "
   return later.length > 0 ? later : [lesson];
 }
 
-export async function lessonUpdate(
+/** Tells enrolled students with an account that a lesson's time changed. Best-effort; see `tell`. */
+const tellLessonChanged = (ctx: Ctx, lesson: LessonRow, body: UpdateLessonBody) =>
+  tell(
+    ctx,
+    notifyLessonChangedStatement(ctx.env.DB, {
+      tenantId: lesson.tenant_id,
+      courseId: lesson.course_id,
+      title: "Your class time changed",
+      body: `${lesson.course_name} · now ${body.date} ${body.startTime}`,
+      link: `/my/courses/${lesson.course_id}`,
+      dedupe: `lesson-changed:${lesson.id}:${lesson.version + 1}`,
+    }),
+  );
+
+/**
+ * Just moves this lesson (or it and the later ones of its series, by the same number of days): the existing
+ * rows are kept and changed in place, so nothing they are linked to (attendance, notifications) is disturbed.
+ */
+async function shiftLessons(
   ctx: Ctx,
   actor: Actor,
-  id: string,
+  tenantId: string,
+  lesson: LessonRow,
   body: UpdateLessonBody,
+  zone: string,
 ): Promise<LessonInfo[]> {
   const db = ctx.env.DB;
-  const tenantId = requireTeacherTenant(actor);
-  authorize(actor, "lesson", "update", { tenantId });
-  const lesson = await load(ctx, tenantId, id);
-  if (lesson.status !== "scheduled") {
-    throw new AppError("CONFLICT", { message: "Only lessons that have not happened yet can be changed." });
-  }
-  if (lesson.version !== body.version) throw new AppError("CONFLICT");
-  const zone = await tenantTimezone(db, tenantId);
-
   // The new date of this lesson decides how far the later ones move, so a whole series can shift.
   const shift = daysBetween(utcToLocal(lesson.starts_at, zone).date, body.date);
   const targets = await targetsOf(ctx, tenantId, lesson, body.scope);
@@ -214,6 +229,18 @@ export async function lessonUpdate(
     const startsAt = localToUtc(addDays(utcToLocal(t.starts_at, zone).date, shift), body.startTime, zone);
     return { id: t.id, startsAt, endsAt: endsAt(startsAt, body.durationMinutes) };
   });
+  if (
+    await hasOverlap(
+      db,
+      tenantId,
+      moved.map((m) => m.id),
+      moved,
+    )
+  ) {
+    throw new AppError("CONFLICT", {
+      message: "This time overlaps another lesson. Please choose a different time.",
+    });
+  }
   const res = await updateLessonsStatement(db, {
     tenantId,
     targetId: lesson.id,
@@ -229,10 +256,11 @@ export async function lessonUpdate(
     actorUserId: actor.userId,
     tenantId,
     targetType: "lesson",
-    targetId: id,
+    targetId: lesson.id,
     ipHash: ctx.ipHash,
     meta: { count: res.meta.changes, scope: body.scope },
   });
+  await tellLessonChanged(ctx, lesson, body);
   return infos(
     await lessonsByIds(
       db,
@@ -241,6 +269,124 @@ export async function lessonUpdate(
     ),
     zone,
   );
+}
+
+/**
+ * Replaces this lesson and the later ones of its series with a freshly made repeat, starting from the new
+ * date and time. Only "scheduled" lessons are ever touched here, so none of them were ever attended, has a
+ * grade, or is part of a sent receipt — nothing of the sort is lost. The series this lesson was part of, if
+ * any, stops making more lessons; a new one is started when the new pattern also repeats.
+ */
+async function reshapeLessons(
+  ctx: Ctx,
+  actor: Actor,
+  tenantId: string,
+  lesson: LessonRow,
+  body: UpdateLessonBody,
+  zone: string,
+): Promise<LessonInfo[]> {
+  const db = ctx.env.DB;
+  const repeat = body.repeat!;
+  const every = everyWeeks(repeat);
+  const days = repeatDays({
+    date: body.date,
+    every,
+    until: body.repeatUntil ?? null,
+    today: utcToLocal(nowIso(), zone).date,
+  });
+  if (days === null) {
+    throw new AppError("VALIDATION_FAILED", {
+      fields:
+        body.repeatUntil != null
+          ? { repeatUntil: "That is too many lessons. Please choose an earlier end date." }
+          : { date: "This date is too far back to repeat with no end date." },
+    });
+  }
+  const targets = await targetsOf(ctx, tenantId, lesson, "following");
+  const newLessons = days.map((day) => {
+    const startsAt = localToUtc(day, body.startTime, zone);
+    return { id: uuidv7(), startsAt, endsAt: endsAt(startsAt, body.durationMinutes) };
+  });
+  if (
+    await hasOverlap(
+      db,
+      tenantId,
+      targets.map((t) => t.id),
+      newLessons,
+    )
+  ) {
+    throw new AppError("CONFLICT", {
+      message: "This time overlaps another lesson. Please choose a different time.",
+    });
+  }
+  const delRes = await deleteScheduledLessonsStatement(db, {
+    tenantId,
+    targetId: lesson.id,
+    version: body.version,
+    ids: targets.map((t) => t.id),
+  }).run();
+  if (!delRes.meta.changes) throw new AppError("CONFLICT"); // saved by someone else, or no longer scheduled
+  if (lesson.series_id) await endSeriesStatement(db, tenantId, lesson.series_id).run();
+
+  const openEnded = every > 0 && body.repeatUntil == null;
+  const seriesId = every > 0 && newLessons.length > 1 ? uuidv7() : null;
+  if (openEnded && seriesId)
+    await insertSeriesStatement(db, tenantId, lesson.course_id, seriesId, every).run();
+  const insRes = await insertLessonsStatement(db, {
+    tenantId,
+    courseId: lesson.course_id,
+    seriesId,
+    title: body.title,
+    place: body.place,
+    onlineUrl: body.onlineUrl,
+    lessons: newLessons,
+  }).run();
+  if (insRes.meta.changes !== newLessons.length) {
+    if (seriesId) await deleteEmptySeriesStatement(db, tenantId, seriesId).run();
+    throw new AppError("CONFLICT", {
+      message:
+        "A course can have at most 500 lessons, or the course was archived. Please check and try again.",
+    });
+  }
+  await audit(db, {
+    action: "lesson.updated",
+    actorUserId: actor.userId,
+    tenantId,
+    targetType: "lesson",
+    targetId: lesson.id,
+    ipHash: ctx.ipHash,
+    meta: { count: insRes.meta.changes, scope: "following", repeat },
+  });
+  await tellLessonChanged(ctx, lesson, body);
+  return infos(
+    await lessonsByIds(
+      db,
+      tenantId,
+      newLessons.map((l) => l.id),
+    ),
+    zone,
+  );
+}
+
+export async function lessonUpdate(
+  ctx: Ctx,
+  actor: Actor,
+  id: string,
+  body: UpdateLessonBody,
+): Promise<LessonInfo[]> {
+  const tenantId = requireTeacherTenant(actor);
+  authorize(actor, "lesson", "update", { tenantId });
+  const lesson = await load(ctx, tenantId, id);
+  if (lesson.status !== "scheduled") {
+    throw new AppError("CONFLICT", { message: "Only lessons that have not happened yet can be changed." });
+  }
+  if (lesson.version !== body.version) throw new AppError("CONFLICT");
+  const zone = await tenantTimezone(ctx.env.DB, tenantId);
+
+  const reshaping = body.scope === "following" && lesson.series_id !== null && body.repeat !== undefined;
+  return reshaping
+    ? reshapeLessons(ctx, actor, tenantId, lesson, body, zone)
+    : shiftLessons(ctx, actor, tenantId, lesson, body, zone);
 }
 
 export async function lessonCancel(

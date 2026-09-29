@@ -55,7 +55,9 @@ const accessTone = { joined: "success", invited: "info", not_invited: "neutral" 
       <AppButton variant="secondary" @click="router.push('/students/import')"
         ><AppIcon name="upload" :size="18" />{{ t.import }}</AppButton
       >
-      <AppButton @click="adding = true"><AppIcon name="user-plus" :size="18" />{{ t.addButton }}</AppButton>
+      <AppButton v-if="data.total > 0 || filtered" @click="adding = true"
+        ><AppIcon name="user-plus" :size="18" />{{ t.addButton }}</AppButton
+      >
     </template>
 
     <AppAlert v-if="notice" kind="info">{{ fill(t.addedButNotEnrolled, { reason: notice }) }}</AppAlert>

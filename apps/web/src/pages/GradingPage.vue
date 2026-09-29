@@ -33,10 +33,16 @@ const historyPaging = usePaging(() => d.value?.history ?? []);
 
 const asking = ref(false);
 const reason = ref("");
+const sending = ref(false);
 async function send() {
-  asking.value = false;
-  await g.askAgain(reason.value);
-  reason.value = "";
+  sending.value = true;
+  try {
+    await g.askAgain(reason.value);
+    reason.value = "";
+  } finally {
+    sending.value = false;
+    asking.value = false;
+  }
 }
 const canReturn = computed(() => d.value?.status === "graded" && !g.dirty.value);
 const answerOf = (qid: string) => d.value?.answers.find((a) => a.questionId === qid);
@@ -228,7 +234,7 @@ const stateNote = computed(() => {
       <AppTextarea v-model="reason" :label="t.reason" :rows="4" />
       <template #actions>
         <AppButton variant="ghost" @click="asking = false">{{ messages.common.cancel }}</AppButton>
-        <AppButton :disabled="reason.trim() === ''" @click="send">{{ t.send }}</AppButton>
+        <AppButton :disabled="reason.trim() === ''" :loading="sending" @click="send">{{ t.send }}</AppButton>
       </template>
     </AppModal>
   </AppPage>

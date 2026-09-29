@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { hostOf } from "@/features/format";
 import { useMaterials } from "@/features/homework/useHomework";
 import { usePaging } from "@/features/paging";
@@ -18,6 +19,16 @@ const props = defineProps<{ courseId: string }>();
 const t = messages.links;
 const m = useMaterials(props.courseId, { added: t.added, saved: t.saved, removed: t.removed });
 const paging = usePaging(m.items);
+
+const removingId = ref<string | null>(null);
+async function remove(id: string) {
+  removingId.value = id;
+  try {
+    await m.remove(id);
+  } finally {
+    removingId.value = null;
+  }
+}
 </script>
 
 <template>
@@ -73,7 +84,9 @@ const paging = usePaging(m.items);
             l.published ? t.visible : t.hidden
           }}</AppBadge>
           <AppButton variant="ghost" compact @click="m.edit(l)">{{ t.edit }}</AppButton>
-          <AppButton variant="ghost" compact @click="m.remove(l.id)">{{ t.remove }}</AppButton>
+          <AppButton variant="ghost" compact :loading="removingId === l.id" @click="remove(l.id)">{{
+            t.remove
+          }}</AppButton>
         </li>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />

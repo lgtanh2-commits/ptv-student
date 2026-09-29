@@ -59,7 +59,9 @@ export function useNotificationList() {
     }
   }
 
+  const marking = ref(false);
   async function read(ids?: string[]) {
+    marking.value = true;
     try {
       unread.value = (
         await api<{ unread: number }>("/notifications/read", { method: "POST", body: ids ? { ids } : {} })
@@ -68,9 +70,11 @@ export function useNotificationList() {
       items.value = items.value.map((i) => (now.has(i.id) ? { ...i, read: true } : i));
     } catch (err) {
       error.value = messageOf(err);
+    } finally {
+      marking.value = false;
     }
   }
 
   const hasUnread = computed(() => items.value.some((i) => !i.read));
-  return { items, loading, error, hasUnread, load, read, readAll: () => read() };
+  return { items, loading, error, hasUnread, marking, load, read, readAll: () => read() };
 }

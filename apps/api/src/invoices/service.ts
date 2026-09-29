@@ -572,6 +572,7 @@ export async function invoiceSend(ctx: Ctx, actor: Actor, id: string, version: n
     meta: { total: current.total },
   });
   await tell(
+    ctx,
     notifyStudentStatement(db, {
       tenantId,
       studentId: current.student_id,

@@ -10,6 +10,9 @@
     "APP_URL": "https://lms.test",
     "GOOGLE_CLIENT_ID": "test-client-id.apps.googleusercontent.com",
     "GOOGLE_CLIENT_SECRET": "test-client-secret",
+    "TELEGRAM_BOT_TOKEN": "test-bot-token",
+    "TELEGRAM_BOT_USERNAME": "TestLmsBot",
+    "TELEGRAM_WEBHOOK_SECRET": "test-webhook-secret",
   },
   "d1_databases": [
     {

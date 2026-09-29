@@ -6,7 +6,7 @@ import { GLOSSARY } from "@lms/shared";
  * Only English for now; a new language is a new file with the same keys.
  */
 export const en = {
-  app: { name: "LMS" },
+  app: { name: "Tutorio" },
   common: {
     email: "Email",
     name: "Your name",
@@ -104,6 +104,19 @@ export const en = {
     signOut: "Sign out",
     signOutAll: "Sign out everywhere",
     empty: "No devices.",
+  },
+  telegram: {
+    title: "Telegram notifications",
+    text: "Get a message on Telegram for the things that also ring the bell here, like a student handing in work.",
+    linkButton: "Link Telegram",
+    openButton: "Open Telegram",
+    askAgain: "Send a new link",
+    waiting: "Waiting for you to press Start in Telegram...",
+    linkedTitle: "Linked",
+    linkedText: "You get your notifications here and on Telegram.",
+    unlinkButton: "Unlink",
+    unlinkedNow: "Telegram unlinked.",
+    linkedNow: "Telegram linked.",
   },
   invites: {
     title: "Invite a student",
@@ -432,6 +445,16 @@ export const en = {
     restored: "Lesson restored.",
     join: "Join online",
     weeklySeries: "Weekly",
+    edit: "Edit",
+    editTitle: "Change this lesson",
+    editScopeLabel: "Change",
+    editScopeThis: "Just this lesson",
+    editScopeFollowing: "This and the later lessons",
+    editScopeText: "This lesson is part of a weekly series. What do you want to change?",
+    editChangeRepeat: "Also change how often it repeats from now on",
+    saveChanges: "Save changes",
+    updated: "{n} lessons updated.",
+    updatedOne: "Lesson updated.",
   },
   attendance: {
     title: "Attendance",

@@ -292,7 +292,19 @@ export const createLessonsBody = lessonFields
     message: "The end date is before the first lesson.",
     path: ["repeatUntil"],
   });
-export const updateLessonBody = lessonFields.extend({ version: z.number().int().min(1), scope });
+export const updateLessonBody = lessonFields
+  .extend({
+    version: z.number().int().min(1),
+    scope,
+    /** Only used with scope "following": also change how the lesson repeats from here on. Left out, only the time moves. */
+    repeat: z.enum(REPEATS, "Please choose how often the lesson repeats.").optional(),
+    /** The last day of the new repeat. Left empty (and `repeat` given), it repeats with no end. */
+    repeatUntil: isoDate.nullable().optional(),
+  })
+  .refine((v) => v.repeat === undefined || v.repeat === "none" || !v.repeatUntil || v.repeatUntil >= v.date, {
+    message: "The end date is before this lesson.",
+    path: ["repeatUntil"],
+  });
 export const cancelLessonBody = z.object({ scope });
 
 export const attendanceBody = z.object({
@@ -970,3 +982,18 @@ export const markReadBody = z.object({
   /** Leave out to mark everything as read. */
   ids: z.array(z.string().min(1).max(64)).max(100).optional(),
 });
+
+// ------------------------------------------------------------- Telegram notifications
+
+export interface TelegramStatus {
+  /** The app owner set up a Telegram bot at all. When false, the app hides the whole feature. */
+  enabled: boolean;
+  /** This person already linked a Telegram chat. */
+  linked: boolean;
+}
+
+export interface TelegramLinkCode {
+  /** Open this to start the bot with the code already filled in (as if the person had typed "/start <code>"). */
+  deepLink: string;
+  expiresInMinutes: number;
+}

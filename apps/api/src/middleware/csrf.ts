@@ -8,6 +8,13 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 export const CLIENT_HEADER = "x-lms-client";
 
 /**
+ * The only address a server outside this app is allowed to call. It is not signed in with a cookie at all:
+ * Telegram authenticates itself with a secret header instead (checked inside routes/telegram.ts), so none of
+ * the checks below (made for a browser with a cookie) apply or would even let it through.
+ */
+const CSRF_EXEMPT = new Set(["/api/telegram/webhook"]);
+
+/**
  * CSRF defence for cookie-based sign in. Three checks, all must pass:
  *  1. Sec-Fetch-Site, when the browser sends it, must be same-origin (or none).
  *  2. Origin, when present, must match this host.
@@ -17,6 +24,7 @@ export const CLIENT_HEADER = "x-lms-client";
  */
 export const csrfProtection = createMiddleware<AppBindings>(async (c, next) => {
   if (SAFE_METHODS.has(c.req.method)) return next();
+  if (CSRF_EXEMPT.has(new URL(c.req.url).pathname)) return next();
 
   const fetchSite = c.req.header("sec-fetch-site");
   if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {

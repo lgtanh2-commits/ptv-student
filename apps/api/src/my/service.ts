@@ -249,6 +249,7 @@ async function save(
       meta: { scored_by_system: allAuto },
     });
     await tell(
+      ctx,
       notifyHandInStatement(db, { tenantId: row.tenant_id, assignmentId: row.id, studentId: row.student_id }),
     );
   }

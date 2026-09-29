@@ -12,14 +12,19 @@ export const useToast = defineStore("toast", () => {
   const items = ref<ToastItem[]>([]);
   let next = 1;
 
+  function dismiss(id: number) {
+    items.value = items.value.filter((t) => t.id !== id);
+  }
+
   function push(kind: ToastItem["kind"], text: string, ms = 4000) {
     const id = next++;
     items.value.push({ id, kind, text });
-    setTimeout(() => (items.value = items.value.filter((t) => t.id !== id)), ms);
+    setTimeout(() => dismiss(id), ms);
   }
 
   return {
     items,
+    dismiss,
     success: (t: string) => push("success", t),
     error: (t: string) => push("error", t, 6000),
     info: (t: string) => push("info", t),

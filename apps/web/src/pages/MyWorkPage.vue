@@ -26,9 +26,15 @@ const m = useMyWork(id, { handedIn: t.handedIn });
 const w = computed(() => m.work.value);
 const confirming = ref(false);
 
+const handingIn = ref(false);
 async function handIn() {
-  confirming.value = false;
-  if (await m.handIn()) window.scrollTo({ top: 0, behavior: "smooth" });
+  handingIn.value = true;
+  try {
+    if (await m.handIn()) window.scrollTo({ top: 0, behavior: "smooth" });
+  } finally {
+    handingIn.value = false;
+    confirming.value = false;
+  }
 }
 
 // Leaving with words that are not saved yet: the browser asks first.
@@ -295,7 +301,7 @@ const setLink = (qi: number, v: string) => {
       <p>{{ t.handInText }}</p>
       <template #actions>
         <AppButton variant="ghost" @click="confirming = false">{{ messages.common.cancel }}</AppButton>
-        <AppButton @click="handIn">{{ t.handInYes }}</AppButton>
+        <AppButton :loading="handingIn" @click="handIn">{{ t.handInYes }}</AppButton>
       </template>
     </AppModal>
   </AppPage>

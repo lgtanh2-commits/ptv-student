@@ -168,12 +168,16 @@ const open = computed({
 const reason = ref("");
 async function confirm() {
   const what = asking.value;
-  asking.value = null;
-  if (what === "send") await inv.send();
-  else if (what === "delete") await inv.remove();
-  else if (what === "cancel") {
-    await inv.cancel(reason.value.trim());
-    reason.value = "";
+  if (!what) return;
+  try {
+    if (what === "send") await inv.send();
+    else if (what === "delete") await inv.remove();
+    else if (what === "cancel") {
+      await inv.cancel(reason.value.trim());
+      reason.value = "";
+    }
+  } finally {
+    asking.value = null;
   }
 }
 const askTitle = computed(
@@ -193,8 +197,11 @@ async function openPicker() {
   await picker.load(d.value!.studentId, d.value!.id, false);
 }
 async function useLessons() {
-  picking.value = false;
-  await inv.setLessons(picker.chosen.value);
+  try {
+    await inv.setLessons(picker.chosen.value);
+  } finally {
+    picking.value = false;
+  }
 }
 
 const canSend = computed(
@@ -417,7 +424,9 @@ const canSend = computed(
       />
       <template #actions>
         <AppButton variant="ghost" @click="picking = false">{{ messages.common.cancel }}</AppButton>
-        <AppButton :disabled="picker.loading.value" @click="useLessons">{{ t.lessonsSave }}</AppButton>
+        <AppButton :disabled="picker.loading.value" :loading="inv.busy.value" @click="useLessons">{{
+          t.lessonsSave
+        }}</AppButton>
       </template>
     </AppModal>
 
@@ -429,6 +438,7 @@ const canSend = computed(
         <AppButton
           :variant="asking === 'cancel' || asking === 'delete' ? 'danger' : 'primary'"
           :disabled="asking === 'cancel' && reason.trim() === ''"
+          :loading="inv.busy.value"
           @click="confirm"
           >{{ askYes }}</AppButton
         >

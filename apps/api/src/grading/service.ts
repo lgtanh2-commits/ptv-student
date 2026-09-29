@@ -241,6 +241,7 @@ export async function giveBack(
     ipHash: ctx.ipHash,
   });
   await tell(
+    ctx,
     notifyWorkStatement(db, {
       tenantId,
       assignmentId,
@@ -288,6 +289,7 @@ export async function askAgain(
     ipHash: ctx.ipHash,
   });
   await tell(
+    ctx,
     notifyWorkStatement(db, {
       tenantId,
       assignmentId,
