@@ -1,6 +1,20 @@
-import { reactive, ref } from "vue";
+import { nextTick, reactive, ref } from "vue";
 import type { ZodType } from "zod";
 import { ApiError } from "@/api/client";
+
+/**
+ * Scrolls to the first field that failed, or to the general error message when no one field
+ * is at fault. Waits a tick, since the error only appears in the page after this runs.
+ */
+function scrollToError(): void {
+  if (typeof document === "undefined") return; // tests run with no DOM
+  void nextTick(() => {
+    const el = document.querySelector<HTMLElement>('[aria-invalid="true"], [data-error-anchor]');
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.focus?.({ preventScroll: true });
+  });
+}
 
 /**
  * Form rules that every form in the app follows (plan 5.1):
@@ -37,6 +51,7 @@ export function useForm<T extends Record<string, unknown>>(
       const result = schema.safeParse(options.toPayload ? options.toPayload(values as T) : values);
       if (!result.success) {
         for (const issue of result.error.issues) errors.value[String(issue.path[0] ?? "_")] ??= issue.message;
+        scrollToError();
         return;
       }
     }
@@ -47,11 +62,13 @@ export function useForm<T extends Record<string, unknown>>(
     } catch (err) {
       if (!(err instanceof ApiError)) {
         formError.value = "Something went wrong. Please try again.";
+        scrollToError();
         return;
       }
       errorCode.value = err.code;
       const { _: general, ...fields } = err.fields ?? {};
       errors.value = fields;
+      scrollToError();
       // Show the general message when there is no field to attach it to.
       if (general || Object.keys(fields).length === 0) formError.value = general ?? err.message;
     } finally {
