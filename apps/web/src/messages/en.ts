@@ -541,6 +541,30 @@ export const en = {
     addSpeaking: "Speaking video",
     addQuestionLabel: "Add a question",
     totalPoints: "Total: {n} points",
+    importOpen: "Import from text",
+    importTitle: "Import questions from text",
+    importStepsLabel: "Import steps",
+    importStep1: "Paste or upload",
+    importStep2: "Check and add",
+    importIntro:
+      "Paste homework text, or upload a .txt file. Each question is its own block, separated by a blank line.",
+    importHowTo1: "Not sure about the layout? Download the sample file and follow it.",
+    importHowTo2:
+      "Multiple choice: list the answers as A., B., C. Mark the correct one with a * at the start or the end of its line.",
+    importHowTo3:
+      "Writing and speaking questions need a tag at the start of the question, like [Essay] or [Speaking].",
+    importSample: "Download the sample file",
+    importFile: "Choose a .txt file",
+    importPaste: "Or paste the text here",
+    importPasteHint: "One question per block. Leave a blank line between questions.",
+    importCheck: "Check",
+    importBack: "Change the text",
+    importAdd: "Add {n} questions",
+    importAddOne: "Add 1 question",
+    importEmpty: "No questions were found in this text.",
+    importSummary: "{n} questions found.",
+    importReviewCount: "{n} need a check.",
+    importReviewNote: "Please check this",
     hintChoice:
       "The student picks one answer. Choose the correct one, and the system scores it. Or leave it empty and score it yourself.",
     hintShort:

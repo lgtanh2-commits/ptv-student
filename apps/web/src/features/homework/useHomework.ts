@@ -14,6 +14,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { api } from "@/api/client";
 import { messageOf, statusOf } from "@/features/errors";
 import { useForm } from "@/features/forms/useForm";
+import { parseHomeworkText, type ParsedQuestion } from "@/features/homework/parseHomework";
 import { useToast } from "@/features/toast/useToast";
 
 /** The homework of one course. Logic only. */
@@ -113,7 +114,7 @@ export function useMaterials(courseId: string, text: { added: string; saved: str
 // ------------------------------------------------------------------ the form
 
 /** One question as it is typed. Numbers are kept as text until they are sent. */
-interface QuestionValues {
+export interface QuestionValues {
   id?: string;
   kind: QuestionKind;
   text: string;
@@ -296,6 +297,27 @@ export function useAssignmentForm(
   const setCorrect = (i: number, o: number | null) => (q(i).correct = o);
   const addAccepted = (i: number) => q(i).accepted.length < 10 && q(i).accepted.push("");
   const removeAccepted = (i: number, a: number) => q(i).accepted.splice(a, 1);
+  /**
+   * Adds questions read from text. A question kept from the very start, never touched, is replaced
+   * instead of left empty next to the new ones.
+   */
+  function importQuestions(parsed: ParsedQuestion[]) {
+    const isUntouched = (v: QuestionValues) =>
+      v.text.trim() === "" && v.options.every((o) => o.trim() === "") && v.accepted.every((a) => a === "");
+    const added: QuestionValues[] = parsed.map((p) => ({
+      kind: p.kind,
+      text: p.text,
+      points: p.points,
+      options: p.kind === "choice" ? (p.options.length >= 2 ? p.options : [...p.options, "", ""]) : [],
+      correct: p.correct,
+      accepted: p.kind === "short" ? (p.accepted.length > 0 ? p.accepted : [""]) : [],
+    }));
+    if (form.values.questions.length === 1 && isUntouched(form.values.questions[0]!)) {
+      form.values.questions.splice(0, 1, ...added);
+    } else {
+      form.values.questions.push(...added);
+    }
+  }
   const addLink = () => form.values.links.length < 10 && form.values.links.push({ title: "", url: "" });
   const removeLink = (i: number) => form.values.links.splice(i, 1);
   const toggleStudent = (sid: string) => {
@@ -324,10 +346,33 @@ export function useAssignmentForm(
     setCorrect,
     addAccepted,
     removeAccepted,
+    importQuestions,
     addLink,
     removeLink,
     toggleStudent,
   };
+}
+
+/** Reading questions from text (pasted, or from a file), before they are added to the form. Logic only. */
+export function useHomeworkImport() {
+  const text = ref("");
+  const step = ref<"input" | "preview">("input");
+  const parsed = ref<ParsedQuestion[]>([]);
+
+  async function readFile(file: File) {
+    text.value = await file.text();
+  }
+  function check() {
+    parsed.value = parseHomeworkText(text.value);
+    step.value = "preview";
+  }
+  function reset() {
+    text.value = "";
+    parsed.value = [];
+    step.value = "input";
+  }
+
+  return { text, step, parsed, readFile, check, reset };
 }
 
 // ------------------------------------------------------- one piece of work
