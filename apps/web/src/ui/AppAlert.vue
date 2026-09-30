@@ -6,6 +6,7 @@ withDefaults(defineProps<{ kind?: "error" | "success" | "info" | "warning" }>(),
 <template>
   <div
     :role="kind === 'error' ? 'alert' : 'status'"
+    :data-error-anchor="kind === 'error' ? '' : undefined"
     class="alert alert-soft items-start"
     :class="{
       'alert-error': kind === 'error',
