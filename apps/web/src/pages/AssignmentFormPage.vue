@@ -98,6 +98,9 @@ function confirmImport() {
 
       <AppCard :title="t.questions" :description="t.questionsText">
         <template #actions>
+          <AppButton variant="secondary" compact :disabled="f.wordsOnly.value" @click="openImport">
+            <AppIcon name="upload" :size="16" />{{ t.importOpen }}
+          </AppButton>
           <span class="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">{{
             fill(t.totalPoints, { n: f.total.value })
           }}</span>
@@ -222,9 +225,6 @@ function confirmImport() {
             @click="f.addQuestion(x.kind)"
           >
             <AppIcon name="plus" :size="16" />{{ x.label }}
-          </AppButton>
-          <AppButton variant="ghost" compact :disabled="f.wordsOnly.value" @click="openImport">
-            <AppIcon name="upload" :size="16" />{{ t.importOpen }}
           </AppButton>
         </div>
       </AppCard>
