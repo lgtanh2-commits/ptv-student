@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { QuestionKind } from "@lms/shared";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { kindIcon, kindText } from "@/components/homeworkLabels";
-import { useAssignmentForm } from "@/features/homework/useHomework";
+import { useAssignmentForm, useHomeworkImport } from "@/features/homework/useHomework";
+import { downloadSampleHomework } from "@/features/homework/sample";
 import { goBack } from "@/features/navigation/back";
 import { usePaging } from "@/features/paging";
 import { useToast } from "@/features/toast/useToast";
@@ -11,12 +12,14 @@ import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
+import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppSegmented from "@/ui/AppSegmented.vue";
@@ -58,6 +61,22 @@ const adders: { kind: QuestionKind; label: string }[] = [
 const backTo = computed(() =>
   id.value ? `/assignments/${id.value}` : `/courses/${courseId.value}?tab=homework`,
 );
+
+const importing = ref(false);
+const imp = useHomeworkImport();
+function openImport() {
+  imp.reset();
+  importing.value = true;
+}
+function onImportFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (file) void imp.readFile(file);
+}
+const reviewCount = computed(() => imp.parsed.value.filter((p) => p.review).length);
+function confirmImport() {
+  f.importQuestions(imp.parsed.value);
+  importing.value = false;
+}
 </script>
 
 <template>
@@ -204,6 +223,9 @@ const backTo = computed(() =>
           >
             <AppIcon name="plus" :size="16" />{{ x.label }}
           </AppButton>
+          <AppButton variant="ghost" compact :disabled="f.wordsOnly.value" @click="openImport">
+            <AppIcon name="upload" :size="16" />{{ t.importOpen }}
+          </AppButton>
         </div>
       </AppCard>
 
@@ -269,5 +291,78 @@ const backTo = computed(() =>
         <AppButton variant="ghost" @click="goBack(router, backTo)">{{ messages.common.cancel }}</AppButton>
       </div>
     </form>
+
+    <AppModal v-model="importing" :title="t.importTitle" :close-label="messages.common.close">
+      <ul class="steps w-full" :aria-label="t.importStepsLabel">
+        <li class="step step-primary">{{ t.importStep1 }}</li>
+        <li class="step" :class="{ 'step-primary': imp.step.value === 'preview' }">{{ t.importStep2 }}</li>
+      </ul>
+
+      <template v-if="imp.step.value === 'input'">
+        <p class="text-base-content/70">{{ t.importIntro }}</p>
+        <ol class="list-decimal space-y-1 pl-5 text-base-content/70">
+          <li>{{ t.importHowTo1 }}</li>
+          <li>{{ t.importHowTo2 }}</li>
+          <li>{{ t.importHowTo3 }}</li>
+        </ol>
+        <div>
+          <AppButton variant="secondary" @click="downloadSampleHomework"
+            ><AppIcon name="download" :size="18" />{{ t.importSample }}</AppButton
+          >
+        </div>
+        <div class="fieldset">
+          <label class="fieldset-legend" for="import-homework-file">{{ t.importFile }}</label>
+          <input
+            id="import-homework-file"
+            type="file"
+            accept=".txt,text/plain"
+            class="file-input w-full"
+            @change="onImportFile"
+          />
+        </div>
+        <AppTextarea v-model="imp.text.value" :label="t.importPaste" :hint="t.importPasteHint" :rows="8" />
+      </template>
+
+      <template v-else>
+        <p class="text-base-content/70">
+          {{ fill(t.importSummary, { n: imp.parsed.value.length }) }}
+          <span v-if="reviewCount > 0">{{ fill(t.importReviewCount, { n: reviewCount }) }}</span>
+        </p>
+        <AppAlert v-if="imp.parsed.value.length === 0" kind="error">{{ t.importEmpty }}</AppAlert>
+        <ul class="flex flex-col divide-y divide-base-300">
+          <li v-for="p in imp.parsed.value" :key="p.n" class="flex flex-col gap-1 py-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm text-base-content/60">#{{ p.n }}</span>
+              <AppBadge :tone="p.review ? 'warning' : 'success'">{{ kindText[p.kind] }}</AppBadge>
+              <span class="text-sm text-base-content/60">{{
+                p.points === "1" ? t.pointsOne : fill(t.pointsTotal, { n: p.points })
+              }}</span>
+            </div>
+            <p class="text-sm">{{ p.text || "—" }}</p>
+            <p v-if="p.kind === 'choice'" class="text-sm text-base-content/60">
+              {{ p.options.join(" · ") }}
+            </p>
+            <p v-if="p.review" class="flex items-center gap-1 text-sm text-warning">
+              <AppIcon name="warning" :size="14" />{{ p.review }}
+            </p>
+          </li>
+        </ul>
+      </template>
+
+      <template #actions>
+        <template v-if="imp.step.value === 'input'">
+          <AppButton variant="ghost" @click="importing = false">{{ messages.common.cancel }}</AppButton>
+          <AppButton :disabled="imp.text.value.trim() === ''" @click="imp.check">{{
+            t.importCheck
+          }}</AppButton>
+        </template>
+        <template v-else>
+          <AppButton variant="ghost" @click="imp.reset">{{ t.importBack }}</AppButton>
+          <AppButton :disabled="imp.parsed.value.length === 0" @click="confirmImport">{{
+            imp.parsed.value.length === 1 ? t.importAddOne : fill(t.importAdd, { n: imp.parsed.value.length })
+          }}</AppButton>
+        </template>
+      </template>
+    </AppModal>
   </AppPage>
 </template>
