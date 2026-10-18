@@ -52,17 +52,18 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   if (res.ok) return (await res.json()) as T;
 
-  let body: ApiErrorBody | undefined;
+  let error: Partial<ApiErrorBody["error"]> | undefined;
   try {
-    body = (await res.json()) as ApiErrorBody;
+    // A proxy or the platform in front of the API can answer with JSON of another shape.
+    error = ((await res.json()) as Partial<ApiErrorBody> | null)?.error;
   } catch {
     // not JSON
   }
   throw new ApiError(
-    body?.error.code ?? "INTERNAL",
-    body?.error.message ?? "Something went wrong. Please try again.",
+    error?.code ?? "INTERNAL",
+    error?.message ?? "Something went wrong. Please try again.",
     res.status,
-    body?.error.fields,
-    body?.error.requestId,
+    error?.fields,
+    error?.requestId,
   );
 }
