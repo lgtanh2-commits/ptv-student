@@ -89,6 +89,26 @@
   --noise: 0;
 }
 
+/* On a pale tint, text in the plain status colors falls below 4.5:1 (WCAG AA), so the light theme uses darker ones. */
+@media (prefers-color-scheme: light) {
+  .badge-soft.badge-info,
+  .alert-soft.alert-info {
+    color: oklch(47% 0.13 240);
+  }
+  .badge-soft.badge-success,
+  .alert-soft.alert-success {
+    color: oklch(45% 0.12 155);
+  }
+  .badge-soft.badge-warning,
+  .alert-soft.alert-warning {
+    color: oklch(47% 0.11 65);
+  }
+  .badge-soft.badge-error,
+  .alert-soft.alert-error {
+    color: oklch(50% 0.19 25);
+  }
+}
+
 /* Respect people who ask for less motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
