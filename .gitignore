@@ -12,6 +12,9 @@ coverage/
 playwright-report/
 test-results/
 
+# The owner's text spreadsheets (scripts/i18n). Never committed.
+*.xlsx
+
 # Legacy Frappe Education (kept in tag legacy-frappe-education)
 *.pyc
 *.egg-info

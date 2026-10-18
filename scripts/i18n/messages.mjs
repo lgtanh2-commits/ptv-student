@@ -377,17 +377,25 @@ function options(argv) {
   const flags = { "--en": "en", "--glossary": "glossary", "--vi": "vi", "--server-text": "serverText" };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
-    if (flags[argv[i]]) {
-      if (!argv[i + 1]) throw new Refused(`${argv[i]} needs a path`);
+    if (Object.hasOwn(flags, argv[i])) {
+      if (!argv[i + 1] || argv[i + 1].startsWith("--")) throw new Refused(`${argv[i]} needs a path`);
       opts[flags[argv[i]]] = path.resolve(argv[++i]);
+    } else if (argv[i].startsWith("--")) {
+      // A misspelled flag would otherwise be taken as a file name, or ignored, and the import would
+      // then write into the real catalogs instead of the paths that were meant.
+      throw new Refused(`Unknown option ${argv[i]}`);
     } else rest.push(argv[i]);
   }
   return { opts, rest };
 }
 
+const USAGE = "Usage: node scripts/i18n/messages.mjs dump | rows | apply <rows.json>";
+
 async function main(argv) {
   const { opts, rest } = options(argv);
   const [command, file] = rest;
+  // Exactly the words each command takes, so a stray word is refused rather than ignored.
+  if (rest.length !== (command === "apply" ? 2 : 1)) throw new Refused(USAGE);
   if (command === "dump") {
     const { texts } = readWeb(opts);
     process.stdout.write(
@@ -416,7 +424,7 @@ async function main(argv) {
         (changed.length ? ` English changed: ${changed.join(", ")}.` : " No English was changed."),
     );
   } else {
-    throw new Refused("Usage: node scripts/i18n/messages.mjs dump | rows | apply <rows.json>");
+    throw new Refused(USAGE);
   }
 }
 

@@ -326,3 +326,29 @@ test("the scan leaves out module specifiers such as @lms/shared", () => {
   assert.ok(ids.length > 100);
   assert.ok(!ids.some((id) => id.startsWith("@lms/")));
 });
+
+test("an unknown option or a stray word is refused, and nothing is written", () => {
+  const json = path.join(dir, "rows.json");
+  writeFileSync(json, JSON.stringify(rows()));
+  const before = snapshot();
+  const refused = (...args) => {
+    const r = spawnSync(process.execPath, [SCRIPT, ...args, ...paths()], { encoding: "utf8" });
+    assertRefused(r, before);
+    return r;
+  };
+  assert.match(refused("apply", json, "--vi-file", "x.ts").stderr, /Unknown option --vi-file/);
+  assert.match(refused("apply", json, "--dry-run").stderr, /Unknown option --dry-run/);
+  assert.match(refused("--vi=x.ts", "apply", json).stderr, /Unknown option --vi=x\.ts/);
+  assert.match(refused("apply", json, "extra.json").stderr, /Usage/);
+  assert.match(refused("dump", "extra").stderr, /Usage/);
+  assert.match(refused("apply").stderr, /Usage/);
+  // A flag with its path missing is refused too, instead of taking the next flag as the path.
+  // (The scratch paths come first and the run is in the scratch folder, so even a wrong parse writes nothing real.)
+  const r = spawnSync(process.execPath, [SCRIPT, "apply", json, ...paths(), "--vi", "--en", files.en], {
+    encoding: "utf8",
+    cwd: dir,
+  });
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /--vi needs a path/);
+  assert.equal(apply(rows()).status, 0, "the known options still work");
+});
