@@ -21,3 +21,6 @@ education/docs/current
 education/public/frontend
 education/www/education.html
 education/www/student-portal.html
+
+# Brainstorm mockups and agent workspaces
+.superpowers/
