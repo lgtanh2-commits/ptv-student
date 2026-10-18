@@ -13,6 +13,7 @@ import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -53,12 +54,14 @@ async function sendInvite() {
 }
 
 const archiving = ref(false);
+const askingArchive = ref(false);
 async function toggleArchived(archived: boolean) {
   archiving.value = true;
   try {
     await setArchived(archived);
   } finally {
     archiving.value = false;
+    askingArchive.value = false;
   }
 }
 </script>
@@ -77,7 +80,7 @@ async function toggleArchived(archived: boolean) {
         variant="secondary"
         compact
         :loading="archiving"
-        @click="toggleArchived(true)"
+        @click="askingArchive = true"
         ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
       >
       <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
@@ -160,5 +163,14 @@ async function toggleArchived(archived: boolean) {
         </AppCard>
       </div>
     </div>
+
+    <AppConfirm
+      v-model="askingArchive"
+      :title="t.archiveTitle"
+      :text="t.archiveText"
+      :confirm-label="t.archive"
+      :loading="archiving"
+      @confirm="toggleArchived(true)"
+    />
   </AppPage>
 </template>

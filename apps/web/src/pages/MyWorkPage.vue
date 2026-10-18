@@ -19,6 +19,7 @@ import AppPage from "@/ui/AppPage.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.my;
+const h = messages.homework;
 const route = useRoute();
 const router = useRouter();
 const id = String(route.params.id);
@@ -146,7 +147,7 @@ const setLink = (qi: number, v: string) => {
         </div>
       </section>
 
-      <AppCard v-if="w.instructions || w.links.length" :title="t.instructions">
+      <AppCard v-if="w.instructions || w.links.length || w.dueAt" :title="t.instructions">
         <p v-if="w.instructions" class="whitespace-pre-wrap break-words">{{ w.instructions }}</p>
         <ul v-if="w.links.length" class="flex flex-col gap-1">
           <li v-for="l in w.links" :key="l.url">
@@ -161,6 +162,12 @@ const setLink = (qi: number, v: string) => {
             </a>
           </li>
         </ul>
+        <p v-if="w.dueAt" class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-base-content/70">
+          <span class="inline-flex items-center gap-1"
+            ><AppIcon name="clock" :size="14" />{{ h.due }} {{ formatWhen(w.dueAt) }}</span
+          >
+          <span>{{ w.allowLate ? h.lateOk : h.lateNo }}</span>
+        </p>
       </AppCard>
 
       <AppAlert v-if="m.error.value" kind="error">{{ m.error.value }}</AppAlert>

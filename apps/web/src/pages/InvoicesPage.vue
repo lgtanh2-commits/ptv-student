@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 import { invoiceStatusText, invoiceStatusTone } from "@/components/invoiceLabels";
 import { formatVnd } from "@/features/format";
 import { useInvoiceList } from "@/features/invoices/useInvoices";
@@ -24,6 +25,7 @@ import AppTable from "@/ui/AppTable.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.invoices;
+const router = useRouter();
 const list = useInvoiceList({
   created: t.created,
   createdOne: t.createdOne,
@@ -107,19 +109,22 @@ async function savePayment() {
               <th>{{ t.number }}</th>
               <th class="text-right">{{ t.total }}</th>
               <th>{{ t.status }}</th>
-              <th />
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in received.shown.value" :key="i.id" class="hover:bg-base-200/60">
-              <td class="font-medium">{{ i.studentName }}</td>
+            <tr
+              v-for="i in received.shown.value"
+              :key="i.id"
+              class="cursor-pointer hover:bg-base-200/60"
+              @click="router.push(`/invoices/${i.id}`)"
+            >
+              <td class="font-medium">
+                <RouterLink :to="`/invoices/${i.id}`" @click.stop>{{ i.studentName }}</RouterLink>
+              </td>
               <td class="whitespace-nowrap">{{ i.number ?? t.draftNumber }}</td>
               <td class="whitespace-nowrap text-right">{{ formatVnd(i.total) }}</td>
               <td>
                 <AppBadge :tone="invoiceStatusTone[i.status]">{{ invoiceStatusText[i.status] }}</AppBadge>
-              </td>
-              <td class="text-right">
-                <RouterLink :to="`/invoices/${i.id}`" class="btn btn-ghost btn-sm">{{ t.open }}</RouterLink>
               </td>
             </tr>
           </tbody>
@@ -129,13 +134,16 @@ async function savePayment() {
 
       <AppCard v-if="list.data.value.cancelled.length > 0" :title="t.cancelledTitle" flush>
         <ul class="divide-y divide-base-300">
-          <li
-            v-for="i in cancelled.shown.value"
-            :key="i.id"
-            class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
-          >
-            <span>{{ i.studentName }} · {{ i.number }} · {{ formatVnd(i.total) }}</span>
-            <RouterLink :to="`/invoices/${i.id}`" class="link link-primary">{{ t.open }}</RouterLink>
+          <li v-for="i in cancelled.shown.value" :key="i.id">
+            <RouterLink
+              :to="`/invoices/${i.id}`"
+              class="flex items-center gap-2 px-5 py-3 text-sm hover:bg-base-200/60"
+            >
+              <span class="min-w-0 flex-1"
+                >{{ i.studentName }} · {{ i.number }} · {{ formatVnd(i.total) }}</span
+              >
+              <AppIcon name="right" :size="16" class="text-base-content/40" />
+            </RouterLink>
           </li>
         </ul>
         <AppPager v-model:page="cancelled.page.value" :pages="cancelled.pages.value" />

@@ -1,18 +1,22 @@
 <script setup lang="ts">
+import type { MaterialInfo } from "@lms/shared";
 import { ref } from "vue";
 import { hostOf } from "@/features/format";
 import { useMaterials } from "@/features/homework/useHomework";
 import { usePaging } from "@/features/paging";
+import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
 
 const props = defineProps<{ courseId: string }>();
@@ -20,20 +24,23 @@ const t = messages.links;
 const m = useMaterials(props.courseId, { added: t.added, saved: t.saved, removed: t.removed });
 const paging = usePaging(m.items);
 
-const removingId = ref<string | null>(null);
-async function remove(id: string) {
-  removingId.value = id;
+const asking = ref<MaterialInfo | null>(null);
+const removing = ref(false);
+async function remove() {
+  if (!asking.value) return;
+  removing.value = true;
   try {
-    await m.remove(id);
+    await m.remove(asking.value.id);
   } finally {
-    removingId.value = null;
+    removing.value = false;
+    asking.value = null;
   }
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
-    <AppCard :title="m.editing.value ? t.editTitle : t.addTitle" :description="t.intro">
+    <AppCard :title="t.addTitle" :description="t.intro">
       <form class="grid gap-x-4 gap-y-3 md:grid-cols-2" novalidate @submit.prevent="m.form.submit">
         <AppAlert v-if="m.form.formError.value" kind="error" class="md:col-span-2">{{
           m.form.formError.value
@@ -48,13 +55,10 @@ async function remove(id: string) {
           :error="m.form.errors.value.url"
         />
         <div class="md:col-span-2"><AppCheckbox v-model="m.form.values.published" :label="t.shared" /></div>
-        <div class="flex gap-2 md:col-span-2">
+        <div class="md:col-span-2">
           <AppButton type="submit" :loading="m.form.submitting.value"
-            ><AppIcon name="plus" :size="18" />{{ m.editing.value ? t.save : t.add }}</AppButton
+            ><AppIcon name="plus" :size="18" />{{ t.add }}</AppButton
           >
-          <AppButton v-if="m.editing.value" variant="ghost" @click="m.reset">{{
-            messages.common.cancel
-          }}</AppButton>
         </div>
       </form>
     </AppCard>
@@ -83,13 +87,52 @@ async function remove(id: string) {
           <AppBadge :tone="l.published ? 'success' : 'neutral'">{{
             l.published ? t.visible : t.hidden
           }}</AppBadge>
-          <AppButton variant="ghost" compact @click="m.edit(l)">{{ t.edit }}</AppButton>
-          <AppButton variant="ghost" compact :loading="removingId === l.id" @click="remove(l.id)">{{
-            t.remove
-          }}</AppButton>
+          <AppButton variant="ghost" compact @click="m.edit(l)"
+            ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
+          >
+          <AppButton variant="ghost" compact @click="asking = l"
+            ><AppIcon name="trash" :size="16" />{{ t.remove }}</AppButton
+          >
         </li>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
     </AppCard>
+
+    <AppModal
+      :model-value="m.editing.value !== null"
+      :title="t.editTitle"
+      :close-label="messages.common.close"
+      @update:model-value="(v) => !v && (m.editing.value = null)"
+    >
+      <form id="edit-link" class="flex flex-col gap-3" novalidate @submit.prevent="m.editForm.submit">
+        <AppAlert v-if="m.editForm.formError.value" kind="error">{{ m.editForm.formError.value }}</AppAlert>
+        <AppInput v-model="m.editForm.values.title" :label="t.name" :error="m.editForm.errors.value.title" />
+        <AppInput
+          v-model="m.editForm.values.url"
+          :label="t.url"
+          type="url"
+          placeholder="https://"
+          :hint="t.urlHint"
+          :error="m.editForm.errors.value.url"
+        />
+        <AppCheckbox v-model="m.editForm.values.published" :label="t.shared" />
+      </form>
+      <template #actions>
+        <AppButton variant="ghost" @click="m.editing.value = null">{{ messages.common.cancel }}</AppButton>
+        <AppButton type="submit" form="edit-link" :loading="m.editForm.submitting.value">{{
+          t.save
+        }}</AppButton>
+      </template>
+    </AppModal>
+
+    <AppConfirm
+      :model-value="asking !== null"
+      :title="t.removeTitle"
+      :text="fill(t.removeText, { title: asking?.title ?? '' })"
+      :confirm-label="t.remove"
+      :loading="removing"
+      @update:model-value="(v) => !v && (asking = null)"
+      @confirm="remove"
+    />
   </div>
 </template>

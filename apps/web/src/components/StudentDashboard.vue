@@ -191,11 +191,9 @@ function jump(id: string) {
                     :href="l.onlineUrl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="btn btn-square btn-ghost mr-3 shrink-0"
-                    :aria-label="fill(t.joinLesson, { title: l.title || l.courseName })"
-                    :title="t.join"
-                    ><AppIcon name="video" :size="18"
-                  /></a>
+                    class="btn btn-ghost btn-sm mr-3 shrink-0"
+                    ><AppIcon name="video" :size="16" />{{ t.join }}</a
+                  >
                 </li>
               </ul>
               <AppPager v-model:page="lessonPaging.page.value" :pages="lessonPaging.pages.value" />

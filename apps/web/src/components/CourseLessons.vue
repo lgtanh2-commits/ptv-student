@@ -25,11 +25,9 @@ import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppSelect from "@/ui/AppSelect.vue";
-import { useRouter } from "vue-router";
 
 const props = defineProps<{ courseId: string }>();
 const t = messages.lessons;
-const router = useRouter();
 
 const { loading, error, load, form, parts } = useCourseLessons(props.courseId, {
   added: (n) => (n === 1 ? t.addedOne : fill(t.added, { n })),
@@ -101,7 +99,7 @@ const statusTone = {
           <li
             v-for="l in group.paging.shown.value"
             :key="l.id"
-            class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3"
+            class="relative flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-base-200/60"
           >
             <span
               class="grid w-14 shrink-0 place-items-center rounded-field py-1.5"
@@ -113,12 +111,13 @@ const statusTone = {
               <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
             </span>
             <div class="min-w-0 flex-1 basis-48">
-              <p
-                class="truncate font-medium"
+              <RouterLink
+                :to="`/lessons/${l.id}/attendance`"
+                class="block truncate font-medium after:absolute after:inset-0"
                 :class="{ 'line-through opacity-60': l.status === 'cancelled' }"
               >
                 {{ l.title || formatDayShort(l.date) }}
-              </p>
+              </RouterLink>
               <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-base-content/60">
                 <span class="inline-flex items-center gap-1"
                   ><AppIcon name="clock" :size="14" />{{ l.startTime }} - {{ l.endTime }}</span
@@ -131,7 +130,7 @@ const statusTone = {
                   :href="l.onlineUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="link link-primary inline-flex items-center gap-1"
+                  class="link link-primary relative z-10 inline-flex items-center gap-1"
                   ><AppIcon name="video" :size="14" />{{ t.join }}</a
                 >
                 <span v-if="l.seriesId" class="inline-flex items-center gap-1"
@@ -140,20 +139,13 @@ const statusTone = {
               </p>
             </div>
             <AppBadge :tone="statusTone[lessonLabel(l)]">{{ statusText[lessonLabel(l)] }}</AppBadge>
-            <div class="flex gap-1">
-              <AppButton
-                v-if="l.status !== 'cancelled'"
-                variant="secondary"
-                compact
-                @click="router.push(`/lessons/${l.id}/attendance`)"
-                ><AppIcon name="attendance" :size="16" />{{ t.takeAttendance }}</AppButton
-              >
+            <div class="relative z-10 flex gap-1">
               <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="edit.open(l)"
                 ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
               >
-              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="askCancel(l)">{{
-                t.cancel
-              }}</AppButton>
+              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="askCancel(l)"
+                ><AppIcon name="ban" :size="16" />{{ t.cancel }}</AppButton
+              >
               <AppButton
                 v-if="l.status === 'cancelled'"
                 variant="ghost"

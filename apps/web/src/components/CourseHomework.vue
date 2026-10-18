@@ -85,14 +85,14 @@ async function confirmDelete() {
           }}</AppBadge>
           <AppBadge :tone="assignmentStatusTone[a.status]">{{ assignmentStatusText[a.status] }}</AppBadge>
         </RouterLink>
-        <button
-          type="button"
-          class="btn btn-square btn-ghost mr-3 shrink-0"
+        <AppButton
+          variant="ghost"
+          compact
+          class="mr-3 shrink-0"
           :aria-label="fill(t.deleteOne, { title: a.title })"
           @click="deleting = a"
+          ><AppIcon name="trash" :size="16" />{{ messages.common.delete }}</AppButton
         >
-          <AppIcon name="trash" :size="18" />
-        </button>
       </li>
     </ul>
     <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />

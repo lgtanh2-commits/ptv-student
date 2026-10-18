@@ -6,7 +6,7 @@ withDefaults(defineProps<{ tone?: "neutral" | "success" | "warning" | "error" | 
 
 <template>
   <span
-    class="badge badge-soft"
+    class="badge badge-soft whitespace-nowrap"
     :class="{
       'badge-success': tone === 'success',
       'badge-warning': tone === 'warning',

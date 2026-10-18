@@ -11,6 +11,7 @@ import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -64,6 +65,14 @@ async function setStatus(id: string, status: "active" | "completed" | "dropped",
   }
 }
 
+const removing = ref<{ studentId: string; studentName: string; customPrice: number | null } | null>(null);
+async function confirmRemove() {
+  if (!removing.value) return;
+  const s = removing.value;
+  await setStatus(s.studentId, "dropped", s.customPrice);
+  removing.value = null;
+}
+
 // Changing one student's own price
 const editing = ref<string | null>(null);
 const priceText = ref("");
@@ -102,11 +111,19 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
         :text="t.emptyText"
       />
       <ul v-else class="divide-y divide-base-300">
-        <li v-for="s in rosterPaging.shown.value" :key="s.studentId" class="flex flex-col gap-3 px-5 py-4">
+        <li
+          v-for="s in rosterPaging.shown.value"
+          :key="s.studentId"
+          class="relative flex flex-col gap-3 px-5 py-4 hover:bg-base-200/60"
+        >
           <div class="flex flex-wrap items-center gap-3">
             <AppAvatar :name="s.studentName" />
             <div class="min-w-0 flex-1 basis-40">
-              <AppLink :to="`/students/${s.studentId}`">{{ s.studentName }}</AppLink>
+              <RouterLink
+                :to="`/students/${s.studentId}`"
+                class="block truncate font-medium after:absolute after:inset-0"
+                >{{ s.studentName }}</RouterLink
+              >
               <p class="text-sm text-base-content/60">
                 {{
                   s.customPrice === null
@@ -117,7 +134,7 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
             </div>
             <AppBadge :tone="statusTone[s.status]">{{ statusText[s.status] }}</AppBadge>
             <AppBadge v-if="s.studentArchived">{{ t.archivedStudent }}</AppBadge>
-            <div class="flex flex-wrap gap-1">
+            <div class="relative z-10 flex flex-wrap gap-1">
               <AppButton variant="ghost" compact @click="startEdit(s.studentId, s.customPrice)">{{
                 t.changePrice
               }}</AppButton>
@@ -129,13 +146,9 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
                   @click="setStatus(s.studentId, 'completed', s.customPrice)"
                   >{{ t.finish }}</AppButton
                 >
-                <AppButton
-                  variant="ghost"
-                  compact
-                  :loading="busyId === s.studentId"
-                  @click="setStatus(s.studentId, 'dropped', s.customPrice)"
-                  >{{ t.remove }}</AppButton
-                >
+                <AppButton variant="ghost" compact :loading="busyId === s.studentId" @click="removing = s">{{
+                  t.remove
+                }}</AppButton>
               </template>
               <AppButton
                 v-else
@@ -149,7 +162,7 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
           </div>
           <div
             v-if="editing === s.studentId"
-            class="flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
+            class="relative z-10 flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
           >
             <AppMoneyInput v-model="priceText" :label="t.price" :hint="t.useCoursePrice" />
             <AppButton
@@ -203,5 +216,15 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
         </div>
       </template>
     </AppCard>
+
+    <AppConfirm
+      :model-value="removing !== null"
+      :title="t.removeTitle"
+      :text="fill(t.removeText, { name: removing?.studentName ?? '' })"
+      :confirm-label="t.remove"
+      :loading="busyId !== null && busyId === removing?.studentId"
+      @update:model-value="(v) => !v && (removing = null)"
+      @confirm="confirmRemove"
+    />
   </div>
 </template>

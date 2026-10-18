@@ -55,6 +55,7 @@ export function useMaterials(courseId: string, text: { added: string; saved: str
   const items = ref<MaterialInfo[]>([]);
   const loading = ref(true);
   const error = ref<string | null>(null);
+  /** The link being changed in the dialog, or null when the dialog is closed. */
   const editing = ref<string | null>(null);
 
   onMounted(async () => {
@@ -72,30 +73,44 @@ export function useMaterials(courseId: string, text: { added: string; saved: str
     {
       schema: materialBody,
       submit: async (v) => {
-        const wasEditing = editing.value;
-        const path = wasEditing
-          ? `/courses/${courseId}/materials/${wasEditing}`
-          : `/courses/${courseId}/materials`;
         items.value = (
-          await api<{ materials: MaterialInfo[] }>(path, { method: wasEditing ? "PUT" : "POST", body: v })
+          await api<{ materials: MaterialInfo[] }>(`/courses/${courseId}/materials`, {
+            method: "POST",
+            body: v,
+          })
         ).materials;
-        toast.success(wasEditing ? text.saved : text.added);
-        reset();
+        toast.success(text.added);
+        form.values.title = "";
+        form.values.url = "";
+        form.values.published = true;
       },
     },
   );
 
-  function reset() {
-    editing.value = null;
-    form.values.title = "";
-    form.values.url = "";
-    form.values.published = true;
-  }
+  const editForm = useForm(
+    { title: "", url: "", published: true },
+    {
+      schema: materialBody,
+      submit: async (v) => {
+        items.value = (
+          await api<{ materials: MaterialInfo[] }>(`/courses/${courseId}/materials/${editing.value}`, {
+            method: "PUT",
+            body: v,
+          })
+        ).materials;
+        toast.success(text.saved);
+        editing.value = null;
+      },
+    },
+  );
+
   function edit(m: MaterialInfo) {
+    editForm.errors.value = {};
+    editForm.formError.value = null;
+    editForm.values.title = m.title;
+    editForm.values.url = m.url;
+    editForm.values.published = m.published;
     editing.value = m.id;
-    form.values.title = m.title;
-    form.values.url = m.url;
-    form.values.published = m.published;
   }
   async function remove(id: string) {
     try {
@@ -103,12 +118,11 @@ export function useMaterials(courseId: string, text: { added: string; saved: str
         await api<{ materials: MaterialInfo[] }>(`/courses/${courseId}/materials/${id}`, { method: "DELETE" })
       ).materials;
       toast.success(text.removed);
-      if (editing.value === id) reset();
     } catch (err) {
       toast.error(messageOf(err));
     }
   }
-  return { items, loading, error, form, editing, edit, remove, reset };
+  return { items, loading, error, form, editForm, editing, edit, remove };
 }
 
 // ------------------------------------------------------------------ the form

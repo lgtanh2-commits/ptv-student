@@ -2,12 +2,14 @@
 import { ref } from "vue";
 import { useInvites } from "@/features/invites/useInvites";
 import { usePaging } from "@/features/paging";
+import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -16,6 +18,19 @@ const t = messages.invites;
 const justSent = ref(false);
 const { invites, loading, actionError, form, resend, cancel } = useInvites(() => (justSent.value = true));
 const paging = usePaging(invites);
+
+const asking = ref<{ studentId: string; name: string } | null>(null);
+const cancelling = ref(false);
+async function confirmCancel() {
+  if (!asking.value) return;
+  cancelling.value = true;
+  try {
+    await cancel(asking.value.studentId);
+  } finally {
+    cancelling.value = false;
+    asking.value = null;
+  }
+}
 
 const stateText = { sent: t.stateSent, expired: t.stateExpired, revoked: t.stateRevoked } as const;
 const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as const;
@@ -42,38 +57,39 @@ const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as co
       <h3 class="text-sm font-semibold">{{ t.listTitle }}</h3>
       <AppAlert v-if="actionError" kind="error">{{ actionError }}</AppAlert>
       <ul class="flex flex-col gap-3">
-        <li v-for="invite in paging.shown.value" :key="invite.studentId" class="flex items-center gap-3">
+        <li
+          v-for="invite in paging.shown.value"
+          :key="invite.studentId"
+          class="flex flex-wrap items-center gap-x-3 gap-y-1"
+        >
           <AppAvatar :name="invite.name" size="sm" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ invite.name }}</p>
             <p class="truncate text-xs text-base-content/60">{{ invite.email }}</p>
           </div>
           <AppBadge :tone="stateTone[invite.state]">{{ stateText[invite.state] }}</AppBadge>
-          <div class="flex shrink-0">
-            <button
-              type="button"
-              class="btn btn-square btn-ghost btn-sm"
-              :aria-label="t.resend"
-              :title="t.resend"
-              @click="resend(invite.studentId)"
+          <div class="flex basis-full gap-1 ps-8">
+            <AppButton variant="ghost" compact @click="resend(invite.studentId)"
+              ><AppIcon name="send" :size="16" />{{ t.resend }}</AppButton
             >
-              <AppIcon name="send" :size="16" />
-            </button>
-            <button
-              v-if="invite.state !== 'revoked'"
-              type="button"
-              class="btn btn-square btn-ghost btn-sm"
-              :aria-label="t.cancel"
-              :title="t.cancel"
-              @click="cancel(invite.studentId)"
+            <AppButton v-if="invite.state !== 'revoked'" variant="ghost" compact @click="asking = invite"
+              ><AppIcon name="close" :size="16" />{{ t.cancel }}</AppButton
             >
-              <AppIcon name="close" :size="16" />
-            </button>
           </div>
         </li>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" plain />
     </div>
     <p v-else-if="!loading" class="text-sm text-base-content/60">{{ t.empty }}</p>
+
+    <AppConfirm
+      :model-value="asking !== null"
+      :title="t.cancelTitle"
+      :text="fill(t.cancelText, { name: asking?.name ?? '' })"
+      :confirm-label="t.cancel"
+      :loading="cancelling"
+      @update:model-value="(v) => !v && (asking = null)"
+      @confirm="confirmCancel"
+    />
   </AppCard>
 </template>
