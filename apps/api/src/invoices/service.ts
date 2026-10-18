@@ -534,10 +534,8 @@ export async function invoiceDelete(ctx: Ctx, actor: Actor, id: string, version:
 
 // ------------------------------------------------------------ sending and paying
 
-const monthName = (period: string) =>
-  new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(`${period}-01T00:00:00Z`),
-  );
+/** "2026-10" as "10/2026": the same in every language (the texts around it say "month"). */
+const monthName = (period: string) => `${period.slice(5, 7)}/${period.slice(0, 4)}`;
 
 /**
  * Sends the receipt: from now on the student can see it and it cannot be changed. It gets its number and keeps

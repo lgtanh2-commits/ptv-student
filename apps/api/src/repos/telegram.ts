@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE, parseLanguage, type Language } from "@lms/shared";
 import { nowIso } from "../lib/time";
 
 export interface TelegramLinkRow {
@@ -12,14 +13,34 @@ export const findLink = (db: D1Database, userId: string): Promise<TelegramLinkRo
     .bind(userId)
     .first<TelegramLinkRow>();
 
-/** The Telegram chat linked to each of these people, for the ones who have one. */
-export async function linkedChatsOf(db: D1Database, userIds: string[]): Promise<Map<string, string>> {
+/** The Telegram chat linked to each of these people, for the ones who have one, with the language to write in. */
+export async function linkedChatsOf(
+  db: D1Database,
+  userIds: string[],
+): Promise<Map<string, { chatId: string; language: Language }>> {
   if (userIds.length === 0) return new Map();
   const res = await db
-    .prepare("SELECT user_id, chat_id FROM telegram_links WHERE user_id IN (SELECT value FROM json_each(?))")
+    .prepare(
+      `SELECT t.user_id, t.chat_id, u.language FROM telegram_links t JOIN users u ON u.id = t.user_id
+       WHERE t.user_id IN (SELECT value FROM json_each(?))`,
+    )
     .bind(JSON.stringify(userIds))
-    .all<{ user_id: string; chat_id: string }>();
-  return new Map(res.results.map((r) => [r.user_id, r.chat_id]));
+    .all<{ user_id: string; chat_id: string; language: string }>();
+  return new Map(
+    res.results.map((r) => [
+      r.user_id,
+      { chatId: r.chat_id, language: parseLanguage(r.language) ?? DEFAULT_LANGUAGE },
+    ]),
+  );
+}
+
+/** The language of the person this chat is linked to; Vietnamese for a chat nobody linked. */
+export async function languageOfChat(db: D1Database, chatId: string): Promise<Language> {
+  const row = await db
+    .prepare("SELECT u.language FROM telegram_links t JOIN users u ON u.id = t.user_id WHERE t.chat_id = ?")
+    .bind(chatId)
+    .first<{ language: string }>();
+  return parseLanguage(row?.language) ?? DEFAULT_LANGUAGE;
 }
 
 export const deleteLinkStatement = (db: D1Database, userId: string): D1PreparedStatement =>

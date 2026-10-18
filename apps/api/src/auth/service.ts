@@ -9,6 +9,7 @@ import { appUrl, hmacKey } from "../lib/config";
 import { hmacHex } from "../lib/crypto";
 import { AppError } from "../lib/errors";
 import { uuidv7 } from "../lib/id";
+import { emailIn } from "../lib/outbound-text";
 import { languageOf } from "../middleware/language";
 import { consumeToken, newToken, revokeUserTokens } from "../repos/tokens";
 import {
@@ -17,6 +18,7 @@ import {
   insertMembership,
   insertTenant,
   insertUser,
+  languageOfEmail,
   markEmailVerified,
   membershipsOf,
   type UserRow,
@@ -76,8 +78,14 @@ export async function sendMail(ctx: Ctx, message: EmailMessage): Promise<void> {
   const limit = await hit(ctx.env.DB, `mail:${await emailHash(ctx, message.to)}`, 5, 3600);
   if (!limit.allowed) return;
   // Even choosing the provider happens after the answer, so a wrong setting is logged for us and
-  // never shows up as an error on only some requests (which would show who has an account).
-  await ctx.defer((async () => getEmailProvider(ctx.env).send(message))());
+  // never shows up as an error on only some requests (which would show who has an account). The same
+  // goes for looking up the language of the address: whether a row is found must not change the answer.
+  await ctx.defer(
+    (async () => {
+      const lang = await languageOfEmail(ctx.env.DB, message.to);
+      await getEmailProvider(ctx.env).send(emailIn(message, lang));
+    })(),
+  );
 }
 
 /**

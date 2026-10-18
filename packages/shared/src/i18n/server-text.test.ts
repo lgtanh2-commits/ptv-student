@@ -12,13 +12,19 @@ declare global {
   }
 }
 
-// Code a text can come from: no tests, and not this generated table.
+// Code a text can come from: no tests, not this generated table, and not the api's list of the table ids
+// each email and notification may hold (it only copies ids, so an id must still be found where it is made).
 const sources = Object.values(
-  import.meta.glob(["../../../../apps/api/src/**/*.ts", "../**/*.ts", "!**/*.test.ts", "!./server-text.ts"], {
-    query: "?raw",
-    import: "default",
-    eager: true,
-  }),
+  import.meta.glob(
+    [
+      "../../../../apps/api/src/**/*.ts",
+      "../**/*.ts",
+      "!**/*.test.ts",
+      "!./server-text.ts",
+      "!../../../../apps/api/src/lib/outbound-text.ts",
+    ],
+    { query: "?raw", import: "default", eager: true },
+  ),
 );
 
 /** The fixed parts of an id, around its `{…}` placeholders (SQL builds some texts with `||`). */

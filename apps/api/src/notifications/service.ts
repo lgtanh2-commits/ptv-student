@@ -1,8 +1,9 @@
-import type { NotificationList } from "@lms/shared";
+import type { Language, NotificationList } from "@lms/shared";
 import type { Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
 import type { Env } from "../env";
 import { appUrl } from "../lib/config";
+import { noticeIn } from "../lib/outbound-text";
 import { markReadStatement, notificationsOf, unreadCount, type NotifiedRow } from "../repos/notifications";
 import { linkedChatsOf } from "../repos/telegram";
 import { telegramClient } from "../telegram/client";
@@ -17,8 +18,7 @@ export async function list(ctx: Ctx, actor: Actor): Promise<NotificationList> {
     items: rows.map((r) => ({
       id: r.id,
       kind: r.kind,
-      title: r.title,
-      body: r.body,
+      ...noticeIn(r, actor.language),
       link: r.link,
       at: r.created_at,
       read: r.read_at !== null,
@@ -35,9 +35,11 @@ export async function markRead(ctx: Ctx, actor: Actor, ids: string[] | undefined
   return unreadCount(ctx.env.DB, actor.userId);
 }
 
-/** The words sent to Telegram for one notification: the title, the body (when there is one) and the link. */
-const telegramText = (row: NotifiedRow, base: string): string =>
-  [row.title, row.body, row.link ? `${base}${row.link}` : ""].filter((s) => s !== "").join("\n");
+/** The words sent to Telegram for one notification, in `lang`: the title, the body (when there is one) and the link. */
+const telegramText = (row: NotifiedRow, lang: Language, base: string): string => {
+  const { title, body } = noticeIn(row, lang);
+  return [title, body, row.link ? `${base}${row.link}` : ""].filter((s) => s !== "").join("\n");
+};
 
 /**
  * Sends each notification that was just made to Telegram too, for whoever linked a chat. Best-effort: one
@@ -51,8 +53,8 @@ async function forwardToTelegram(env: Env, rows: NotifiedRow[]): Promise<void> {
   const base = appUrl(env);
   await Promise.allSettled(
     rows.flatMap((r) => {
-      const chatId = chats.get(r.user_id);
-      return chatId ? [client.sendMessage(chatId, telegramText(r, base))] : [];
+      const chat = chats.get(r.user_id);
+      return chat ? [client.sendMessage(chat.chatId, telegramText(r, chat.language, base))] : [];
     }),
   );
 }

@@ -12,8 +12,9 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const ts = createRequire(path.join(ROOT, "apps/web/package.json"))("typescript");
 
 const DIRS = ["apps/api/src", "packages/shared/src"];
-// Tests, database statements (repos) and the i18n table itself hold no text of their own.
-const SKIP_FILES = /\.test\.ts$|\/repos\/|glossary\.ts$|\/i18n\//;
+// Tests, database statements (repos) and the i18n table itself hold no text of their own. Nor does
+// lib/outbound-text.ts: it only lists table ids (copies of texts made elsewhere).
+const SKIP_FILES = /\.test\.ts$|\/repos\/|glossary\.ts$|\/i18n\/|lib\/outbound-text\.ts$/;
 // Files with only technical strings: route lists, SMTP, health check, time zones, repeat rules.
 const DROP_FILES =
   /routes\/access\.ts$|smtp-client\.ts$|app\.ts$|routes\/health\.ts$|apps\/api\/src\/index\.ts$|lessons\/repeat\.ts$|lib\/zone\.ts$|shared\/src\/domain\.ts$/;
