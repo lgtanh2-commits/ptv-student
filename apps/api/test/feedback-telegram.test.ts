@@ -38,7 +38,9 @@ describe("feedback: Telegram to the owner", () => {
     expect(text).toContain(t.email);
     expect(text).toContain("Giáo viên");
     expect(text).toContain("/schedule");
-    expect(text).toContain(`UPDATE feedback SET status = 'todo', public_title = '...' WHERE id = '${id}';`);
+    expect(text).toContain(
+      `UPDATE feedback SET status = 'todo', public_title = '<tiêu đề công khai>', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = '${id}';`,
+    );
   });
 
   it("names a student as Học viên and shows - when there is no page", async () => {
@@ -58,7 +60,10 @@ describe("feedback: Telegram to the owner", () => {
     const text = telegramFake.asked[0]!.text;
     const lines = text.split("\n");
     const sqlLines = lines.filter((l) => l.startsWith("UPDATE feedback"));
-    expect(sqlLines[0]).toBe(`UPDATE feedback SET status = 'todo', public_title = '...' WHERE id = '${id}';`);
+    expect(sqlLines[0]).toBe(
+      `UPDATE feedback SET status = 'todo', public_title = '<tiêu đề công khai>', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = '${id}';`,
+    );
+    expect(text).toContain("Thay <tiêu đề công khai> bằng tiêu đề trước khi chạy.");
     expect(text.indexOf("UPDATE feedback")).toBeLessThan(text.indexOf("--- Nội dung góp ý ---"));
     expect(text.indexOf("pwned")).toBeGreaterThan(text.indexOf("--- Nội dung góp ý ---"));
     expect(text.indexOf("pwned")).toBeLessThan(text.indexOf("--- Hết ---"));
@@ -145,7 +150,7 @@ describe("feedback: Telegram to the owner", () => {
     });
     const lines = text.split("\n");
     expect(lines.filter((l) => l.startsWith("UPDATE"))).toEqual([
-      "UPDATE feedback SET status = 'todo', public_title = '...' WHERE id = 'real-id';",
+      "UPDATE feedback SET status = 'todo', public_title = '<tiêu đề công khai>', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = 'real-id';",
     ]);
     expect(lines.some((l) => l.startsWith("UPDATE feedback SET status='todo'"))).toBe(false);
   });

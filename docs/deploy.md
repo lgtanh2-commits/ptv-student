@@ -123,7 +123,7 @@ To find your chat id: send any message to the bot, then open `https://api.telegr
 
 **Managing feedback.** Run these in production with `wrangler d1 execute DB --env production --remote --command "..."`. Replace `<id>` with the id shown in the Telegram message (or in the list). Titles are shown to every signed-in person, so never copy private details into them.
 
-Writing a title inside the command: the title sits between single quotes, so write a `'` inside it twice (`Can''t open the schedule`). The whole command sits between double quotes for the shell, so do not put `"`, `$` or a backtick in a title.
+Writing a title inside the command: the title sits between single quotes, so write a `'` inside it twice (`Can''t open the schedule`). The whole command sits between double quotes for the shell, so do not put `"`, `$`, `!` or a backtick in a title (in an interactive bash or zsh, `!` starts history expansion).
 
 List new feedback:
 

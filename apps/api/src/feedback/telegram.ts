@@ -40,7 +40,8 @@ export function feedbackTelegramText(o: FeedbackNotice): string {
   const head = [
     `Góp ý mới (${KIND_LABEL[o.kind]})`,
     "Để duyệt:",
-    `UPDATE feedback SET status = 'todo', public_title = '...' WHERE id = '${o.id}';`,
+    "Thay <tiêu đề công khai> bằng tiêu đề trước khi chạy.",
+    `UPDATE feedback SET status = 'todo', public_title = '<tiêu đề công khai>', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = '${o.id}';`,
     "",
     `Loại: ${KIND_LABEL[o.kind]}`,
     `Người gửi: ${one(o.name)} <${one(o.email)}>`,
