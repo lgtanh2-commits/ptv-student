@@ -1,6 +1,7 @@
 import {
   consumeLinkBody,
   emailOnlyBody,
+  setLanguageBody,
   signUpBody,
   tokenBody,
   type MeResponse,
@@ -14,6 +15,7 @@ import { AppError } from "../lib/errors";
 import { actorOf, requireAuth } from "../middleware/auth";
 import { auditStatement } from "../audit";
 import { listSessions, revokeAllSessions, revokeSession } from "../repos/sessions";
+import { setLanguageStatement } from "../repos/users";
 import { verifyTurnstile } from "../security/turnstile";
 import { acceptInvite } from "../students/invites";
 import { accepted, parseBody } from "./helpers";
@@ -61,10 +63,24 @@ auth.post("/invites/accept", async (c) => {
 auth.get("/me", requireAuth, (c) => {
   const actor = actorOf(c);
   const body: MeResponse = {
-    user: { id: actor.userId, name: actor.name, email: actor.email, emailVerified: actor.emailVerified },
+    user: {
+      id: actor.userId,
+      name: actor.name,
+      email: actor.email,
+      emailVerified: actor.emailVerified,
+      language: actor.language,
+    },
     memberships: actor.memberships,
   };
   return c.json(body);
+});
+
+auth.put("/me/language", requireAuth, async (c) => {
+  const actor = actorOf(c);
+  const { language } = await parseBody(c, setLanguageBody);
+  // userId comes from the session, so nobody can change another person's language.
+  await setLanguageStatement(c.env.DB, actor.userId, language).run();
+  return c.json({ language });
 });
 
 auth.post("/auth/sign-out", requireAuth, async (c) => {

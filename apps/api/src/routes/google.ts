@@ -1,4 +1,4 @@
-import type { ErrorCode } from "@lms/shared";
+import { parseLanguage, type ErrorCode } from "@lms/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { signInWithGoogle } from "../auth/google";
@@ -75,6 +75,8 @@ google.get("/auth/google/start", async (c) => {
       verifier: randomToken(),
       intent: q.data.intent,
       invite: q.data.invite,
+      // Anything but a known language is dropped here, so it never reaches the cookie or the account.
+      language: parseLanguage(c.req.query("lang")) ?? undefined,
       keep: q.data.keep === "1",
       until: Date.now() + FLOW_MINUTES * 60_000,
     };

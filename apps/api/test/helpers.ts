@@ -51,6 +51,11 @@ export interface CallOptions {
   headers?: Record<string, string>;
   env?: Partial<Env>;
   noClientHeader?: boolean;
+  /**
+   * The `x-lms-lang` header. Tests speak English unless they say otherwise, so their messages stay
+   * readable; `null` sends no header at all.
+   */
+  lang?: string | null;
 }
 
 export interface CallResult {
@@ -65,7 +70,12 @@ export interface CallResult {
 
 export async function call(path: string, opts: CallOptions = {}): Promise<CallResult> {
   const method = opts.method ?? "GET";
-  const headers: Record<string, string> = { "cf-connecting-ip": opts.ip ?? randomIp(), ...opts.headers };
+  const lang = opts.lang === undefined ? "en" : opts.lang;
+  const headers: Record<string, string> = {
+    "cf-connecting-ip": opts.ip ?? randomIp(),
+    ...(lang === null ? {} : { "x-lms-lang": lang }),
+    ...opts.headers,
+  };
   if (method !== "GET" && !opts.noClientHeader) headers["x-lms-client"] = "web";
   if (opts.body !== undefined) headers["content-type"] = "application/json";
   if (opts.cookie) headers.cookie = opts.cookie;
@@ -124,11 +134,15 @@ export interface Person {
 }
 
 /** A signed in, email-confirmed teacher with their own tenant. */
-export async function createTeacher(name = "Test Teacher"): Promise<Person> {
+export async function createTeacher(
+  name = "Test Teacher",
+  o: { lang?: string | null } = {},
+): Promise<Person> {
   const email = uniqueEmail("teacher");
   const up = await call("/api/auth/sign-up", {
     method: "POST",
     body: { name, email },
+    lang: o.lang,
   });
   if (up.status !== 202) throw new Error(`sign up failed: ${JSON.stringify(up.json)}`);
   const verified = await call("/api/auth/verify-email", {
@@ -158,8 +172,15 @@ export async function signInWithLink(email: string, ip?: string): Promise<string
   return res.cookie;
 }
 
-/** A student invited by `teacher` who accepted the invite. */
-export async function createStudent(teacher: Person, name = "Test Student"): Promise<Person> {
+/**
+ * A student invited by `teacher` who accepted the invite. An invite makes the account in Vietnamese;
+ * the student then picks English, unless `lang` says otherwise, so test messages stay English.
+ */
+export async function createStudent(
+  teacher: Person,
+  name = "Test Student",
+  o: { lang?: "vi" | "en" } = {},
+): Promise<Person> {
   const email = uniqueEmail("student");
   const invited = await call("/api/invites", {
     method: "POST",
@@ -172,6 +193,14 @@ export async function createStudent(teacher: Person, name = "Test Student"): Pro
     body: { token: await latestToken(email, "invite") },
   });
   if (!accepted.cookie) throw new Error("no session after accept");
+  if ((o.lang ?? "en") === "en") {
+    const set = await call("/api/me/language", {
+      method: "PUT",
+      cookie: accepted.cookie,
+      body: { language: "en" },
+    });
+    if (set.status !== 200) throw new Error(`set language failed: ${JSON.stringify(set.json)}`);
+  }
   const me = await call("/api/me", { cookie: accepted.cookie });
   return {
     email,
@@ -276,9 +305,12 @@ export async function googleSignIn(o: {
   answer?: (form: URLSearchParams) => Response | Promise<Response>;
   ip?: string;
   env?: Partial<Env>;
+  /** The `?lang=` the web adds when starting. */
+  lang?: string;
 }): Promise<GoogleTrip> {
   const q = new URLSearchParams({ intent: o.intent ?? "sign-in", keep: o.keep === false ? "0" : "1" });
   if (o.invite) q.set("invite", o.invite);
+  if (o.lang !== undefined) q.set("lang", o.lang);
   const ip = o.ip ?? randomIp();
   const start = await call(`/api/auth/google/start?${q}`, { ip, env: o.env });
   const flowCookie = start.setCookie?.match(/(?:^|, )((?:__Host-)?glogin=[^;]+)/)?.[1];

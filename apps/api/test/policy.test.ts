@@ -13,6 +13,7 @@ const actorAs = (role: "teacher" | "student", tenantId = TENANT): Actor => ({
   name: "Me",
   email: "me@example.com",
   emailVerified: true,
+  language: "en",
   sessionId: "s",
   memberships: [{ tenantId, tenantName: "T", role }],
 });

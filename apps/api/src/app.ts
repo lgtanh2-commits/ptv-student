@@ -5,6 +5,7 @@ import { ERROR_CODES } from "@lms/shared";
 import type { AppBindings } from "./env";
 import { AppError, errorBody } from "./lib/errors";
 import { loadActor } from "./middleware/auth";
+import { languageOf, requestLanguage } from "./middleware/language";
 import { csrfProtection } from "./middleware/csrf";
 import { requestId } from "./middleware/request-id";
 import { securityHeaders } from "./middleware/security-headers";
@@ -44,10 +45,11 @@ export function createApp() {
     "/api/*",
     bodyLimit({
       maxSize: MAX_REQUEST_BYTES,
-      onError: (c) => c.json(errorBody(new AppError("TOO_LARGE"), c.get("requestId")), 413),
+      onError: (c) => c.json(errorBody(new AppError("TOO_LARGE"), c.get("requestId"), languageOf(c)), 413),
     }),
   );
   app.use("/api/*", loadActor);
+  app.use("/api/*", requestLanguage);
 
   const api = new OpenAPIHono<AppBindings>();
   api.route("/", health);
@@ -78,13 +80,15 @@ export function createApp() {
     );
   });
 
-  app.notFound((c) => c.json(errorBody(new AppError("NOT_FOUND"), c.get("requestId")), 404));
+  app.notFound((c) => c.json(errorBody(new AppError("NOT_FOUND"), c.get("requestId"), languageOf(c)), 404));
 
   app.onError((err, c) => {
     const id = c.get("requestId");
+    // Errors thrown before the language was worked out (CSRF, a bad session) still get one.
+    const language = languageOf(c);
 
     if (err instanceof AppError) {
-      return c.json(errorBody(err, id), err.status as 400);
+      return c.json(errorBody(err, id, language), err.status as 400);
     }
 
     if (err instanceof ZodError) {
@@ -93,7 +97,7 @@ export function createApp() {
         const key = issue.path.join(".") || "_";
         fields[key] ??= issue.message;
       }
-      return c.json(errorBody(new AppError("VALIDATION_FAILED", { fields }), id), 400);
+      return c.json(errorBody(new AppError("VALIDATION_FAILED", { fields }), id, language), 400);
     }
 
     // Unknown error: log the detail for us, show nothing to the user.
@@ -105,7 +109,7 @@ export function createApp() {
         stack: (err as Error).stack,
       }),
     );
-    return c.json(errorBody(new AppError("INTERNAL"), id), ERROR_CODES.INTERNAL.status);
+    return c.json(errorBody(new AppError("INTERNAL"), id, language), ERROR_CODES.INTERNAL.status);
   });
 
   return app;

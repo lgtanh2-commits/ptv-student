@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decideRoute, safeNext } from "./guards";
 
 const me = (role: "teacher" | "student"): MeResponse => ({
-  user: { id: "u", name: "N", email: "n@e.co", emailVerified: true },
+  user: { id: "u", name: "N", email: "n@e.co", emailVerified: true, language: "en" },
   memberships: [{ tenantId: "t", tenantName: "T", role }],
 });
 
