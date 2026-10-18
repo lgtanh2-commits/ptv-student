@@ -14,7 +14,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ROOT, literalParts, scanServer, sourceFiles } from "./scan-server.mjs";
+import { ROOT, scanServer } from "./scan-server.mjs";
 
 const ts = createRequire(path.join(ROOT, "apps/web/package.json"))("typescript");
 
@@ -138,12 +138,14 @@ const spaced = (value, base) => (base.trim() === "" ? base : lead(base) + value.
 const isText = (v) => typeof v === "string";
 const isEmpty = (v) => v === null || v === undefined || (isText(v) && v.trim() === "");
 
-let codeTexts = null;
-/** Ruling A: every fixed part of the id is in one source file (SQL builds texts with ||). */
-function inCode(id) {
-  codeTexts ??= sourceFiles().map((f) => readFileSync(f, "utf8"));
-  const parts = literalParts(id);
-  return parts.length > 0 && codeTexts.some((text) => parts.every((p) => text.includes(p)));
+let scannedIds = null;
+/**
+ * A server id is accepted only if it is already in the table or is exactly a text the code scan finds. Ids are
+ * never invented from the file: a made-up pattern like "{a} {b}" would rewrite unrelated text or be slow to match.
+ */
+function knownId(id, table) {
+  scannedIds ??= new Set(scanServer().map((s) => s.id));
+  return scannedIds.has(id) || table.some((e) => e.id === id);
 }
 
 /** Checks the rows and works out what to write. Throws Refused with every problem found. */
@@ -175,7 +177,8 @@ export function plan(rows, web, table) {
       base = row.source;
       if (seenIds.has(base)) return bad(`the text "${base}" is in the file more than once`);
       seenIds.add(base);
-      if (!inCode(base)) return bad(`the text "${base}" is not in the code`);
+      if (!knownId(base, table))
+        return bad(`the text "${base}" is not a server text of the code or the table`);
     } else {
       const current = webByKey.get(row.key);
       if (!current) return bad("unknown key (not in apps/web/src/messages/en.ts)");

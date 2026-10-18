@@ -260,3 +260,21 @@ test("an English text changed in the code since the export, but not in the file,
   assert.equal(r.status, 0, r.stderr);
   assert.equal(readFileSync(files.en, "utf8"), before);
 });
+
+test("a made-up pattern id is refused even if its fixed parts are somewhere in the code", () => {
+  const before = snapshot();
+  for (const id of ["{a} {b}", "{a}e{b}e{c}e{d}e{e}!"]) {
+    const r = apply([...rows(), { key: "server.300", source: id, en: id, vi: "HIJACK" + id }]);
+    assertRefused(r, before, "server.300", id);
+  }
+});
+
+test("a server id already in the table is accepted even if the scan does not find it", () => {
+  const id = "Kept from an earlier table.";
+  writeFileSync(
+    files.serverText,
+    `export const SERVER_TEXT = [{ id: ${JSON.stringify(id)}, en: ${JSON.stringify(id)}, vi: "Giữ lại." }];\n`,
+  );
+  const r = apply([...rows(), { key: "server.300", source: id, en: id, vi: "Giữ lại." }]);
+  assert.equal(r.status, 0, r.stderr);
+});
