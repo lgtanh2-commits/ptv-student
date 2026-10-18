@@ -99,6 +99,26 @@ describe("feedback: POST /feedback", () => {
     expect(await rowsOf(t.userId)).toHaveLength(1);
   });
 
+  it("answers a Vietnamese reader's refusals in Vietnamese", async () => {
+    const t = await createTeacher("Giáo viên", { lang: "vi" });
+    const short = await call("/api/feedback", {
+      method: "POST",
+      cookie: t.cookie,
+      lang: null,
+      body: { kind: "bug", message: "abc" },
+    });
+    expect(short.status).toBe(400);
+    expect(short.json.error.fields.message).toBe("Vui lòng viết ít nhất 5 ký tự.");
+    const kind = await call("/api/feedback", {
+      method: "POST",
+      cookie: t.cookie,
+      lang: null,
+      body: { message: "Không có loại" },
+    });
+    expect(kind.json.error.fields.kind).toBe("Vui lòng chọn loại góp ý.");
+    expect(await rowsOf(t.userId)).toHaveLength(0);
+  });
+
   it("needs a signed in person and the app's own header", async () => {
     const signedOut = await call("/api/feedback", {
       method: "POST",

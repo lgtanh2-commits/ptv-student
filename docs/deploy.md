@@ -109,6 +109,51 @@ Apply the migration and deploy the new code together, as the production workflow
 - If the migration runs long before the code, accounts created in that gap by the old code get `vi`.
 - If the code runs before the migration, every query that reads `language` fails.
 
+## Feedback
+
+People send feedback from the "Feedback" menu item. Each one is saved with status `new` and is not public. Only items you accept (with a public title) appear on the board.
+
+**Telegram message to you (optional).** Set the chat that receives each new feedback. It uses the same bot as the other Telegram notifications (`TELEGRAM_BOT_TOKEN`); without the chat id nothing is sent, and feedback is still saved.
+
+```sh
+wrangler secret put FEEDBACK_TELEGRAM_CHAT_ID --env <env>
+```
+
+To find your chat id: send any message to the bot, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and read `message.chat.id`. A bot such as @userinfobot also shows it. Never put the token or the id in the repository.
+
+**Managing feedback.** Run these in production with `wrangler d1 execute DB --env production --remote --command "..."`. Replace `<id>` with the id shown in the Telegram message (or in the list). Titles are shown to every signed-in person, so never copy private details into them.
+
+List new feedback:
+
+```sh
+wrangler d1 execute DB --env production --remote --command "SELECT id, kind, role, created_at, message FROM feedback WHERE status = 'new' ORDER BY created_at"
+```
+
+Accept (shows on the board under "To do"; `public_title_en` is optional and is shown to people reading in English, others see `public_title`):
+
+```sh
+wrangler d1 execute DB --env production --remote --command "UPDATE feedback SET status = 'todo', public_title = 'Your title in Vietnamese', public_title_en = 'Your title in English', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = '<id>'"
+```
+
+Move to "In progress", then "Done":
+
+```sh
+wrangler d1 execute DB --env production --remote --command "UPDATE feedback SET status = 'in_progress', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = '<id>'"
+wrangler d1 execute DB --env production --remote --command "UPDATE feedback SET status = 'done', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = '<id>'"
+```
+
+Reject (never shown on the board):
+
+```sh
+wrangler d1 execute DB --env production --remote --command "UPDATE feedback SET status = 'rejected', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = '<id>'"
+```
+
+Delete one:
+
+```sh
+wrangler d1 execute DB --env production --remote --command "DELETE FROM feedback WHERE id = '<id>'"
+```
+
 ## Rules
 
 - Database changes are **backward compatible** (add first, remove later), so rolling the Worker back never meets a schema it cannot read.
