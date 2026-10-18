@@ -90,14 +90,12 @@ export async function enroll(
         enrollStatement(db, { id: uuidv7(), tenantId, courseId, studentId, customPrice: body.customPrice }),
       ),
     );
-    for (const [i, studentId] of candidates.entries()) {
-      if (results[i]?.meta.changes) {
-        outcomes.set(studentId, "enrolled");
-        continue;
-      }
+    const missed = candidates.filter((_, i) => !results[i]?.meta.changes);
+    for (const studentId of candidates) if (!missed.includes(studentId)) outcomes.set(studentId, "enrolled");
+    if (missed.length > 0) {
       // No change: no free seat, or someone else added this student a moment ago.
-      const now = await findEnrollmentStatus(db, tenantId, courseId, studentId);
-      outcomes.set(studentId, now?.status === "active" ? "already_enrolled" : "full");
+      const now = await statusesAmong(db, tenantId, courseId, missed);
+      for (const id of missed) outcomes.set(id, now.get(id) === "active" ? "already_enrolled" : "full");
     }
   }
 

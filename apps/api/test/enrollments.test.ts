@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { addStudent, call, createCourse, createStudent, createTeacher, type Person } from "./helpers";
 
 const enroll = (t: Person, courseId: string, studentIds: string[], customPrice: number | null = null) =>
@@ -140,6 +140,28 @@ describe("the course seat limit", () => {
     expect(outcomes(res)).toEqual(["enrolled", "enrolled", "full", "full"]);
     expect(res.json.enrolled).toBe(2);
     expect(await enrolledCount(t, course.id)).toBe(2);
+  });
+
+  it("finds out why many students could not join with one query, not one each", async () => {
+    const t = await createTeacher();
+    const course = await createCourse(t, { maxStudents: 1 });
+    const kids = await Promise.all(Array.from({ length: 30 }, (_, i) => addStudent(t, { name: `Kid ${i}` })));
+    // The Workers Free plan allows 50 queries in one request, and 100 students may be sent at once.
+    const proto = Object.getPrototypeOf(env.DB.prepare("SELECT 1"));
+    const spies = (["first", "all", "run", "raw"] as const).map((m) => vi.spyOn(proto, m));
+    const batch = vi.spyOn(Object.getPrototypeOf(env.DB), "batch");
+    try {
+      const res = await enroll(
+        t,
+        course.id,
+        kids.map((k) => k.id),
+      );
+      expect(outcomes(res)).toEqual(["enrolled", ...Array(29).fill("full")]);
+      const queries = spies.reduce((n, s) => n + s.mock.calls.length, 0) + batch.mock.calls.length;
+      expect(queries).toBeLessThan(20);
+    } finally {
+      for (const s of [...spies, batch]) s.mockRestore();
+    }
   });
 
   it("lets only 2 of 6 simultaneous requests take the 2 seats", async () => {
