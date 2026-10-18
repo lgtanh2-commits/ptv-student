@@ -111,11 +111,19 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
         :text="t.emptyText"
       />
       <ul v-else class="divide-y divide-base-300">
-        <li v-for="s in rosterPaging.shown.value" :key="s.studentId" class="flex flex-col gap-3 px-5 py-4">
+        <li
+          v-for="s in rosterPaging.shown.value"
+          :key="s.studentId"
+          class="relative flex flex-col gap-3 px-5 py-4 hover:bg-base-200/60"
+        >
           <div class="flex flex-wrap items-center gap-3">
             <AppAvatar :name="s.studentName" />
             <div class="min-w-0 flex-1 basis-40">
-              <AppLink :to="`/students/${s.studentId}`">{{ s.studentName }}</AppLink>
+              <RouterLink
+                :to="`/students/${s.studentId}`"
+                class="block truncate font-medium after:absolute after:inset-0"
+                >{{ s.studentName }}</RouterLink
+              >
               <p class="text-sm text-base-content/60">
                 {{
                   s.customPrice === null
@@ -126,7 +134,7 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
             </div>
             <AppBadge :tone="statusTone[s.status]">{{ statusText[s.status] }}</AppBadge>
             <AppBadge v-if="s.studentArchived">{{ t.archivedStudent }}</AppBadge>
-            <div class="flex flex-wrap gap-1">
+            <div class="relative z-10 flex flex-wrap gap-1">
               <AppButton variant="ghost" compact @click="startEdit(s.studentId, s.customPrice)">{{
                 t.changePrice
               }}</AppButton>
@@ -154,7 +162,7 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
           </div>
           <div
             v-if="editing === s.studentId"
-            class="flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
+            class="relative z-10 flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
           >
             <AppMoneyInput v-model="priceText" :label="t.price" :hint="t.useCoursePrice" />
             <AppButton

@@ -10,7 +10,6 @@ import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
-import AppLink from "@/ui/AppLink.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppSelect from "@/ui/AppSelect.vue";
@@ -38,18 +37,23 @@ const summary = computed(() => (result.value ? describeEnroll(result.value, r) :
     <div v-if="loading" class="p-5"><AppLoading :label="messages.common.loading" :rows="2" /></div>
     <AppEmpty v-else-if="courses.length === 0" icon="book" :title="t.empty" />
     <ul v-else class="divide-y divide-base-300">
-      <li v-for="c in paging.shown.value" :key="c.courseId" class="flex items-center gap-3 px-5 py-3">
-        <div class="min-w-0 flex-1">
-          <AppLink :to="`/courses/${c.courseId}`">{{ c.courseName }}</AppLink>
-          <p class="text-sm text-base-content/60">
-            {{
-              c.customPrice === null
-                ? `${t.coursePrice}: ${formatVnd(c.pricePerLesson)}`
-                : `${t.ownPrice}: ${formatVnd(c.customPrice)}`
-            }}
-          </p>
-        </div>
-        <AppBadge :tone="statusTone[c.status]">{{ statusText[c.status] }}</AppBadge>
+      <li v-for="c in paging.shown.value" :key="c.courseId">
+        <RouterLink
+          :to="`/courses/${c.courseId}`"
+          class="flex items-center gap-3 px-5 py-3 hover:bg-base-200/60"
+        >
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-medium">{{ c.courseName }}</p>
+            <p class="text-sm text-base-content/60">
+              {{
+                c.customPrice === null
+                  ? `${t.coursePrice}: ${formatVnd(c.pricePerLesson)}`
+                  : `${t.ownPrice}: ${formatVnd(c.customPrice)}`
+              }}
+            </p>
+          </div>
+          <AppBadge :tone="statusTone[c.status]">{{ statusText[c.status] }}</AppBadge>
+        </RouterLink>
       </li>
     </ul>
     <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />

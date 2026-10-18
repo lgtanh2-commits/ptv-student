@@ -46,6 +46,7 @@ const p = useAssignmentPage(id, {
 });
 const a = computed(() => p.assignment.value);
 const rowsPaging = usePaging(() => p.rows.value);
+const workOf = (studentId: string) => `/assignments/${id}/students/${studentId}`;
 
 // More time for one student
 const extendFor = ref<string | null>(null);
@@ -226,11 +227,23 @@ const deleteWords = computed(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="r in rowsPaging.shown.value" :key="r.studentId">
+            <tr
+              v-for="r in rowsPaging.shown.value"
+              :key="r.studentId"
+              :class="{ 'cursor-pointer hover:bg-base-200/60': r.status !== 'not_started' }"
+              @click="r.status !== 'not_started' && router.push(workOf(r.studentId))"
+            >
               <td>
                 <span class="flex items-center gap-3">
                   <AppAvatar :name="r.studentName" size="sm" />
-                  <span class="font-medium whitespace-nowrap">{{ r.studentName }}</span>
+                  <RouterLink
+                    v-if="r.status !== 'not_started'"
+                    :to="workOf(r.studentId)"
+                    class="font-medium whitespace-nowrap"
+                    @click.stop
+                    >{{ r.studentName }}</RouterLink
+                  >
+                  <span v-else class="font-medium whitespace-nowrap">{{ r.studentName }}</span>
                 </span>
               </td>
               <td>
@@ -246,17 +259,10 @@ const deleteWords = computed(() => {
               <td class="text-right">
                 <div class="flex justify-end gap-1">
                   <AppButton
-                    v-if="r.status !== 'not_started'"
-                    variant="secondary"
-                    compact
-                    @click="router.push(`/assignments/${a.id}/students/${r.studentId}`)"
-                    >{{ t.open }}</AppButton
-                  >
-                  <AppButton
                     v-if="a.status !== 'draft'"
                     variant="ghost"
                     compact
-                    @click="extendFor = r.studentId"
+                    @click.stop="extendFor = r.studentId"
                     >{{ t.extend }}</AppButton
                   >
                 </div>
