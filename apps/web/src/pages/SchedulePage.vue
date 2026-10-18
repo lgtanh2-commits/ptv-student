@@ -128,11 +128,11 @@ const statusTone = {
           <AppBadge v-if="day.isToday" tone="info">{{ t.today }}</AppBadge>
         </div>
         <p v-if="day.lessons.length === 0" class="text-sm text-base-content/40">{{ t.empty }}</p>
-        <ul v-else class="flex flex-1 flex-col gap-2">
+        <ul v-else class="flex min-w-0 flex-1 flex-col gap-2">
           <li v-for="lesson in day.lessons" :key="lesson.id" class="flex items-stretch gap-1">
             <RouterLink
               :to="`/lessons/${lesson.id}/attendance`"
-              class="flex flex-1 flex-wrap items-center gap-3 rounded-field border border-base-300 px-3 py-2 hover:bg-base-200/60"
+              class="flex min-w-0 flex-1 flex-wrap items-center gap-3 rounded-field border border-base-300 px-3 py-2 hover:bg-base-200/60"
             >
               <span class="w-28 shrink-0 text-sm font-medium"
                 >{{ lesson.startTime }} - {{ lesson.endTime }}</span
