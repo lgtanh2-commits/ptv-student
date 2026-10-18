@@ -7,6 +7,7 @@ import {
 import { computed, onMounted, ref } from "vue";
 import { api } from "@/api/client";
 import { useToast } from "@/features/toast/useToast";
+import { messages } from "@/messages";
 
 /** Taking attendance for one lesson. Everyone starts as attended; the teacher changes the exceptions. */
 export function useAttendance(lessonId: string) {
@@ -30,7 +31,7 @@ export function useAttendance(lessonId: string) {
     } catch (err) {
       const status = (err as { status?: number }).status;
       if (status === 404) notFound.value = true;
-      else error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      else error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }
@@ -78,7 +79,7 @@ export function useAttendance(lessonId: string) {
       );
       toast.success(done);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       busy.value = false;
     }

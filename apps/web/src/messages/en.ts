@@ -248,6 +248,8 @@ export const en = {
     addToCourse: "Add to a course (optional)",
     noCourse: "No course",
     addedButNotEnrolled: "The student was added, but could not join the course: {reason}",
+    courseFull: "This course is full.",
+    couldNotJoin: "The student could not join the course.",
     submit: "Add student",
     import: "Import from a file",
     search: "Search by name or email",
@@ -288,6 +290,7 @@ export const en = {
     nothingToAdd: "No other students to add. Add students first on the Students page.",
     selectAll: "Select all shown",
     ownPriceLabel: "Own price for these students (optional)",
+    priceWhole: "Please enter the price as a whole number, for example 150000.",
     addSelected: "Add {n} students",
     resultAdded: "{n} added",
     resultAlready: "{n} already in the course",
@@ -608,6 +611,9 @@ export const en = {
     importSummary: "{n} questions found.",
     importReviewCount: "{n} need a check.",
     importReviewNote: "Please check this",
+    importReviewConflict: "More than one answer is marked correct — choose the right one again.",
+    importReviewLine: 'A line was not understood: "{line}"',
+    importReviewKind: "The kind could not be told — kept as Writing. Please check it.",
     hintChoice:
       "The student picks one answer. Choose the correct one, and the system scores it. Or leave it empty and score it yourself.",
     hintShort:

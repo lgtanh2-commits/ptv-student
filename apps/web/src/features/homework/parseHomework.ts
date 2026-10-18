@@ -1,4 +1,6 @@
 import type { QuestionKind } from "@lms/shared";
+import { fill } from "@/features/text";
+import { messages } from "@/messages";
 
 /** One question read from pasted or uploaded text. Nothing is ever dropped: when the kind or the
  * correct answer cannot be told for sure, the question is still kept, with a note on what to check. */
@@ -116,9 +118,9 @@ export function parseHomeworkText(input: string): ParsedQuestion[] {
         correct,
         accepted: [],
         review: conflict
-          ? "More than one answer is marked correct — choose the right one again."
+          ? messages.homework.importReviewConflict
           : leftover.length > 0
-            ? `A line was not understood: "${leftover[0]}"`
+            ? fill(messages.homework.importReviewLine, { line: leftover[0]! })
             : undefined,
       };
     }
@@ -136,7 +138,8 @@ export function parseHomeworkText(input: string): ParsedQuestion[] {
         options: [],
         correct: null,
         accepted: accepted.length > 0 ? accepted : [""],
-        review: leftover.length > 0 ? `A line was not understood: "${leftover[0]}"` : undefined,
+        review:
+          leftover.length > 0 ? fill(messages.homework.importReviewLine, { line: leftover[0]! }) : undefined,
       };
     }
 
@@ -148,7 +151,7 @@ export function parseHomeworkText(input: string): ParsedQuestion[] {
       options: [],
       correct: null,
       accepted: [],
-      review: "The kind could not be told — kept as Writing. Please check it.",
+      review: messages.homework.importReviewKind,
     };
   });
 }

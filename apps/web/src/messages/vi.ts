@@ -250,6 +250,8 @@ export const vi: Messages = {
     addToCourse: "Thêm vào khóa học (không bắt buộc)",
     noCourse: "Chưa chọn khóa học",
     addedButNotEnrolled: "Đã thêm học viên nhưng không thể thêm vào khóa học: {reason}",
+    courseFull: "Khóa học đã đủ số lượng học viên.",
+    couldNotJoin: "Không thể thêm học viên vào khóa học.",
     submit: "Thêm học viên",
     import: "Nhập từ tệp",
     search: "Tìm theo tên hoặc email",
@@ -290,6 +292,7 @@ export const vi: Messages = {
     nothingToAdd: "Không còn học viên nào để thêm. Trước tiên, hãy thêm học viên trong mục Học viên.",
     selectAll: "Chọn tất cả mục đang hiển thị",
     ownPriceLabel: "Giá riêng cho các học viên này (không bắt buộc)",
+    priceWhole: "Vui lòng nhập giá là số nguyên, ví dụ 150000.",
     addSelected: "Thêm {n} học viên",
     resultAdded: "Đã thêm {n}",
     resultAlready: "{n} đã có trong khóa học",
@@ -640,6 +643,9 @@ export const vi: Messages = {
     importSummary: "Tìm thấy {n} câu hỏi.",
     importReviewCount: "Có {n} câu hỏi cần kiểm tra.",
     importReviewNote: "Vui lòng kiểm tra nội dung này",
+    importReviewConflict: "Có nhiều hơn một đáp án được đánh dấu đúng — vui lòng chọn lại đáp án đúng.",
+    importReviewLine: 'Không hiểu được dòng này: "{line}"',
+    importReviewKind: "Không xác định được loại câu hỏi — đã để là Bài viết. Vui lòng kiểm tra lại.",
     hintChoice:
       "Học viên chọn một đáp án. Chọn đáp án đúng để hệ thống tự chấm, hoặc để trống nếu bạn muốn tự chấm.",
     hintShort:

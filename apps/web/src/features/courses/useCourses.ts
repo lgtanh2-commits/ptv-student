@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { api } from "@/api/client";
 import { useForm } from "@/features/forms/useForm";
 import { useQueryRef } from "@/features/navigation/back";
+import { messages } from "@/messages";
 
 export type CourseFilter = "" | CourseInfo["status"];
 const RANK: Record<CourseInfo["status"], number> = { active: 0, draft: 1, archived: 2 };
@@ -29,7 +30,7 @@ export function useCourseList() {
       courses.value = (await api<{ courses: CourseInfo[] }>("/courses?archived=1")).courses;
       error.value = null;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }

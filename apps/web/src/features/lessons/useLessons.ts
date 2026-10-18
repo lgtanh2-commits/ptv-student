@@ -11,6 +11,7 @@ import { api } from "@/api/client";
 import { today } from "@/features/format";
 import { useForm } from "@/features/forms/useForm";
 import { useToast } from "@/features/toast/useToast";
+import { messages } from "@/messages";
 
 const num = (v: string): number | undefined => (v.trim() === "" ? undefined : Number(v));
 
@@ -168,7 +169,7 @@ export function useLessonCancel(text: { cancelled: (n: number) => string }, relo
       await reload();
       toast.success(text.cancelled(res.lessons.length));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(err instanceof Error ? err.message : messages.common.somethingWrong);
     } finally {
       confirmingScope.value = null;
       asking.value = null;
@@ -190,7 +191,7 @@ export function useLessonRestore(text: { restored: string }, reload: () => Promi
       await reload();
       toast.success(text.restored);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      toast.error(err instanceof Error ? err.message : messages.common.somethingWrong);
     } finally {
       restoringId.value = null;
     }
@@ -228,7 +229,7 @@ export function useCourseLessons(courseId: string, text: { added: (n: number) =>
       lessons.value = (await api<{ lessons: LessonInfo[] }>(`/courses/${courseId}/lessons`)).lessons;
       error.value = null;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }
@@ -288,7 +289,7 @@ export function useNewLesson(text: { added: (n: number) => string }, done: (less
       if (!courses.value.some((c) => c.id === courseId.value))
         courseId.value = courses.value.length === 1 ? courses.value[0]!.id : "";
     } catch (err) {
-      courseError.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      courseError.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loadingCourses.value = false;
     }

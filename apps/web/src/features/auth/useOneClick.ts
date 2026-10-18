@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { ApiError } from "@/api/client";
+import { messages } from "@/messages";
 
 /**
  * For pages opened from an email link. They show one button, and the link is only used
@@ -18,7 +19,7 @@ export function useOneClick(action: () => Promise<void>) {
       await action();
     } catch (err) {
       if (err instanceof ApiError && err.code === "LINK_EXPIRED") expired.value = true;
-      else error.value = err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+      else error.value = err instanceof ApiError ? err.message : messages.common.somethingWrong;
     } finally {
       busy.value = false;
     }

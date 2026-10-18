@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { api } from "@/api/client";
 import { addDays, startOfWeek, today } from "@/features/format";
 import { useQueryRef } from "@/features/navigation/back";
+import { messages } from "@/messages";
 
 /** A real date that is a Monday (the week in the address must be one). */
 function isMonday(text: string): boolean {
@@ -34,8 +35,7 @@ export function useSchedule() {
         error.value = null;
       }
     } catch (err) {
-      if (mine === latest)
-        error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (mine === latest) error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       if (mine === latest) loading.value = false;
     }

@@ -2,6 +2,7 @@ import type { CourseInfo, InvoiceSummary, LessonInfo, QueueItem } from "@lms/sha
 import { onMounted, ref } from "vue";
 import { api } from "@/api/client";
 import { addDays, startOfWeek, today } from "@/features/format";
+import { messages } from "@/messages";
 
 /** What the teacher sees first: how many courses and students, and the lessons of this week. Logic only. */
 export function useDashboard() {
@@ -31,7 +32,7 @@ export function useDashboard() {
       studentTotal.value = s.total;
       week.value = l.lessons;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }
