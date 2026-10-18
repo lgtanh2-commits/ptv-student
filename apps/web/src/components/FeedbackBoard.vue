@@ -2,7 +2,7 @@
 import type { FeedbackCard, FeedbackKind } from "@lms/shared";
 import { computed } from "vue";
 import { useFeedbackBoard } from "@/features/feedback/useFeedback";
-import { formatDay } from "@/features/format";
+import { formatLocalDay } from "@/features/format";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppButton from "@/ui/AppButton.vue";
@@ -28,7 +28,7 @@ const kindLabel: Record<FeedbackKind, string> = {
 // The line under a title: "New feature · Teacher · 12/10/2026".
 function meta(card: FeedbackCard): string {
   const role = card.role === "teacher" ? t.roleTeacher : t.roleStudent;
-  return [kindLabel[card.kind], role, formatDay(card.createdAt.slice(0, 10))].join(" · ");
+  return [kindLabel[card.kind], role, formatLocalDay(card.createdAt)].join(" · ");
 }
 </script>
 
