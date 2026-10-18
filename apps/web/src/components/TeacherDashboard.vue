@@ -28,6 +28,7 @@ const fullName = computed(() => session.me?.user.name ?? "");
 const steps = computed(() => [
   {
     title: t.step1,
+    go: t.step1Go,
     text: t.step1Text,
     done: courses.value.length > 0,
     to: "/courses/new",
@@ -35,6 +36,7 @@ const steps = computed(() => [
   },
   {
     title: t.step2,
+    go: t.step2Go,
     text: t.step2Text,
     done: studentTotal.value > 0,
     to: "/students",
@@ -42,6 +44,7 @@ const steps = computed(() => [
   },
   {
     title: t.step3,
+    go: t.step3Go,
     text: t.step3Text,
     done: week.value.length > 0,
     to: "/courses",
@@ -124,7 +127,7 @@ const statusText = {
           </div>
           <AppBadge v-if="step.done" tone="success">{{ t.stepDone }}</AppBadge>
           <AppButton v-else compact variant="secondary" @click="router.push(step.to)">{{
-            t.stepGo
+            step.go
           }}</AppButton>
         </li>
       </ol>
