@@ -73,8 +73,8 @@ describe("translate", () => {
 
   it("returns quickly for long input", () => {
     const long = "a".repeat(5000);
-    const start = performance.now();
+    const start = Date.now();
     expect(translate(long, "vi", TABLE)).toBe(long);
-    expect(performance.now() - start).toBeLessThan(50);
+    expect(Date.now() - start).toBeLessThan(50);
   });
 });
