@@ -102,7 +102,6 @@ export const vi: Messages = {
     title: "Cài đặt",
     intro: "Cài đặt tài khoản của bạn.",
     devicesTitle: "Thiết bị",
-    devicesIntro: "Các thiết bị này đang đăng nhập vào tài khoản của bạn.",
   },
   language: {
     title: "Ngôn ngữ",

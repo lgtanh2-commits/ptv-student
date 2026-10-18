@@ -102,7 +102,6 @@ export const en = {
     title: "Settings",
     intro: "Your account settings.",
     devicesTitle: "Devices",
-    devicesIntro: "These devices are signed in to your account.",
   },
   language: {
     title: "Language",

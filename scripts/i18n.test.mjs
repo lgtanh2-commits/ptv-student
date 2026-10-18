@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { scanServer } from "./i18n/scan-server.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = path.join(ROOT, "scripts/i18n/messages.mjs");
@@ -318,4 +319,10 @@ test("the export does not list the made patterns as rows", () => {
   const ids = JSON.parse(r.stdout).server.map((s) => s.id);
   assert.ok(ids.includes("New homework: "));
   assert.ok(!ids.some((id) => id.endsWith("{title}")));
+});
+
+test("the scan leaves out module specifiers such as @lms/shared", () => {
+  const ids = scanServer().map((o) => o.id);
+  assert.ok(ids.length > 100);
+  assert.ok(!ids.some((id) => id.startsWith("@lms/")));
 });
