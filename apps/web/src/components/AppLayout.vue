@@ -51,6 +51,7 @@ async function signOut() {
         <AppNavItem to="/my/courses" icon="book">{{ t.myCourses }}</AppNavItem>
         <AppNavItem to="/my/invoices" icon="invoice">{{ t.myInvoices }}</AppNavItem>
       </template>
+      <AppNavItem to="/feedback" icon="message">{{ t.feedback }}</AppNavItem>
       <AppNavItem to="/settings" icon="settings">{{ t.settings }}</AppNavItem>
     </template>
     <template #footer>
