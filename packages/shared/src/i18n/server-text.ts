@@ -415,6 +415,12 @@ export const SERVER_TEXT: readonly ServerText[] = [
   },
   { id: "New homework: ", en: "New homework: ", vi: "Bài tập mới: " },
   { id: "Due soon: ", en: "Due soon: ", vi: "Sắp đến hạn nộp: " },
+  { id: "{s.name} handed in work", en: "{s.name} handed in work", vi: "{s.name} đã nộp bài" },
+  {
+    id: "{lesson.course_name} · now {body.date} {body.startTime}",
+    en: "{lesson.course_name} · now {body.date} {body.startTime}",
+    vi: "{lesson.course_name} · giờ mới {body.date} {body.startTime}",
+  },
   {
     id: "Choose only students who are in this course.",
     en: "Choose only students who are in this course.",
@@ -659,12 +665,6 @@ export const SERVER_TEXT: readonly ServerText[] = [
     id: "This email is in the list more than once.",
     en: "This email is in the list more than once.",
     vi: "Email này bị trùng trong danh sách.",
-  },
-  { id: "{s.name} handed in work", en: "{s.name} handed in work", vi: "{s.name} đã nộp bài" },
-  {
-    id: "{lesson.course_name} · now {body.date} {body.startTime}",
-    en: "{lesson.course_name} · now {body.date} {body.startTime}",
-    vi: "{lesson.course_name} · giờ mới {body.date} {body.startTime}",
   },
   { id: "New homework: {title}", en: "New homework: {title}", vi: "Bài tập mới: {title}" },
   { id: "Due soon: {title}", en: "Due soon: {title}", vi: "Sắp đến hạn nộp: {title}" },
