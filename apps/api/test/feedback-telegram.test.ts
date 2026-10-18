@@ -88,7 +88,12 @@ describe("feedback: Telegram to the owner", () => {
 
   it("sends nothing when no chat id is set, and still saves", async () => {
     const t = await createTeacher();
-    const res = await send(t, { kind: "bug", message: "no owner chat" }, {});
+    // Set to empty on purpose: a local apps/api/.dev.vars may hold a real chat id, and wrangler loads it here too.
+    const res = await send(
+      t,
+      { kind: "bug", message: "no owner chat" },
+      { env: { FEEDBACK_TELEGRAM_CHAT_ID: "" } },
+    );
     expect(res.status).toBe(201);
     expect(telegramFake.asked).toHaveLength(0);
     expect(await rowCount(t.userId)).toBe(1);
