@@ -825,8 +825,10 @@ export const en = {
     chooseLessons: "Lessons to charge",
     chooseLessonsText: "These are lessons the student attended that are not on a receipt yet.",
     createDraft: "Create receipt",
-    allBilled: "Every lesson is on a receipt",
-    allBilledText: "When students attend more lessons, they show here.",
+    allBilled: "No lessons to charge",
+    allBilledText:
+      "Only attended lessons that are not on a receipt yet can be charged. Take attendance for your lessons first.",
+    toSchedule: "Go to the schedule",
     pickedOf: "{a} of {b} lessons chosen",
     pickAll: "Choose all",
     pickNone: "Clear",
@@ -841,7 +843,7 @@ export const en = {
     draftNumber: "Not sent",
     none: "No receipts for this month",
     noneText:
-      "Take attendance for your lessons. Then press “New receipt” to pick the lessons to charge, or “Create receipts for all” to charge every lesson of this month.",
+      "Take attendance for your lessons. Then press “New receipt” to pick the lessons to charge.",
     cancelledTitle: "Cancelled receipts",
     payment: "Payment details",
     paymentTitle: "How students pay you",

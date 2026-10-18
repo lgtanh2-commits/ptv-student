@@ -30,7 +30,9 @@ const options = computed(() =>
     <AppAlert v-if="n.error.value" kind="error">{{ n.error.value }}</AppAlert>
     <AppLoading v-if="n.loading.value" :label="messages.common.loading" />
     <div v-else-if="n.students.value.length === 0" class="rounded-box border border-base-300 bg-base-100">
-      <AppEmpty icon="invoice" :title="t.allBilled" :text="t.allBilledText" />
+      <AppEmpty icon="invoice" :title="t.allBilled" :text="t.allBilledText">
+        <AppButton variant="secondary" @click="router.push('/schedule')">{{ t.toSchedule }}</AppButton>
+      </AppEmpty>
     </div>
     <template v-else>
       <AppCard>
