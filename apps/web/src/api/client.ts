@@ -1,4 +1,5 @@
-import type { ApiErrorBody, ErrorCode } from "@lms/shared";
+import { type ApiErrorBody, type ErrorCode, translate } from "@lms/shared";
+import { language } from "@/messages";
 
 /** An error returned by the API, with the stable code the UI can react to. */
 export class ApiError extends Error {
@@ -28,7 +29,7 @@ interface RequestOptions {
  */
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? "GET";
-  const headers: Record<string, string> = { accept: "application/json" };
+  const headers: Record<string, string> = { accept: "application/json", "x-lms-lang": language };
   if (method !== "GET") headers["x-lms-client"] = "web";
   if (options.body !== undefined) headers["content-type"] = "application/json";
   if (options.idempotencyKey) headers["idempotency-key"] = options.idempotencyKey;
@@ -45,7 +46,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   } catch {
     throw new ApiError(
       "NETWORK",
-      "We could not reach the server. Please check your internet and try again.",
+      translate("We could not reach the server. Please check your internet and try again.", language),
       0,
     );
   }
@@ -61,7 +62,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   }
   throw new ApiError(
     error?.code ?? "INTERNAL",
-    error?.message ?? "Something went wrong. Please try again.",
+    error?.message ?? translate("Something went wrong. Please try again.", language),
     res.status,
     error?.fields,
     error?.requestId,

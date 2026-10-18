@@ -1,6 +1,8 @@
 import { nextTick, reactive, ref } from "vue";
 import type { ZodType } from "zod";
+import { translate } from "@lms/shared";
 import { ApiError } from "@/api/client";
+import { language } from "@/messages";
 
 /**
  * Scrolls to the first field that failed, or to the general error message when no one field
@@ -50,7 +52,8 @@ export function useForm<T extends Record<string, unknown>>(
       const schema = typeof options.schema === "function" ? options.schema() : options.schema;
       const result = schema.safeParse(options.toPayload ? options.toPayload(values as T) : values);
       if (!result.success) {
-        for (const issue of result.error.issues) errors.value[String(issue.path[0] ?? "_")] ??= issue.message;
+        for (const issue of result.error.issues)
+          errors.value[String(issue.path[0] ?? "_")] ??= translate(issue.message, language);
         scrollToError();
         return;
       }
@@ -61,7 +64,7 @@ export function useForm<T extends Record<string, unknown>>(
       await options.submit(values as T);
     } catch (err) {
       if (!(err instanceof ApiError)) {
-        formError.value = "Something went wrong. Please try again.";
+        formError.value = translate("Something went wrong. Please try again.", language);
         scrollToError();
         return;
       }

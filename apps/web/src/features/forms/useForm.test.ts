@@ -14,6 +14,13 @@ describe("useForm", () => {
     expect(calls).toBe(0);
   });
 
+  it("shows our own field errors in the page language (vi when nothing is stored)", async () => {
+    const named = z.object({ name: z.string().min(1, "Please enter a name.") });
+    const form = useForm({ name: "" }, { schema: named, submit: async () => {} });
+    await form.submit();
+    expect(form.errors.value).toEqual({ name: "Vui lòng nhập tên." });
+  });
+
   it("calls submit with the values when they are fine", async () => {
     let got: unknown;
     const form = useForm({ email: "a@b.co", name: "A" }, { schema, submit: async (v) => void (got = v) });
@@ -83,10 +90,10 @@ describe("useForm", () => {
       },
     );
     await form.submit();
-    expect(form.errors.value.price).toBe("Please enter a whole number.");
+    expect(form.errors.value.price).toBe("Vui lòng nhập số nguyên.");
     form.values.price = "";
     await form.submit();
-    expect(form.errors.value.price).toBe("Please enter a number.");
+    expect(form.errors.value.price).toBe("Vui lòng nhập số.");
     form.values.price = "150000";
     await form.submit();
     expect(form.errors.value).toEqual({});

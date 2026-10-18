@@ -1,3 +1,6 @@
+import { localeOf } from "@lms/shared";
+import { language } from "@/messages";
+
 /** Money is a whole number of VND. Shown with thousands separators and no decimals. */
 export function formatVnd(amount: number): string {
   return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(amount)} VND`;
@@ -38,7 +41,7 @@ export function startOfWeek(date: string): string {
 
 /** "Mon 5 Oct" */
 export function formatDayShort(date: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(localeOf(language), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -48,7 +51,7 @@ export function formatDayShort(date: string): string {
 
 /** "Monday 5 October 2026" */
 export function formatDayLong(date: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(localeOf(language), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -60,7 +63,7 @@ export function formatDayLong(date: string): string {
 /** "5 Oct - 11 Oct 2026" for the week that starts on `monday`. */
 export function formatWeek(monday: string): string {
   const fmt = (d: string, year: boolean) =>
-    new Intl.DateTimeFormat("en-GB", {
+    new Intl.DateTimeFormat(localeOf(language), {
       day: "numeric",
       month: "short",
       year: year ? "numeric" : undefined,
@@ -81,7 +84,7 @@ export function hostOf(url: string): string {
 /** A moment (UTC) shown as a date and time on this computer's clock: "5 Oct 2026, 18:30". */
 export function formatWhen(iso: string | null): string {
   if (!iso) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(localeOf(language), {
     day: "numeric",
     month: "short",
     year: "numeric",

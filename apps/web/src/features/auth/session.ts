@@ -2,6 +2,8 @@ import type { MeResponse } from "@lms/shared";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { ApiError, api } from "@/api/client";
+import { rememberLanguage, storedLanguage } from "@/features/i18n/language";
+import { language } from "@/messages";
 
 /** Who is signed in. The server is the only source of truth; this is a copy for the screens. */
 export const useSession = defineStore("session", () => {
@@ -17,6 +19,19 @@ export const useSession = defineStore("session", () => {
       else throw err;
     }
     loaded.value = true;
+    syncLanguage();
+  }
+
+  /**
+   * The account's language wins over what this browser remembered. Reload once so every screen
+   * is built in it, but only if the write really stuck: a browser that cannot store it would
+   * otherwise reload forever.
+   */
+  function syncLanguage() {
+    const wanted = me.value?.user.language;
+    if (!wanted || wanted === language) return;
+    rememberLanguage(wanted);
+    if (storedLanguage() === wanted) location.reload();
   }
 
   async function signOut() {
