@@ -5,6 +5,7 @@ import { useFeedbackBoard } from "@/features/feedback/useFeedback";
 import { formatLocalDay } from "@/features/format";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
+import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppLoading from "@/ui/AppLoading.vue";
@@ -14,11 +15,20 @@ const t = messages.feedback;
 const { board, loading, error, reload } = useFeedbackBoard();
 void reload();
 
-const columns = computed(() => [
-  { key: "todo", name: t.todo, empty: t.emptyTodo, cards: board.value?.todo ?? [] },
-  { key: "inProgress", name: t.inProgress, empty: t.emptyInProgress, cards: board.value?.inProgress ?? [] },
-  { key: "done", name: t.done, empty: t.emptyDone, cards: board.value?.done ?? [] },
-]);
+const columns = computed(
+  () =>
+    [
+      { key: "todo", name: t.todo, tone: "neutral", empty: t.emptyTodo, cards: board.value?.todo ?? [] },
+      {
+        key: "inProgress",
+        name: t.inProgress,
+        tone: "info",
+        empty: t.emptyInProgress,
+        cards: board.value?.inProgress ?? [],
+      },
+      { key: "done", name: t.done, tone: "success", empty: t.emptyDone, cards: board.value?.done ?? [] },
+    ] as const,
+);
 
 const kindLabel: Record<FeedbackKind, string> = {
   inconvenient: t.kindInconvenient,
@@ -48,7 +58,7 @@ function meta(card: FeedbackCard): string {
       :aria-labelledby="`feedback-${col.key}`"
     >
       <h2 :id="`feedback-${col.key}`" class="flex items-center gap-2 px-1 text-sm font-semibold uppercase">
-        {{ col.name }}
+        <AppBadge :tone="col.tone">{{ col.name }}</AppBadge>
         <span class="rounded-full bg-base-100 px-2 py-0.5 text-xs font-medium tabular-nums">{{
           col.cards.length
         }}</span>
