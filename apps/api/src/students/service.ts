@@ -9,6 +9,7 @@ import {
   type StudentFilter,
   type StudentInfo,
   type UpdateStudentBody,
+  translate,
 } from "@lms/shared";
 import { requireTeacherTenant, type Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
@@ -168,6 +169,8 @@ export async function studentImport(ctx: Ctx, actor: Actor, body: ImportStudents
   authorize(actor, "student", "create", { tenantId });
   if (body.rows.length > MAX_IMPORT_ROWS) throw new AppError("VALIDATION_FAILED");
 
+  // The answer is a normal one (not an error), so its row messages are put in the request's language here.
+  const say = (text: string) => translate(text, ctx.language);
   const parsed = body.rows.map((raw) => {
     const r = addStudentBody.safeParse({
       name: raw.name,
@@ -176,7 +179,7 @@ export async function studentImport(ctx: Ctx, actor: Actor, body: ImportStudents
     });
     return r.success
       ? { ok: true as const, value: r.data }
-      : { ok: false as const, message: r.error.issues[0]?.message ?? "This row is not valid." };
+      : { ok: false as const, message: say(r.error.issues[0]?.message ?? "This row is not valid.") };
   });
   const known = await existingEmails(
     db,
@@ -195,11 +198,11 @@ export async function studentImport(ctx: Ctx, actor: Actor, body: ImportStudents
       return void results.push({
         row,
         result: "duplicate_in_list",
-        message: "This email is in the list more than once.",
+        message: say("This email is in the list more than once."),
       });
     seen.add(email);
     if (known.has(email))
-      return void results.push({ row, result: "exists", message: "You already added this student." });
+      return void results.push({ row, result: "exists", message: say("You already added this student.") });
     results.push({ row, result: "new" });
     toCreate.push({ name, email, phone: phone ?? "" });
   });

@@ -1,4 +1,4 @@
-import { LIMITS, translate, type TelegramLinkCode, type TelegramStatus } from "@lms/shared";
+import { DEFAULT_LANGUAGE, LIMITS, translate, type TelegramLinkCode, type TelegramStatus } from "@lms/shared";
 import { z } from "zod";
 import type { Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
@@ -78,8 +78,14 @@ export async function handleUpdate(env: Env, body: unknown): Promise<void> {
   const chatId = String(message.chat.id);
   // Replies are in the language of the person the chat is linked to (after linking: the one who just linked
   // it); a chat nobody linked gets Vietnamese.
-  const reply = async (text: string) =>
-    client.sendMessage(chatId, translate(text, await languageOfChat(env.DB, chatId)));
+  // A failed lookup must not drop the reply: it then goes out in the default language.
+  const reply = async (text: string) => {
+    const lang = await languageOfChat(env.DB, chatId).catch((err) => {
+      console.error(JSON.stringify({ msg: "telegram language lookup failed", err: String(err) }));
+      return DEFAULT_LANGUAGE;
+    });
+    await client.sendMessage(chatId, translate(text, lang));
+  };
   const code = /^\/start(?:@\w+)?\s+(\S+)/.exec(message.text ?? "")?.[1];
   if (!code) {
     await reply("Send /start with the code shown in the app to link your account.");

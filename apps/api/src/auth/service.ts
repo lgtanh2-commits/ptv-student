@@ -1,4 +1,4 @@
-import { LIMITS, type Language, type SignUpBody } from "@lms/shared";
+import { DEFAULT_LANGUAGE, LIMITS, type Language, type SignUpBody } from "@lms/shared";
 import type { Context } from "hono";
 import { auditStatement } from "../audit";
 import { getEmailProvider } from "../email/provider";
@@ -82,7 +82,11 @@ export async function sendMail(ctx: Ctx, message: EmailMessage): Promise<void> {
   // goes for looking up the language of the address: whether a row is found must not change the answer.
   await ctx.defer(
     (async () => {
-      const lang = await languageOfEmail(ctx.env.DB, message.to);
+      // A failed lookup must not drop the email: it then goes out in the default language.
+      const lang = await languageOfEmail(ctx.env.DB, message.to).catch((err) => {
+        console.error(JSON.stringify({ msg: "email language lookup failed", err: String(err) }));
+        return DEFAULT_LANGUAGE;
+      });
       await getEmailProvider(ctx.env).send(emailIn(message, lang));
     })(),
   );

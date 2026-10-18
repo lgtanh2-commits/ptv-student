@@ -9,6 +9,7 @@ import {
   createTeacher,
   telegramFake,
   uniqueEmail,
+  type CallOptions,
   type Person,
 } from "./helpers";
 import { fullAnswers, mixed, publish, submit, type Kid } from "./homework";
@@ -31,7 +32,7 @@ const mailsTo = async (email: string) =>
 const lastMail = async (email: string, kind: string) =>
   (await mailsTo(email)).filter((m) => m.kind === kind).at(-1)!;
 
-const requestLink = (email: string, o: { waitUntil?: Promise<unknown>[]; lang?: string | null } = {}) =>
+const requestLink = (email: string, o: Pick<CallOptions, "waitUntil" | "lang" | "env"> = {}) =>
   call("/api/auth/sign-in-link/request", { method: "POST", body: { email }, ...o });
 const invite = (t: Person, email: string, name = "Sam") =>
   call("/api/invites", { method: "POST", cookie: t.cookie, body: { name, email } });
@@ -297,5 +298,44 @@ describe("fee receipts", () => {
     const mail = await lastMail(vi.email, "invoice");
     expect(mail.subject).toBe("Phiếu thu học phí tháng 10/2020");
     expect(mail.body_text).toContain("Lan Tran's classroom đã gửi cho bạn phiếu thu học phí tháng 10/2020.");
+  });
+});
+
+/** The real database, except that looking up a language fails (as if D1 had a hiccup). */
+function languageLookupFails(): D1Database {
+  const real = env.DB;
+  return new Proxy(real, {
+    get(target, prop) {
+      if (prop === "prepare") {
+        return (sql: string) => {
+          if (/^SELECT (u\.)?language FROM/.test(sql)) throw new Error("D1 is down");
+          return target.prepare(sql);
+        };
+      }
+      const value = Reflect.get(target, prop);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+describe("a failing language lookup", () => {
+  it("still sends the email, in Vietnamese", async () => {
+    const t = await createTeacher("Lan Tran");
+    const res = await requestLink(t.email, { env: { DB: languageLookupFails() } });
+    expect(res.status).toBe(202);
+    const mail = await lastMail(t.email, "magic_link");
+    expect(mail.subject).toBe("Liên kết đăng nhập của bạn");
+  });
+
+  it("still sends the Telegram reply, in Vietnamese", async () => {
+    const res = await call("/api/telegram/webhook", {
+      method: "POST",
+      headers: { "x-telegram-bot-api-secret-token": "test-webhook-secret" },
+      body: { message: { chat: { id: 7444 }, text: "hello" } },
+      env: { DB: languageLookupFails() },
+    });
+    expect(res.status).toBe(200);
+    expect(telegramFake.asked.at(-1)).toMatchObject({ chatId: "7444" });
+    expect(telegramFake.asked.at(-1)!.text).toMatch(/Gửi lệnh \/start/);
   });
 });
