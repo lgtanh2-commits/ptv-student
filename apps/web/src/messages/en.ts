@@ -509,6 +509,7 @@ export const en = {
     due: "Due",
     noDue: "No due date",
     lateOk: "Late work is accepted",
+    lateNo: "Late work is not accepted",
     newTitle: "New homework",
     editTitle: "Edit homework",
     newText: "It stays a draft. Students see it only after you press Open.",
