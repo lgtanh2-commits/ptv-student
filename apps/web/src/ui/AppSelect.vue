@@ -29,7 +29,7 @@ const id = useId();
       <option v-if="!required" value="">{{ placeholder ?? "" }}</option>
       <option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>
-    <p v-if="hint && !error" class="label whitespace-normal">{{ hint }}</p>
+    <p v-if="hint && !error" class="label whitespace-normal text-base-content/70">{{ hint }}</p>
     <p v-if="error" role="alert" class="label whitespace-normal text-error">{{ error }}</p>
   </div>
 </template>

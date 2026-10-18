@@ -34,7 +34,9 @@ const id = useId();
       class="input min-h-11 w-full"
       :class="{ 'input-error': error }"
     />
-    <p v-if="hint && !error" :id="`${id}-hint`" class="label whitespace-normal">{{ hint }}</p>
+    <p v-if="hint && !error" :id="`${id}-hint`" class="label whitespace-normal text-base-content/70">
+      {{ hint }}
+    </p>
     <p v-if="error" :id="`${id}-error`" role="alert" class="label whitespace-normal text-error">
       {{ error }}
     </p>

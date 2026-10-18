@@ -60,7 +60,7 @@ async function signOut() {
           <AppAvatar :name="session.me.user.name" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ session.me.user.name }}</p>
-            <p class="truncate text-xs text-base-content/60">{{ role }}</p>
+            <p class="truncate text-xs text-base-content/70">{{ role }}</p>
           </div>
         </div>
         <AppButton variant="ghost" compact block :loading="signingOut" @click="signOut"
