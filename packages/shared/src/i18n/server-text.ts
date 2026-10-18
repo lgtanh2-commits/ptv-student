@@ -666,6 +666,16 @@ export const SERVER_TEXT: readonly ServerText[] = [
     en: "This email is in the list more than once.",
     vi: "Email này bị trùng trong danh sách.",
   },
+  {
+    id: "Please choose a kind of feedback.",
+    en: "Please choose a kind of feedback.",
+    vi: "Vui lòng chọn loại góp ý.",
+  },
+  {
+    id: "Please write at least 5 characters.",
+    en: "Please write at least 5 characters.",
+    vi: "Vui lòng viết ít nhất 5 ký tự.",
+  },
   { id: "New homework: {title}", en: "New homework: {title}", vi: "Bài tập mới: {title}" },
   { id: "Due soon: {title}", en: "Due soon: {title}", vi: "Sắp đến hạn nộp: {title}" },
   {

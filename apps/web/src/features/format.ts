@@ -81,6 +81,17 @@ export function hostOf(url: string): string {
   }
 }
 
+/** A moment (UTC) shown as the date on this computer's clock, in the page language: "12/10/2026". */
+export function formatLocalDay(iso: string | null, timeZone?: string): string {
+  if (!iso) return "-";
+  return new Intl.DateTimeFormat(localeOf(language), {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone,
+  }).format(new Date(iso));
+}
+
 /** A moment (UTC) shown as a date and time on this computer's clock: "5 Oct 2026, 18:30". */
 export function formatWhen(iso: string | null): string {
   if (!iso) return "-";

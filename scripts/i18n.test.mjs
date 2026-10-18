@@ -327,6 +327,11 @@ test("the scan leaves out module specifiers such as @lms/shared", () => {
   assert.ok(!ids.some((id) => id.startsWith("@lms/")));
 });
 
+test("the scan leaves out limiter keys such as feedback:user:{actor.userId}", () => {
+  const ids = scanServer().map((o) => o.id);
+  assert.ok(!ids.some((id) => id.includes(":user:")));
+});
+
 test("an unknown option or a stray word is refused, and nothing is written", () => {
   const json = path.join(dir, "rows.json");
   writeFileSync(json, JSON.stringify(rows()));

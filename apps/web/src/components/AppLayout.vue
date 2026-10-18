@@ -51,6 +51,7 @@ async function signOut() {
         <AppNavItem to="/my/courses" icon="book">{{ t.myCourses }}</AppNavItem>
         <AppNavItem to="/my/invoices" icon="invoice">{{ t.myInvoices }}</AppNavItem>
       </template>
+      <AppNavItem to="/feedback" icon="message">{{ t.feedback }}</AppNavItem>
       <AppNavItem to="/settings" icon="settings">{{ t.settings }}</AppNavItem>
     </template>
     <template #footer>
@@ -59,7 +60,7 @@ async function signOut() {
           <AppAvatar :name="session.me.user.name" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ session.me.user.name }}</p>
-            <p class="truncate text-xs text-base-content/60">{{ role }}</p>
+            <p class="truncate text-xs text-base-content/70">{{ role }}</p>
           </div>
         </div>
         <AppButton variant="ghost" compact block :loading="signingOut" @click="signOut"

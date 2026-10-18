@@ -13,13 +13,15 @@ const ts = createRequire(path.join(ROOT, "apps/web/package.json"))("typescript")
 
 const DIRS = ["apps/api/src", "packages/shared/src"];
 // Tests, database statements (repos) and the i18n table itself hold no text of their own. Nor does
-// lib/outbound-text.ts: it only lists table ids (copies of texts made elsewhere).
-const SKIP_FILES = /\.test\.ts$|\/repos\/|glossary\.ts$|\/i18n\/|lib\/outbound-text\.ts$/;
+// lib/outbound-text.ts: it only lists table ids (copies of texts made elsewhere). Nor does feedback/telegram.ts:
+// the owner's Vietnamese-only Telegram message.
+const SKIP_FILES =
+  /\.test\.ts$|\/repos\/|glossary\.ts$|\/i18n\/|lib\/outbound-text\.ts$|feedback\/telegram\.ts$/;
 // Files with only technical strings: route lists, SMTP, health check, time zones, repeat rules.
 const DROP_FILES =
   /routes\/access\.ts$|smtp-client\.ts$|app\.ts$|routes\/health\.ts$|apps\/api\/src\/index\.ts$|lessons\/repeat\.ts$|lib\/zone\.ts$|shared\/src\/domain\.ts$/;
 const DROP_TEXT =
-  /:ip:|:email:|^@lms\/|^__Host|^google-flow|^en-(GB|US)$|^Asia\/|^every_2_weeks$|^\{appUrl|^\/|^\{base\}/;
+  /:ip:|:email:|:user:|^@lms\/|^__Host|^google-flow|^en-(GB|US)$|^Asia\/|^every_2_weeks$|^\{appUrl|^\/|^\{base\}/;
 const SKIP_CALLEE =
   /(^|\.)(prepare|log|warn|error|info|debug|header|get|set|startsWith|endsWith|includes|split|replace|match|test|fetch|encode|decode|digest|importKey|sign|verify|getRandomValues|append|has|delete|describe|it|expect)$|console\.|logger|^require$|^import$|^Error$|^TypeError$/;
 const SKIP_PROP =

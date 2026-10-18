@@ -89,7 +89,7 @@
   --noise: 0;
 }
 
-/* On a pale tint, text in the plain status colors falls below 4.5:1 (WCAG AA), so the light theme uses darker ones. */
+/* On white or a pale tint, text in the plain status colors falls below 4.5:1 (WCAG AA), so the light theme uses darker ones. */
 @media (prefers-color-scheme: light) {
   .badge-soft.badge-info,
   .alert-soft.alert-info {
@@ -104,8 +104,19 @@
     color: oklch(47% 0.11 65);
   }
   .badge-soft.badge-error,
-  .alert-soft.alert-error {
+  .alert-soft.alert-error,
+  .text-error {
     color: oklch(50% 0.19 25);
+  }
+  /* Initials on a pale circle (AppAvatar). */
+  [data-avatar].text-secondary {
+    color: oklch(45% 0.08 195);
+  }
+  [data-avatar].text-info {
+    color: oklch(47% 0.13 240);
+  }
+  [data-avatar].text-success {
+    color: oklch(45% 0.12 155);
   }
 }
 

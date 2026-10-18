@@ -36,6 +36,7 @@ const color = computed(() => {
       },
     ]"
     aria-hidden="true"
+    data-avatar
     >{{ initials }}</span
   >
 </template>
