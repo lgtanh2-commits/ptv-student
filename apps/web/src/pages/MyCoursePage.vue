@@ -18,7 +18,7 @@ import AppPager from "@/ui/AppPager.vue";
 
 const t = messages.my;
 const route = useRoute();
-const { data, groups, loading, notFound } = useMyCourse(String(route.params.id));
+const { data, groups, loading, notFound, error } = useMyCourse(String(route.params.id));
 // Ten rows a page in each of the three lists.
 const work = computed(() => [
   ...groups.value.again,
@@ -42,6 +42,7 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
   >
     <AppLoading v-if="loading" :label="messages.common.loading" />
     <AppAlert v-else-if="notFound" kind="error">{{ t.notFound }}</AppAlert>
+    <AppAlert v-else-if="error" kind="error">{{ error }}</AppAlert>
     <template v-else-if="data">
       <AppCard v-if="data.course.description"
         ><p class="whitespace-pre-wrap">{{ data.course.description }}</p></AppCard

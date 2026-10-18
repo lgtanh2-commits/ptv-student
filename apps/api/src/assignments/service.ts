@@ -302,6 +302,14 @@ export async function listMaterials(ctx: Ctx, actor: Actor, courseId: string): P
   return (await materialsOf(ctx.env.DB, tenantId, courseId)).map(toMaterial);
 }
 
+async function requireOpenCourse(db: D1Database, tenantId: string, courseId: string): Promise<void> {
+  const course = await findCourse(db, tenantId, courseId);
+  if (!course) throw new AppError("NOT_FOUND");
+  if (course.status === "archived") {
+    throw new AppError("CONFLICT", { message: "This course is archived. Restore it first." });
+  }
+}
+
 export async function addMaterial(
   ctx: Ctx,
   actor: Actor,
@@ -311,11 +319,7 @@ export async function addMaterial(
   const db = ctx.env.DB;
   const tenantId = requireTeacherTenant(actor);
   authorize(actor, "material", "create", { tenantId });
-  const course = await findCourse(db, tenantId, courseId);
-  if (!course) throw new AppError("NOT_FOUND");
-  if (course.status === "archived") {
-    throw new AppError("CONFLICT", { message: "This course is archived. Restore it first." });
-  }
+  await requireOpenCourse(db, tenantId, courseId);
   const res = await insertMaterialStatement(db, { id: uuidv7(), tenantId, courseId, ...body }).run();
   if (!res.meta.changes) throw new AppError("CONFLICT");
   return (await materialsOf(db, tenantId, courseId)).map(toMaterial);
@@ -331,6 +335,7 @@ export async function editMaterial(
   const db = ctx.env.DB;
   const tenantId = requireTeacherTenant(actor);
   authorize(actor, "material", "update", { tenantId });
+  await requireOpenCourse(db, tenantId, courseId);
   const res = await updateMaterialStatement(db, { tenantId, courseId, id, ...body }).run();
   if (!res.meta.changes) throw new AppError("NOT_FOUND");
   return (await materialsOf(db, tenantId, courseId)).map(toMaterial);
@@ -345,6 +350,7 @@ export async function removeMaterial(
   const db = ctx.env.DB;
   const tenantId = requireTeacherTenant(actor);
   authorize(actor, "material", "delete", { tenantId });
+  await requireOpenCourse(db, tenantId, courseId);
   const res = await deleteMaterialStatement(db, tenantId, courseId, id).run();
   if (!res.meta.changes) throw new AppError("NOT_FOUND");
   return (await materialsOf(db, tenantId, courseId)).map(toMaterial);

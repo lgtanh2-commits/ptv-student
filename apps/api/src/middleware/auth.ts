@@ -23,12 +23,13 @@ export const loadActor = createMiddleware<AppBindings>(async (c, next) => {
       const now = Date.now();
       const idleUntil = new Date(session.last_seen_at).getTime() + session.idle_days * 86_400_000;
       const alive = new Date(session.expires_at).getTime() > now && idleUntil > now;
-      const user = alive ? await findUserById(db, session.user_id) : null;
+      const [user, memberships] = alive
+        ? await Promise.all([findUserById(db, session.user_id), membershipsOf(db, session.user_id)])
+        : [null, []];
       if (user && !user.disabled_at) {
         // Written at most every 5 minutes, so reading a page does not cost a database write each time.
         if (now - new Date(session.last_seen_at).getTime() > TOUCH_EVERY_MS)
           await touchSession(db, session.id);
-        const memberships = await membershipsOf(db, user.id);
         const actor: Actor = {
           userId: user.id,
           name: user.name,

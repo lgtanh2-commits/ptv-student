@@ -66,4 +66,13 @@ describe("api client", () => {
     const err = (await api("/x").catch((e) => e)) as ApiError;
     expect(err).toMatchObject({ code: "INTERNAL", status: 502 });
   });
+
+  it("handles a JSON error body of another shape", async () => {
+    for (const body of [{}, null, { error: "blocked" }]) {
+      stubFetch(Response.json(body, { status: 403 }));
+      const err = (await api("/x").catch((e) => e)) as ApiError;
+      expect(err, JSON.stringify(body)).toBeInstanceOf(ApiError);
+      expect(err).toMatchObject({ code: "INTERNAL", status: 403 });
+    }
+  });
 });

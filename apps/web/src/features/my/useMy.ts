@@ -66,17 +66,19 @@ export function useMyCourse(id: string) {
   const data = ref<MyCourseDetail | null>(null);
   const loading = ref(true);
   const notFound = ref(false);
+  const error = ref<string | null>(null);
   onMounted(async () => {
     try {
       data.value = await api<MyCourseDetail>(`/my/courses/${id}`);
     } catch (err) {
       if (statusOf(err) === 404) notFound.value = true;
+      else error.value = messageOf(err);
     } finally {
       loading.value = false;
     }
   });
   const groups = computed(() => groupWork(data.value?.work ?? []));
-  return { data, groups, loading, notFound };
+  return { data, groups, loading, notFound, error };
 }
 
 /** One piece of work for a student: reading it, writing the answers (saved by themselves), handing in. Logic only. */

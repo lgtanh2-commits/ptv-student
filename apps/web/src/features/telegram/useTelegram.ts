@@ -23,7 +23,11 @@ export function useTelegramLink() {
 
   async function poll() {
     if (Date.now() > pollUntil) return; // gave up quietly: the person can press the button again
-    await refresh();
+    try {
+      await refresh();
+    } catch {
+      // one failed check in the background is not worth showing; the next one tries again
+    }
     if (status.value?.linked) deepLink.value = null;
     else timer = setTimeout(poll, POLL_MS);
   }
