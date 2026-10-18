@@ -842,8 +842,7 @@ export const en = {
     open: "Open",
     draftNumber: "Not sent",
     none: "No receipts for this month",
-    noneText:
-      "Take attendance for your lessons. Then press “New receipt” to pick the lessons to charge.",
+    noneText: "Take attendance for your lessons. Then press “New receipt” to pick the lessons to charge.",
     cancelledTitle: "Cancelled receipts",
     payment: "Payment details",
     paymentTitle: "How students pay you",
