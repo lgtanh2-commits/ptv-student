@@ -130,7 +130,7 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
 
     <section v-if="data.note" class="mt-6">
       <h3 class="text-sm text-base-content/60">{{ t.noteTitle }}</h3>
-      <p class="whitespace-pre-wrap break-words">{{ data.note }}</p>
+      <p class="whitespace-pre-wrap break-words text-lg">{{ data.note }}</p>
     </section>
 
     <section
