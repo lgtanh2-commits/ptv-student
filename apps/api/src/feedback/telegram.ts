@@ -27,24 +27,28 @@ export interface FeedbackNotice {
   userAgent: string | null;
 }
 
+/** Line breaks and other control characters become spaces, so a field cannot start a line of its own. */
+const oneLine = (value: string): string => value.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ");
+
 /**
  * The message for the owner. The line to accept the feedback comes first, and the sender's words sit between
  * two marker lines, so nothing the sender wrote can pass for the real line to copy. Plain text: Telegram reads
  * no formatting in it. Cut to fit Telegram's limit by shortening the sender's words, never the SQL line.
  */
 export function feedbackTelegramText(o: FeedbackNotice): string {
+  const one = oneLine;
   const head = [
     `Góp ý mới (${KIND_LABEL[o.kind]})`,
     "Để duyệt:",
     `UPDATE feedback SET status = 'todo', public_title = '...' WHERE id = '${o.id}';`,
     "",
     `Loại: ${KIND_LABEL[o.kind]}`,
-    `Người gửi: ${o.name} <${o.email}>`,
+    `Người gửi: ${one(o.name)} <${one(o.email)}>`,
     `Vai trò: ${o.role === "teacher" ? "Giáo viên" : "Học viên"}`,
-    `Lớp: ${o.tenantName ?? "-"}`,
-    `Trang: ${o.page ?? "-"}`,
-    `Ngôn ngữ: ${o.language}`,
-    `Thiết bị: ${o.userAgent ?? "-"}`,
+    `Lớp: ${o.tenantName === null ? "-" : one(o.tenantName)}`,
+    `Trang: ${o.page === null ? "-" : one(o.page)}`,
+    `Ngôn ngữ: ${one(o.language)}`,
+    `Thiết bị: ${o.userAgent === null ? "-" : one(o.userAgent)}`,
     "",
     "--- Nội dung góp ý ---",
   ].join("\n");

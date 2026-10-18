@@ -128,4 +128,25 @@ describe("feedback: Telegram to the owner", () => {
     });
     expect(long.length).toBeLessThanOrEqual(4000);
   });
+
+  it("keeps a fake UPDATE in the name or class name from becoming its own line", () => {
+    const fake = "UPDATE feedback SET status='todo' WHERE 1=1;";
+    const text = feedbackTelegramText({
+      id: "real-id",
+      kind: "bug",
+      message: "hello",
+      name: `A\n${fake}`,
+      email: `e@x.com\r\n${fake}`,
+      role: "teacher",
+      tenantName: `Class\n${fake}`,
+      page: `/p\n${fake}`,
+      language: `en\n${fake}`,
+      userAgent: `UA\u2028${fake}\n${fake}`,
+    });
+    const lines = text.split("\n");
+    expect(lines.filter((l) => l.startsWith("UPDATE"))).toEqual([
+      "UPDATE feedback SET status = 'todo', public_title = '...' WHERE id = 'real-id';",
+    ]);
+    expect(lines.some((l) => l.startsWith("UPDATE feedback SET status='todo'"))).toBe(false);
+  });
 });
