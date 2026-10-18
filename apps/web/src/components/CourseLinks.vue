@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import type { MaterialInfo } from "@lms/shared";
 import { ref } from "vue";
 import { hostOf } from "@/features/format";
 import { useMaterials } from "@/features/homework/useHomework";
 import { usePaging } from "@/features/paging";
+import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -21,13 +24,16 @@ const t = messages.links;
 const m = useMaterials(props.courseId, { added: t.added, saved: t.saved, removed: t.removed });
 const paging = usePaging(m.items);
 
-const removingId = ref<string | null>(null);
-async function remove(id: string) {
-  removingId.value = id;
+const asking = ref<MaterialInfo | null>(null);
+const removing = ref(false);
+async function remove() {
+  if (!asking.value) return;
+  removing.value = true;
   try {
-    await m.remove(id);
+    await m.remove(asking.value.id);
   } finally {
-    removingId.value = null;
+    removing.value = false;
+    asking.value = null;
   }
 }
 </script>
@@ -84,7 +90,7 @@ async function remove(id: string) {
           <AppButton variant="ghost" compact @click="m.edit(l)"
             ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
           >
-          <AppButton variant="ghost" compact :loading="removingId === l.id" @click="remove(l.id)"
+          <AppButton variant="ghost" compact @click="asking = l"
             ><AppIcon name="trash" :size="16" />{{ t.remove }}</AppButton
           >
         </li>
@@ -118,5 +124,15 @@ async function remove(id: string) {
         }}</AppButton>
       </template>
     </AppModal>
+
+    <AppConfirm
+      :model-value="asking !== null"
+      :title="t.removeTitle"
+      :text="fill(t.removeText, { title: asking?.title ?? '' })"
+      :confirm-label="t.remove"
+      :loading="removing"
+      @update:model-value="(v) => !v && (asking = null)"
+      @confirm="remove"
+    />
   </div>
 </template>

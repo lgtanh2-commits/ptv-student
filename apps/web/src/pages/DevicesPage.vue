@@ -12,6 +12,7 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppLoading from "@/ui/AppLoading.vue";
@@ -35,9 +36,11 @@ watch(
     if (linked && was === false) toast.success(tg.linkedNow);
   },
 );
+const askingUnlink = ref(false);
 async function unlinkTelegram() {
   await telegram.unlink();
-  toast.success(tg.unlinkedNow);
+  askingUnlink.value = false;
+  if (!telegram.error.value) toast.success(tg.unlinkedNow);
 }
 
 async function load() {
@@ -46,6 +49,7 @@ async function load() {
 }
 
 const endingId = ref<string | null>(null);
+const askingEnd = ref<SessionInfo | null>(null);
 async function end(s: SessionInfo) {
   error.value = null;
   endingId.value = s.id;
@@ -62,10 +66,12 @@ async function end(s: SessionInfo) {
     error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
   } finally {
     endingId.value = null;
+    askingEnd.value = null;
   }
 }
 
 const endingAll = ref(false);
+const askingAll = ref(false);
 async function endAll() {
   endingAll.value = true;
   try {
@@ -74,6 +80,7 @@ async function endAll() {
     await router.replace("/");
   } finally {
     endingAll.value = false;
+    askingAll.value = false;
   }
 }
 
@@ -86,7 +93,7 @@ onMounted(load);
 <template>
   <AppPage :title="t.title" :subtitle="t.intro">
     <template #actions>
-      <AppButton variant="danger" compact :loading="endingAll" @click="endAll"
+      <AppButton variant="danger" compact :loading="endingAll" @click="askingAll = true"
         ><AppIcon name="sign-out" :size="16" />{{ t.signOutAll }}</AppButton
       >
     </template>
@@ -104,7 +111,7 @@ onMounted(load);
             <p class="text-sm text-base-content/60">{{ t.lastUsed }}: {{ when(s.lastSeenAt) }}</p>
           </div>
           <AppBadge v-if="s.current" tone="success">{{ t.thisDevice }}</AppBadge>
-          <AppButton variant="secondary" compact :loading="endingId === s.id" @click="end(s)">{{
+          <AppButton variant="secondary" compact :loading="endingId === s.id" @click="askingEnd = s">{{
             t.signOut
           }}</AppButton>
         </li>
@@ -125,7 +132,7 @@ onMounted(load);
             variant="secondary"
             compact
             :loading="telegram.unlinking.value"
-            @click="unlinkTelegram"
+            @click="askingUnlink = true"
             >{{ tg.unlinkButton }}</AppButton
           >
         </div>
@@ -159,5 +166,31 @@ onMounted(load);
         </p>
       </template>
     </AppCard>
+
+    <AppConfirm
+      v-model="askingAll"
+      :title="t.endAllTitle"
+      :text="t.endAllText"
+      :confirm-label="t.signOutAll"
+      :loading="endingAll"
+      @confirm="endAll"
+    />
+    <AppConfirm
+      :model-value="askingEnd !== null"
+      :title="t.endTitle"
+      :text="t.endText"
+      :confirm-label="t.signOut"
+      :loading="endingId !== null"
+      @update:model-value="(v) => !v && (askingEnd = null)"
+      @confirm="askingEnd && end(askingEnd)"
+    />
+    <AppConfirm
+      v-model="askingUnlink"
+      :title="tg.unlinkTitle"
+      :text="tg.unlinkText"
+      :confirm-label="tg.unlinkButton"
+      :loading="telegram.unlinking.value"
+      @confirm="unlinkTelegram"
+    />
   </AppPage>
 </template>

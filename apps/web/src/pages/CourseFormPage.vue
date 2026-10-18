@@ -14,6 +14,7 @@ import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppMoneyInput from "@/ui/AppMoneyInput.vue";
@@ -60,12 +61,14 @@ const tab = ref(tabs.some((x) => x.key === route.query.tab) ? String(route.query
 watch(tab, (key) => void router.replace({ query: { ...route.query, tab: key } }));
 
 const archiving = ref(false);
+const askingArchive = ref(false);
 async function toggleArchived(next: boolean) {
   archiving.value = true;
   try {
     await setArchived(next);
   } finally {
     archiving.value = false;
+    askingArchive.value = false;
   }
 }
 
@@ -91,7 +94,7 @@ const statusText = {
         variant="secondary"
         compact
         :loading="archiving"
-        @click="toggleArchived(true)"
+        @click="askingArchive = true"
         ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
       >
       <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
@@ -176,5 +179,14 @@ const statusText = {
       />
       <CourseLinks v-else-if="course && tab === 'links'" :key="`k-${course.id}`" :course-id="course.id" />
     </template>
+
+    <AppConfirm
+      v-model="askingArchive"
+      :title="t.archiveTitle"
+      :text="t.archiveText"
+      :confirm-label="t.archive"
+      :loading="archiving"
+      @confirm="toggleArchived(true)"
+    />
   </AppPage>
 </template>

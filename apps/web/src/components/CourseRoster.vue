@@ -11,6 +11,7 @@ import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -62,6 +63,14 @@ async function setStatus(id: string, status: "active" | "completed" | "dropped",
   } finally {
     busyId.value = null;
   }
+}
+
+const removing = ref<{ studentId: string; studentName: string; customPrice: number | null } | null>(null);
+async function confirmRemove() {
+  if (!removing.value) return;
+  const s = removing.value;
+  await setStatus(s.studentId, "dropped", s.customPrice);
+  removing.value = null;
 }
 
 // Changing one student's own price
@@ -129,13 +138,9 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
                   @click="setStatus(s.studentId, 'completed', s.customPrice)"
                   >{{ t.finish }}</AppButton
                 >
-                <AppButton
-                  variant="ghost"
-                  compact
-                  :loading="busyId === s.studentId"
-                  @click="setStatus(s.studentId, 'dropped', s.customPrice)"
-                  >{{ t.remove }}</AppButton
-                >
+                <AppButton variant="ghost" compact :loading="busyId === s.studentId" @click="removing = s">{{
+                  t.remove
+                }}</AppButton>
               </template>
               <AppButton
                 v-else
@@ -203,5 +208,15 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
         </div>
       </template>
     </AppCard>
+
+    <AppConfirm
+      :model-value="removing !== null"
+      :title="t.removeTitle"
+      :text="fill(t.removeText, { name: removing?.studentName ?? '' })"
+      :confirm-label="t.remove"
+      :loading="busyId !== null && busyId === removing?.studentId"
+      @update:model-value="(v) => !v && (removing = null)"
+      @confirm="confirmRemove"
+    />
   </div>
 </template>

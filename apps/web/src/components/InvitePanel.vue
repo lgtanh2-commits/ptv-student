@@ -2,12 +2,14 @@
 import { ref } from "vue";
 import { useInvites } from "@/features/invites/useInvites";
 import { usePaging } from "@/features/paging";
+import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppConfirm from "@/ui/AppConfirm.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -16,6 +18,19 @@ const t = messages.invites;
 const justSent = ref(false);
 const { invites, loading, actionError, form, resend, cancel } = useInvites(() => (justSent.value = true));
 const paging = usePaging(invites);
+
+const asking = ref<{ studentId: string; name: string } | null>(null);
+const cancelling = ref(false);
+async function confirmCancel() {
+  if (!asking.value) return;
+  cancelling.value = true;
+  try {
+    await cancel(asking.value.studentId);
+  } finally {
+    cancelling.value = false;
+    asking.value = null;
+  }
+}
 
 const stateText = { sent: t.stateSent, expired: t.stateExpired, revoked: t.stateRevoked } as const;
 const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as const;
@@ -57,11 +72,7 @@ const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as co
             <AppButton variant="ghost" compact @click="resend(invite.studentId)"
               ><AppIcon name="send" :size="16" />{{ t.resend }}</AppButton
             >
-            <AppButton
-              v-if="invite.state !== 'revoked'"
-              variant="ghost"
-              compact
-              @click="cancel(invite.studentId)"
+            <AppButton v-if="invite.state !== 'revoked'" variant="ghost" compact @click="asking = invite"
               ><AppIcon name="close" :size="16" />{{ t.cancel }}</AppButton
             >
           </div>
@@ -70,5 +81,15 @@ const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as co
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" plain />
     </div>
     <p v-else-if="!loading" class="text-sm text-base-content/60">{{ t.empty }}</p>
+
+    <AppConfirm
+      :model-value="asking !== null"
+      :title="t.cancelTitle"
+      :text="fill(t.cancelText, { name: asking?.name ?? '' })"
+      :confirm-label="t.cancel"
+      :loading="cancelling"
+      @update:model-value="(v) => !v && (asking = null)"
+      @confirm="confirmCancel"
+    />
   </AppCard>
 </template>
