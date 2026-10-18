@@ -30,6 +30,8 @@ export interface Env {
   TELEGRAM_BOT_USERNAME?: string;
   /** Checked against the header Telegram sends on every webhook call, so nobody else can call it. Required to use Telegram. */
   TELEGRAM_WEBHOOK_SECRET?: string;
+  /** The Telegram chat that gets every new feedback (needs TELEGRAM_BOT_TOKEN too). Without it the owner is not told. */
+  FEEDBACK_TELEGRAM_CHAT_ID?: string;
 }
 
 export interface Variables {

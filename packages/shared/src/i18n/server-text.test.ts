@@ -22,6 +22,7 @@ const sources = Object.values(
       "!**/*.test.ts",
       "!./server-text.ts",
       "!../../../../apps/api/src/lib/outbound-text.ts",
+      "!../../../../apps/api/src/feedback/telegram.ts",
     ],
     { query: "?raw", import: "default", eager: true },
   ),

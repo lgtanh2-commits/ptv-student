@@ -3,7 +3,14 @@ import { teacherMembership, type Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
 import { AppError } from "../lib/errors";
 import { uuidv7 } from "../lib/id";
-import { boardColumn, insertFeedback, type BoardRow, type BoardStatus } from "../repos/feedback";
+import {
+  boardColumn,
+  feedbackForOwner,
+  insertFeedback,
+  type BoardRow,
+  type BoardStatus,
+} from "../repos/feedback";
+import { tellOwner } from "./telegram";
 import { hit } from "../security/rate-limit";
 
 /** How many feedbacks one person may send in an hour. */
@@ -22,6 +29,9 @@ export function safePagePath(value: string | undefined): string | null {
   if (value === undefined || value.length > MAX_PAGE_PATH) return null;
   if (!value.startsWith("/") || value.startsWith("//")) return null;
   if (value.includes("?") || value.includes("#")) return null;
+  // A backslash can read as `/` in a browser; control characters (line breaks, tabs) could smuggle text
+  // into the owner's message or the logs.
+  if (value.includes("\\") || /[\u0000-\u001f\u007f]/.test(value)) return null;
   return value;
 }
 
@@ -44,7 +54,33 @@ export async function submitFeedback(ctx: Ctx, actor: Actor, body: FeedbackBody)
     language: actor.language,
     userAgent: ctx.userAgent,
   });
+  await ctx.defer(
+    notifyOwner(ctx, actor, { id, kind: body.kind, message: body.message, teacher: !!teacher }),
+  );
   return { id };
+}
+
+/** Looks the sender up and tells the owner on Telegram. Runs after the answer, so it never slows or fails it. */
+async function notifyOwner(
+  ctx: Ctx,
+  actor: Actor,
+  f: { id: string; kind: FeedbackBody["kind"]; message: string; teacher: boolean },
+): Promise<void> {
+  if (!ctx.env.FEEDBACK_TELEGRAM_CHAT_ID?.trim()) return;
+  const saved = await feedbackForOwner(ctx.env.DB, f.id);
+  if (!saved) return;
+  await tellOwner(ctx.env, {
+    id: f.id,
+    kind: f.kind,
+    message: f.message,
+    name: saved.name,
+    email: saved.email,
+    role: f.teacher ? "teacher" : "student",
+    tenantName: saved.tenant_name,
+    page: saved.page,
+    language: saved.language,
+    userAgent: saved.user_agent,
+  });
 }
 
 /** The public title in the reader's language: English readers get the English one when the owner wrote it. */

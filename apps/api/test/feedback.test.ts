@@ -165,6 +165,11 @@ describe("feedback: safePagePath", () => {
       "https://evil.com/",
       "/" + "a".repeat(200),
       "/" + "a".repeat(10 * 1024),
+      "/\\evil.com",
+      "/x\nUPDATE feedback",
+      "/a\tb",
+      "/a\u0000",
+      "/a\u007f",
     ]) {
       expect(safePagePath(page), String(page).slice(0, 40)).toBeNull();
     }

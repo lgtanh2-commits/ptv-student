@@ -55,3 +55,25 @@ export async function boardColumn(db: D1Database, status: BoardStatus, limit: nu
     .all<BoardRow>();
   return res.results;
 }
+
+export interface OwnerCopy {
+  name: string;
+  email: string;
+  tenant_name: string | null;
+  page: string | null;
+  language: string;
+  user_agent: string | null;
+}
+
+/** A saved feedback with who sent it and their class, for the owner's Telegram message only. */
+export const feedbackForOwner = (db: D1Database, id: string) =>
+  db
+    .prepare(
+      `SELECT u.name, u.email, t.name AS tenant_name, f.page, f.language, f.user_agent
+       FROM feedback f
+       JOIN users u ON u.id = f.user_id
+       LEFT JOIN tenants t ON t.id = f.tenant_id
+       WHERE f.id = ?`,
+    )
+    .bind(id)
+    .first<OwnerCopy>();
