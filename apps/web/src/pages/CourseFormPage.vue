@@ -34,7 +34,7 @@ const { form, course, loading, notFound, archived, setArchived, reload, students
     if (!id.value) {
       toast.success(t.created);
       if (studentsFailed) toast.error(t.studentsFailed);
-      void router.replace(`/courses/${c.id}`);
+      void router.replace("/courses");
     } else toast.success(t.saved);
   });
 
