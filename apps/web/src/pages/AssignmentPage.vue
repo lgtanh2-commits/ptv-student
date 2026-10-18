@@ -228,7 +228,7 @@ const deleteWords = computed(() => {
               <td>
                 <span class="flex items-center gap-3">
                   <AppAvatar :name="r.studentName" size="sm" />
-                  <span class="font-medium">{{ r.studentName }}</span>
+                  <span class="font-medium whitespace-nowrap">{{ r.studentName }}</span>
                 </span>
               </td>
               <td>
