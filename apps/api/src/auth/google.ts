@@ -84,8 +84,9 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
           name: id.name,
           passwordHash: null,
           verified: true,
-          // The language the sign up page was in when they pressed the button. The trip back from
-          // Google carries no header, so it was kept in the signed flow cookie.
+          // The language the sign up page was in when they pressed the button: the web puts it in
+          // the start address (`?lang=`), and the trip back from Google carries no header, so it
+          // was kept in the signed flow cookie.
           language: flow.language ?? DEFAULT_LANGUAGE,
         }),
         insertMembership(db, { userId, tenantId, role: "teacher" }),

@@ -1,15 +1,25 @@
+import { ERROR_CODES, SERVER_TEXT } from "@lms/shared";
 import { describe, expect, it } from "vitest";
 import { devGoogleCode, errorFromAddress, googleStartUrl } from "./google";
 
 describe("googleStartUrl", () => {
   it("keeps the person signed in by default", () => {
-    expect(googleStartUrl({ intent: "sign-in" })).toBe("/api/auth/google/start?intent=sign-in&keep=1");
+    expect(googleStartUrl({ intent: "sign-in" })).toBe(
+      "/api/auth/google/start?intent=sign-in&keep=1&lang=vi",
+    );
   });
 
   it("says when the device is shared", () => {
     expect(googleStartUrl({ intent: "sign-up", keep: false })).toBe(
-      "/api/auth/google/start?intent=sign-up&keep=0",
+      "/api/auth/google/start?intent=sign-up&keep=0&lang=vi",
     );
+  });
+
+  it("carries the page's language, so a new account starts in it", () => {
+    const url = googleStartUrl({ intent: "sign-up" }, "en");
+    expect(new URL(url, "https://x.test").searchParams.get("lang")).toBe("en");
+    const vi = googleStartUrl({ intent: "invite", invite: "t" }, "vi");
+    expect(new URL(vi, "https://x.test").searchParams.get("lang")).toBe("vi");
   });
 
   it("carries the invite link, safely encoded", () => {
@@ -29,7 +39,18 @@ describe("errorFromAddress", () => {
     for (const code of ["GOOGLE_FAILED", "NOT_INVITED", "GOOGLE_ACCOUNT_CHANGED", "LINK_EXPIRED"]) {
       expect(errorFromAddress(code)).toMatch(/\w/);
     }
-    expect(errorFromAddress("NOT_INVITED")).toContain("invite");
+    expect(errorFromAddress("NOT_INVITED", "en")).toContain("invite");
+  });
+
+  it("shows the problem in the page's language", () => {
+    const english = ERROR_CODES.NOT_INVITED.message;
+    const row = SERVER_TEXT.find((t) => t.id === english);
+    expect(row?.vi).toBeTruthy();
+    expect(errorFromAddress("NOT_INVITED", "vi")).toBe(row?.vi);
+    expect(errorFromAddress("NOT_INVITED", "en")).toBe(english);
+    for (const code of ["GOOGLE_FAILED", "GOOGLE_ACCOUNT_CHANGED", "LINK_EXPIRED", "made-up"]) {
+      expect(errorFromAddress(code, "vi")).not.toBe(errorFromAddress(code, "en"));
+    }
   });
 
   it("uses the general message for anything it does not know", () => {
