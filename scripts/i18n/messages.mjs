@@ -26,6 +26,32 @@ const PLACEHOLDER = /\{[^{}]*\}/g;
 
 class Refused extends Error {}
 
+/**
+ * Notification titles are stored as one of these texts followed by the homework title (SQL `||`), so the exact
+ * text never matches. For each of them the table also gets "<text>{title}"; these entries are made here, never
+ * read from the file (a row cannot set one), and the title is put back as it is.
+ */
+export const PREFIX_IDS = [
+  "New homework: ",
+  "Due soon: ",
+  "Your work was scored: ",
+  "Please change your work: ",
+];
+const TITLE = "{title}";
+const MADE_IDS = new Set(PREFIX_IDS.map((id) => id + TITLE));
+
+/** The table with the made pattern entries after it. */
+const withPatterns = (server) => [
+  ...server,
+  ...PREFIX_IDS.flatMap((id) => {
+    const e = server.find((x) => x.id === id);
+    return e ? [{ id: id + TITLE, en: e.en + TITLE, vi: e.vi + TITLE }] : [];
+  }),
+];
+
+/** The table as the owner's file holds it: without the made entries. */
+const readTable = (file) => readServerText(file).filter((e) => !MADE_IDS.has(e.id));
+
 // ------------------------------------------------------------------ reading catalogs
 
 const parse = (file, text) => ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
@@ -177,6 +203,8 @@ export function plan(rows, web, table) {
       base = row.source;
       if (seenIds.has(base)) return bad(`the text "${base}" is in the file more than once`);
       seenIds.add(base);
+      if (MADE_IDS.has(base))
+        return bad(`the text "${base}" is made by the import and cannot be set in the file`);
       if (!knownId(base, table))
         return bad(`the text "${base}" is not a server text of the code or the table`);
     } else {
@@ -264,7 +292,8 @@ async function build(opts, web, { edits, viByKey, server }) {
   for (const e of edits) byFile.set(e.file, [...(byFile.get(e.file) ?? []), e]);
   for (const [file, list] of byFile) outputs.set(file, await format(editSource(web.files[file], list), file));
   outputs.set(opts.vi, await format(viSource(web.tree, viByKey), opts.vi));
-  outputs.set(opts.serverText, await format(serverSource(server), opts.serverText));
+  const fullServer = withPatterns(server);
+  outputs.set(opts.serverText, await format(serverSource(fullServer), opts.serverText));
 
   for (const [file, text] of outputs) {
     const problems = syntaxErrors(file, text);
@@ -289,7 +318,7 @@ async function build(opts, web, { edits, viByKey, server }) {
     )
   )
     throw new Error("vi.ts check failed");
-  if (!same(readServerText(opts.serverText, outputs.get(opts.serverText)), server)) {
+  if (!same(readServerText(opts.serverText, outputs.get(opts.serverText)), fullServer)) {
     throw new Error("server-text.ts check failed");
   }
   return outputs;
@@ -313,7 +342,7 @@ function exportRows(opts) {
   const web = readWeb(opts);
   const viText = existsSync(opts.vi) ? readFileSync(opts.vi, "utf8") : null;
   const vi = new Map(viText ? readVi(opts.vi, viText).map((t) => [t.key, t.text]) : []);
-  const table = readServerText(opts.serverText);
+  const table = readTable(opts.serverText);
   const scan = new Map(scanServer().map((s) => [s.id, s]));
   const server = table.map((e) => ({
     id: e.id,
@@ -325,7 +354,7 @@ function exportRows(opts) {
   }));
   const known = new Set(table.map((e) => e.id));
   for (const s of scan.values()) {
-    if (!known.has(s.id))
+    if (!known.has(s.id) && !MADE_IDS.has(s.id))
       server.push({ id: s.id, en: s.id, vi: null, where: s.where, group: s.group, new: true });
   }
   server.sort((a, b) => a.group.localeCompare(b.group));
@@ -378,7 +407,7 @@ async function main(argv) {
       throw new Refused(`Cannot read ${file}: ${e.message}`);
     }
     const web = readWeb(opts);
-    const result = plan(rows, web, readServerText(opts.serverText));
+    const result = plan(rows, web, readTable(opts.serverText));
     const outputs = await build(opts, web, result);
     writeAll(outputs);
     const changed = result.edits.map((e) => e.key);

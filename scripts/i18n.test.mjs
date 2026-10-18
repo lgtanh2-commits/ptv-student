@@ -278,3 +278,44 @@ test("a server id already in the table is accepted even if the scan does not fin
   const r = apply([...rows(), { key: "server.300", source: id, en: id, vi: "Giữ lại." }]);
   assert.equal(r.status, 0, r.stderr);
 });
+
+// The notification titles are stored as one of these prefixes and the homework title (SQL `||`), so the table
+// also gets a pattern "<prefix>{title}" for each of them. These entries are made by the import, not read from it.
+const NOTICE_PREFIXES = PREFIXES.filter(([, id]) => !id.startsWith("Question"));
+
+test("each notification prefix also gets a pattern for the title after it", async () => {
+  const r = apply(rows());
+  assert.equal(r.status, 0, r.stderr);
+  const { SERVER_TEXT } = await import(pathToFileURL(files.serverText).href);
+  assert.equal(NOTICE_PREFIXES.length, 4);
+  for (const [, id, vi] of NOTICE_PREFIXES) {
+    assert.deepEqual(
+      SERVER_TEXT.find((e) => e.id === `${id}{title}`),
+      { id: `${id}{title}`, en: `${id}{title}`, vi: `${vi} {title}` },
+    );
+  }
+  // Only those four: other texts ending in a space get no pattern.
+  assert.equal(SERVER_TEXT.filter((e) => e.id.endsWith("{title}")).length, 4);
+});
+
+test("importing again does not ask for the made patterns, and a row cannot set one", async () => {
+  assert.equal(apply(rows()).status, 0);
+  const again = apply(rows());
+  assert.equal(again.status, 0, again.stderr);
+  const { SERVER_TEXT } = await import(`${pathToFileURL(files.serverText).href}?again`);
+  assert.equal(SERVER_TEXT.filter((e) => e.id === "New homework: {title}").length, 1);
+
+  const before = snapshot();
+  const id = "New homework: {title}";
+  const r = apply([...rows(), { key: "server.300", source: id, en: id, vi: "HIJACK {title}" }]);
+  assertRefused(r, before, "server.300", id);
+});
+
+test("the export does not list the made patterns as rows", () => {
+  assert.equal(apply(rows()).status, 0);
+  const r = run("rows");
+  assert.equal(r.status, 0, r.stderr);
+  const ids = JSON.parse(r.stdout).server.map((s) => s.id);
+  assert.ok(ids.includes("New homework: "));
+  assert.ok(!ids.some((id) => id.endsWith("{title}")));
+});

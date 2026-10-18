@@ -77,4 +77,12 @@ describe("translate", () => {
     expect(translate(long, "vi", TABLE)).toBe(long);
     expect(Date.now() - start).toBeLessThan(50);
   });
+
+  it("translates a notification title with the real table, keeping the homework title as it is", () => {
+    expect(translate("New homework: Due soon: x", "vi")).toBe("Bài tập mới: Due soon: x");
+    expect(translate("Due soon: New homework: x", "vi")).toBe("Sắp đến hạn nộp: New homework: x");
+    expect(translate("Your work was scored: Essay", "vi")).toBe("Bài của bạn đã được chấm điểm: Essay");
+    expect(translate("Please change your work: Essay", "vi")).toBe("Vui lòng chỉnh sửa bài: Essay");
+    expect(translate("New homework: Due soon: x", "en")).toBe("New homework: Due soon: x");
+  });
 });

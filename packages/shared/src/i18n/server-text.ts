@@ -666,4 +666,16 @@ export const SERVER_TEXT: readonly ServerText[] = [
     en: "{lesson.course_name} · now {body.date} {body.startTime}",
     vi: "{lesson.course_name} · giờ mới {body.date} {body.startTime}",
   },
+  { id: "New homework: {title}", en: "New homework: {title}", vi: "Bài tập mới: {title}" },
+  { id: "Due soon: {title}", en: "Due soon: {title}", vi: "Sắp đến hạn nộp: {title}" },
+  {
+    id: "Your work was scored: {title}",
+    en: "Your work was scored: {title}",
+    vi: "Bài của bạn đã được chấm điểm: {title}",
+  },
+  {
+    id: "Please change your work: {title}",
+    en: "Please change your work: {title}",
+    vi: "Vui lòng chỉnh sửa bài: {title}",
+  },
 ];
