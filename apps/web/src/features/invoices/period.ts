@@ -1,4 +1,6 @@
+import { localeOf } from "@lms/shared";
 import { today } from "@/features/format";
+import { language } from "@/messages";
 
 /** The month of today as "2026-09", on this computer's clock. */
 export const currentPeriod = (now: Date = new Date()): string => today(now).slice(0, 7);
@@ -11,7 +13,7 @@ export function shiftPeriod(period: string, months: number): string {
 
 /** "September 2026" */
 export const periodLabel = (period: string): string =>
-  new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+  new Intl.DateTimeFormat(localeOf(language), { month: "long", year: "numeric", timeZone: "UTC" }).format(
     new Date(`${period}-01T00:00:00Z`),
   );
 

@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { translate } from "@lms/shared";
 import { describe, expect, it } from "vitest";
 import {
   addStudent,
@@ -374,6 +375,35 @@ describe("CSV import", () => {
       "7:invalid",
     ]);
     expect((await list(t.cookie)).json.total).toBe(1);
+  });
+
+  it("says what is wrong with each row in the teacher's language", async () => {
+    const messages = async (lang: "vi" | "en") => {
+      const t = await createTeacher("Lan", { lang });
+      const existing = await addStudent(t);
+      const dup = uniqueEmail("dup");
+      const rows = [
+        { name: "Bad Email", email: "nope" },
+        { name: "Known", email: existing.email },
+        { name: "Dup A", email: dup },
+        { name: "Dup B", email: dup },
+      ];
+      const res = await call("/api/students/import", {
+        method: "POST",
+        cookie: t.cookie,
+        body: { rows, dryRun: true },
+      });
+      return (res.json.rows as { message?: string }[]).map((r) => r.message);
+    };
+    const en = await messages("en");
+    expect(en[0]).toBe("Please enter a valid email address.");
+    expect(en[1]).toBe("You already added this student.");
+    expect(en[3]).toBe("This email is in the list more than once.");
+    const vi = await messages("vi");
+    for (const i of [0, 1, 3]) {
+      expect(vi[i]).not.toBe(en[i]);
+      expect(vi[i]).toBe(translate(en[i]!, "vi"));
+    }
   });
 
   it("creates the good rows and reports the rest, without inviting or emailing anyone", async () => {

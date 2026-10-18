@@ -45,9 +45,9 @@ describe("calendar days", () => {
   });
 
   it("shows days and weeks in plain words", () => {
-    expect(formatDayShort("2026-10-05")).toBe("Mon 5 Oct");
-    expect(formatWeek("2026-10-05")).toBe("5 Oct - 11 Oct 2026");
-    expect(formatWeek("2026-12-28")).toBe("28 Dec - 3 Jan 2027");
+    expect(formatDayShort("2026-10-05")).toBe("Thứ 2, 5 thg 10");
+    expect(formatWeek("2026-10-05")).toBe("5 thg 10 - 11 thg 10, 2026");
+    expect(formatWeek("2026-12-28")).toBe("28 thg 12 - 3 thg 1, 2027");
   });
 });
 

@@ -1,9 +1,12 @@
 import type { MyWorkItem } from "@lms/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { fill } from "@/features/text";
+import { messages } from "@/messages";
 import { createAutosave } from "../my/autosave";
 import { newQuestion, questionPayload, totalOf } from "./useHomework";
 import { dueWords, groupWork, isOverdue, scoreText } from "./dates";
 
+const t = messages.homework;
 const NOW = new Date("2026-10-05T12:00:00.000Z");
 const at = (ms: number) => new Date(NOW.getTime() + ms).toISOString();
 const H = 3_600_000;
@@ -11,18 +14,18 @@ const D = 24 * H;
 
 describe("dueWords", () => {
   it("says when it is due, in plain words", () => {
-    expect(dueWords(null, NOW)).toBe("No due date");
-    expect(dueWords(at(30 * 60_000), NOW)).toBe("Due in less than an hour");
-    expect(dueWords(at(H), NOW)).toBe("Due in 1 hour");
-    expect(dueWords(at(5 * H), NOW)).toBe("Due in 5 hours");
-    expect(dueWords(at(25 * H), NOW)).toBe("Due in 1 day");
-    expect(dueWords(at(3 * D + H), NOW)).toBe("Due in 3 days");
+    expect(dueWords(null, NOW)).toBe(t.noDue);
+    expect(dueWords(at(30 * 60_000), NOW)).toBe(t.dueLessThanHour);
+    expect(dueWords(at(H), NOW)).toBe(t.dueHour);
+    expect(dueWords(at(5 * H), NOW)).toBe(fill(t.dueHours, { n: 5 }));
+    expect(dueWords(at(25 * H), NOW)).toBe(t.dueDay);
+    expect(dueWords(at(3 * D + H), NOW)).toBe(fill(t.dueDays, { n: 3 }));
   });
 
   it("says when it is late", () => {
-    expect(dueWords(at(-H), NOW)).toBe("Overdue since today");
-    expect(dueWords(at(-D - H), NOW)).toBe("Overdue by 1 day");
-    expect(dueWords(at(-4 * D), NOW)).toBe("Overdue by 4 days");
+    expect(dueWords(at(-H), NOW)).toBe(t.overdueToday);
+    expect(dueWords(at(-D - H), NOW)).toBe(t.overdueDay);
+    expect(dueWords(at(-4 * D), NOW)).toBe(fill(t.overdueDays, { n: 4 }));
   });
 
   it("knows what overdue is", () => {

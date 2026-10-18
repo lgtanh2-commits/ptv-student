@@ -1,4 +1,4 @@
-import { LIMITS, type TelegramLinkCode, type TelegramStatus } from "@lms/shared";
+import { DEFAULT_LANGUAGE, LIMITS, translate, type TelegramLinkCode, type TelegramStatus } from "@lms/shared";
 import { z } from "zod";
 import type { Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
@@ -11,6 +11,7 @@ import {
   deleteOtherLinkOfChatStatement,
   findLink,
   insertLinkCodeStatement,
+  languageOfChat,
   upsertLinkStatement,
 } from "../repos/telegram";
 import { AppError } from "../lib/errors";
@@ -75,19 +76,29 @@ export async function handleUpdate(env: Env, body: unknown): Promise<void> {
   const message = parsed.success ? parsed.data.message : undefined;
   if (!message) return;
   const chatId = String(message.chat.id);
+  // Replies are in the language of the person the chat is linked to (after linking: the one who just linked
+  // it); a chat nobody linked gets Vietnamese.
+  // A failed lookup must not drop the reply: it then goes out in the default language.
+  const reply = async (text: string) => {
+    const lang = await languageOfChat(env.DB, chatId).catch((err) => {
+      console.error(JSON.stringify({ msg: "telegram language lookup failed", err: String(err) }));
+      return DEFAULT_LANGUAGE;
+    });
+    await client.sendMessage(chatId, translate(text, lang));
+  };
   const code = /^\/start(?:@\w+)?\s+(\S+)/.exec(message.text ?? "")?.[1];
   if (!code) {
-    await client.sendMessage(chatId, "Send /start with the code shown in the app to link your account.");
+    await reply("Send /start with the code shown in the app to link your account.");
     return;
   }
   const link = await consumeLinkCode(env.DB, await sha256Hex(code));
   if (!link) {
-    await client.sendMessage(chatId, "This code is not valid any more. Please ask the app for a new one.");
+    await reply("This code is not valid any more. Please ask the app for a new one.");
     return;
   }
   await env.DB.batch([
     deleteOtherLinkOfChatStatement(env.DB, chatId, link.user_id),
     upsertLinkStatement(env.DB, link.user_id, chatId),
   ]);
-  await client.sendMessage(chatId, "Linked. You will get your notifications here too.");
+  await reply("Linked. You will get your notifications here too.");
 }

@@ -1,4 +1,4 @@
-import { LIMITS, type SignUpBody } from "@lms/shared";
+import { DEFAULT_LANGUAGE, LIMITS, type Language, type SignUpBody } from "@lms/shared";
 import type { Context } from "hono";
 import { auditStatement } from "../audit";
 import { getEmailProvider } from "../email/provider";
@@ -9,6 +9,8 @@ import { appUrl, hmacKey } from "../lib/config";
 import { hmacHex } from "../lib/crypto";
 import { AppError } from "../lib/errors";
 import { uuidv7 } from "../lib/id";
+import { emailIn } from "../lib/outbound-text";
+import { languageOf } from "../middleware/language";
 import { consumeToken, newToken, revokeUserTokens } from "../repos/tokens";
 import {
   findUserByEmail,
@@ -16,6 +18,7 @@ import {
   insertMembership,
   insertTenant,
   insertUser,
+  languageOfEmail,
   markEmailVerified,
   membershipsOf,
   type UserRow,
@@ -29,6 +32,8 @@ export interface Ctx {
   ip: string;
   ipHash: string;
   userAgent: string | null;
+  /** The language of the request (see middleware/language.ts). Never anything but a known language. */
+  language: Language;
   /**
    * Runs work after the answer was sent (sending an email takes a while). When there is no way to do
    * that (tests), the work is simply awaited, so the caller always gets the same result.
@@ -49,6 +54,7 @@ export async function makeCtx(c: Context<AppBindings>): Promise<Ctx> {
     ip,
     ipHash: await hmacHex(hmacKey(c.env), `ip:${ip}`),
     userAgent: c.req.header("user-agent")?.slice(0, 200) ?? null,
+    language: languageOf(c),
     defer: async (work) => {
       // A failed email must never turn into an error for the person, and must not be silent for us.
       const safe = work.catch((err) =>
@@ -72,8 +78,18 @@ export async function sendMail(ctx: Ctx, message: EmailMessage): Promise<void> {
   const limit = await hit(ctx.env.DB, `mail:${await emailHash(ctx, message.to)}`, 5, 3600);
   if (!limit.allowed) return;
   // Even choosing the provider happens after the answer, so a wrong setting is logged for us and
-  // never shows up as an error on only some requests (which would show who has an account).
-  await ctx.defer((async () => getEmailProvider(ctx.env).send(message))());
+  // never shows up as an error on only some requests (which would show who has an account). The same
+  // goes for looking up the language of the address: whether a row is found must not change the answer.
+  await ctx.defer(
+    (async () => {
+      // A failed lookup must not drop the email: it then goes out in the default language.
+      const lang = await languageOfEmail(ctx.env.DB, message.to).catch((err) => {
+        console.error(JSON.stringify({ msg: "email language lookup failed", err: String(err) }));
+        return DEFAULT_LANGUAGE;
+      });
+      await getEmailProvider(ctx.env).send(emailIn(message, lang));
+    })(),
+  );
 }
 
 /**
@@ -170,6 +186,7 @@ export async function signUp(ctx: Ctx, input: SignUpBody): Promise<void> {
         name: input.name,
         passwordHash: null,
         verified: false,
+        language: ctx.language, // the language they signed up in
       }),
       insertMembership(db, { userId, tenantId, role: "teacher" }),
       auditStatement(db, { action: "auth.sign_up", actorUserId: userId, tenantId, ipHash: ctx.ipHash }),

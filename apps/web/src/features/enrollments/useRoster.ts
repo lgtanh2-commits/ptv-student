@@ -1,6 +1,7 @@
 import { LIMITS, type EnrollResult, type EnrollmentInfo, type StudentInfo } from "@lms/shared";
 import { computed, onMounted, ref, watch } from "vue";
 import { api } from "@/api/client";
+import { messages } from "@/messages";
 
 /** The students of one course, and the actions on them. Logic only, no visual parts. */
 export function useRoster(courseId: string, onChanged: () => void) {
@@ -12,7 +13,7 @@ export function useRoster(courseId: string, onChanged: () => void) {
     try {
       students.value = (await api<{ students: EnrollmentInfo[] }>(`/courses/${courseId}/students`)).students;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }
@@ -25,7 +26,7 @@ export function useRoster(courseId: string, onChanged: () => void) {
       await load();
       onChanged();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     }
   }
 
@@ -68,8 +69,7 @@ export function useAddStudents(courseId: string, roster: () => EnrollmentInfo[],
       const res = await api<{ students: StudentInfo[] }>(`/students?${q}`);
       if (mine === latest) candidates.value = res.students;
     } catch (err) {
-      if (mine === latest)
-        error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (mine === latest) error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     }
   }
 
@@ -91,7 +91,7 @@ export function useAddStudents(courseId: string, roster: () => EnrollmentInfo[],
     if (busy.value || selected.value.size === 0) return;
     const priceText = price.value.trim();
     if (priceText !== "" && !/^\d+$/.test(priceText)) {
-      error.value = "Please enter the price as a whole number, for example 150000.";
+      error.value = messages.roster.priceWhole;
       return;
     }
     busy.value = true;
@@ -105,7 +105,7 @@ export function useAddStudents(courseId: string, roster: () => EnrollmentInfo[],
       await load();
       onDone();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       busy.value = false;
     }

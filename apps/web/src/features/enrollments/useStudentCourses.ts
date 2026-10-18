@@ -1,6 +1,7 @@
 import type { CourseInfo, EnrollResult, StudentCourseInfo } from "@lms/shared";
 import { computed, onMounted, ref } from "vue";
 import { api } from "@/api/client";
+import { messages } from "@/messages";
 
 /** The courses of one student, and adding the student to another course. */
 export function useStudentCourses(studentId: string) {
@@ -21,7 +22,7 @@ export function useStudentCourses(studentId: string) {
       courses.value = mine.courses;
       allCourses.value = all.courses;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }
@@ -44,7 +45,7 @@ export function useStudentCourses(studentId: string) {
       chosen.value = "";
       await load();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       busy.value = false;
     }

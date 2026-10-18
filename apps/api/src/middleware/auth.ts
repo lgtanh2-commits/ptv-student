@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE, parseLanguage } from "@lms/shared";
 import { createMiddleware } from "hono/factory";
 import { teacherMembership, type Actor } from "../auth/actor";
 import { readSessionToken } from "../auth/session";
@@ -35,6 +36,7 @@ export const loadActor = createMiddleware<AppBindings>(async (c, next) => {
           name: user.name,
           email: user.email,
           emailVerified: user.email_verified_at !== null,
+          language: parseLanguage(user.language) ?? DEFAULT_LANGUAGE,
           sessionId: session.id,
           memberships: memberships.map((m) => ({
             tenantId: m.tenant_id,

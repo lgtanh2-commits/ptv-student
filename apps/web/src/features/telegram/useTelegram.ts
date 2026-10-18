@@ -1,6 +1,7 @@
 import type { TelegramLinkCode, TelegramStatus } from "@lms/shared";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { api } from "@/api/client";
+import { messages } from "@/messages";
 
 /** How often the page checks again after a code was asked for, so linking finishes without a manual refresh. */
 const POLL_MS = 2500;
@@ -36,7 +37,7 @@ export function useTelegramLink() {
     try {
       await refresh();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       loading.value = false;
     }
@@ -53,7 +54,7 @@ export function useTelegramLink() {
       pollUntil = Date.now() + Math.min(POLL_MAX_MS, res.expiresInMinutes * 60_000);
       timer = setTimeout(poll, POLL_MS);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       requesting.value = false;
     }
@@ -69,7 +70,7 @@ export function useTelegramLink() {
       deepLink.value = null;
       await refresh();
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       unlinking.value = false;
     }

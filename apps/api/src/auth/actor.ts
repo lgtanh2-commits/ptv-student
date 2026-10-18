@@ -1,5 +1,5 @@
 import { AppError } from "../lib/errors";
-import type { Role } from "@lms/shared";
+import type { Language, Role } from "@lms/shared";
 
 export interface Membership {
   tenantId: string;
@@ -13,6 +13,8 @@ export interface Actor {
   name: string;
   email: string;
   emailVerified: boolean;
+  /** The language the person chose (stored on the account). */
+  language: Language;
   sessionId: string;
   memberships: Membership[];
 }

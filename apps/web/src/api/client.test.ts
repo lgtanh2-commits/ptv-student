@@ -20,6 +20,17 @@ describe("api client", () => {
     expect((init.headers as Record<string, string>)["x-lms-client"]).toBeUndefined();
   });
 
+  it("sends the language header on every request", async () => {
+    const fetchFn = vi.fn(async () => Response.json({ ok: 1 }));
+    vi.stubGlobal("fetch", fetchFn);
+    await api("/health");
+    await api("/things", { method: "POST", body: {} });
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    for (const call of fetchFn.mock.calls as unknown as [string, RequestInit][]) {
+      expect((call[1].headers as Record<string, string>)["x-lms-lang"]).toBe("vi");
+    }
+  });
+
   it("sends the client header and idempotency key on writes", async () => {
     const fetchFn = stubFetch(Response.json({ ok: 1 }));
     await api("/things", { method: "POST", body: { a: 1 }, idempotencyKey: "k1" });

@@ -21,6 +21,7 @@ export const ROUTE_ACCESS: Record<string, Access> = {
   "POST /api/auth/sign-in-link/consume": "public",
   "POST /api/invites/accept": "public",
   "GET /api/me": "user",
+  "PUT /api/me/language": "user",
   "POST /api/auth/sign-out": "user",
   "POST /api/auth/sign-out-everywhere": "user",
   "GET /api/auth/sessions": "user",

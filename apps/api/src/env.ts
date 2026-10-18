@@ -35,6 +35,8 @@ export interface Env {
 export interface Variables {
   requestId: string;
   actor: import("./auth/actor").Actor | null;
+  /** The language to answer in. Set by the requestLanguage middleware (see middleware/language.ts). */
+  language: import("@lms/shared").Language;
 }
 
 type Bindings = Env;

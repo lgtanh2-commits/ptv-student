@@ -2,6 +2,7 @@ import { inviteStudentBody, type InviteInfo } from "@lms/shared";
 import { onMounted, ref } from "vue";
 import { api } from "@/api/client";
 import { useForm } from "@/features/forms/useForm";
+import { messages } from "@/messages";
 
 /** Teacher's list of invited students, and the actions on it. Logic only, no visual parts. */
 export function useInvites(onInvited: () => void) {
@@ -34,7 +35,7 @@ export function useInvites(onInvited: () => void) {
       await run();
       await load();
     } catch (err) {
-      actionError.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      actionError.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     }
   }
 

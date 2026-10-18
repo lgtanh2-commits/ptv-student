@@ -1,3 +1,4 @@
+import { DEFAULT_LANGUAGE } from "@lms/shared";
 import { auditStatement } from "../audit";
 import type { Flow } from "../google/flow";
 import type { GoogleIdentity } from "../google/client";
@@ -77,7 +78,17 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
       tenantId = uuidv7();
       before.push(
         insertTenant(db, { id: tenantId, name: `${id.name}'s classroom` }),
-        insertUser(db, { id: userId, email: id.email, name: id.name, passwordHash: null, verified: true }),
+        insertUser(db, {
+          id: userId,
+          email: id.email,
+          name: id.name,
+          passwordHash: null,
+          verified: true,
+          // The language the sign up page was in when they pressed the button: the web puts it in
+          // the start address (`?lang=`), and the trip back from Google carries no header, so it
+          // was kept in the signed flow cookie.
+          language: flow.language ?? DEFAULT_LANGUAGE,
+        }),
         insertMembership(db, { userId, tenantId, role: "teacher" }),
         auditStatement(db, { action: "auth.sign_up", actorUserId: userId, tenantId, ipHash: ctx.ipHash }),
       );

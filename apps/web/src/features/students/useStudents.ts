@@ -11,6 +11,7 @@ import { api } from "@/api/client";
 import { useForm } from "@/features/forms/useForm";
 import { useQueryRef } from "@/features/navigation/back";
 import { parseStudentCsv, type CsvStudent } from "./parseCsv";
+import { messages } from "@/messages";
 
 /** The statuses a teacher can pick to filter the list. Empty means every status. */
 export const STATUS_FILTERS = ["joined", "invited", "not_invited", "archived"] as const;
@@ -51,8 +52,7 @@ export function useStudentList() {
         error.value = null;
       }
     } catch (err) {
-      if (mine === latest)
-        error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (mine === latest) error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       if (mine === latest) loading.value = false;
     }
@@ -102,10 +102,10 @@ export function useStudentList() {
             if (res.results[0]?.result !== "enrolled")
               notice.value =
                 res.results[0]?.result === "full"
-                  ? "This course is full."
-                  : "The student could not join the course.";
+                  ? messages.students.courseFull
+                  : messages.students.couldNotJoin;
           } catch (err) {
-            notice.value = err instanceof Error ? err.message : "The student could not join the course.";
+            notice.value = err instanceof Error ? err.message : messages.students.couldNotJoin;
           }
         }
         form.values.name = "";
@@ -209,7 +209,7 @@ export function useCsvImport() {
       result.value = await api<ImportResult>("/students/import", { method: "POST", body });
       step.value = dryRun ? "preview" : "done";
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       busy.value = false;
     }

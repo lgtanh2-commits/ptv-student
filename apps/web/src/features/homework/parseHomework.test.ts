@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { messages } from "@/messages";
+import { vi } from "@/messages/vi";
 import { parseHomeworkText } from "./parseHomework";
 import { SAMPLE_HOMEWORK_TEXT } from "./sample";
 
@@ -73,5 +75,15 @@ describe("parseHomeworkText", () => {
 
   it("returns nothing for empty text", () => {
     expect(parseHomeworkText("   \n\n  ")).toEqual([]);
+  });
+
+  it("writes the notes in the page's language, a line that was not understood kept as it is", () => {
+    expect(messages).toBe(vi); // nothing stored in tests: the page is in Vietnamese
+    const [conflict] = parseHomeworkText("1. Pick one\nA. No *\nB. Yes *");
+    expect(conflict!.review).toBe(vi.homework.importReviewConflict);
+    const [unknown] = parseHomeworkText("1. Just some text with nothing to tell its kind.");
+    expect(unknown!.review).toBe(vi.homework.importReviewKind);
+    const [short] = parseHomeworkText("2. 5 + 3 = ?\nAnswer: 8\nNote {line} here");
+    expect(short!.review).toBe(vi.homework.importReviewLine.replace("{line}", "Note {line} here"));
   });
 });

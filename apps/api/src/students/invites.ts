@@ -168,6 +168,8 @@ export function joinStatements(
           name: j.student.name,
           passwordHash: null,
           verified: true,
+          // A student made by an invite starts in Vietnamese. An account that already exists keeps its own.
+          language: "vi",
         }),
     insertMembership(db, { userId: j.userId, tenantId: j.tenantId, role: "student" }),
     activateStudent(db, j.tenantId, j.student.id, j.userId),

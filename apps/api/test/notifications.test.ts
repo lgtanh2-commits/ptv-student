@@ -173,7 +173,7 @@ describe("the other events", () => {
     expect(n).toHaveLength(1);
     expect(n[0]).toMatchObject({
       kind: "receipt_sent",
-      title: "New fee receipt: January 2020",
+      title: "New fee receipt: 01/2020",
       link: `/my/invoices/${inv.id}`,
     });
   });

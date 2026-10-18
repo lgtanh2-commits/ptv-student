@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isBin } from "./vietqr";
 import { ATTENDANCE_STATUSES, INVOICE_STATUSES, LIMITS, type AttendanceStatus } from "./domain";
+import { LANGUAGES, type Language } from "./i18n/languages";
 
 /**
  * Request shapes shared by the API (which checks them) and the web app (which uses the
@@ -14,7 +15,11 @@ const email = z
   .max(254, "This email is too long.")
   .pipe(z.email("Please enter a valid email address."));
 
-const name = z.string().trim().min(1, "Please enter a name.").max(100, "This name is too long.");
+const name = z
+  .string({ error: "Please enter a name." })
+  .trim()
+  .min(1, "Please enter a name.")
+  .max(100, "This name is too long.");
 
 /** Sent by the bot check widget. Empty is allowed here; the server decides if it is required. */
 const captcha = z.string().max(4096).optional();
@@ -25,11 +30,14 @@ export const consumeLinkBody = tokenBody.extend({ trustDevice: z.boolean().optio
 export const emailOnlyBody = z.object({ email, captcha });
 export const inviteStudentBody = z.object({ name, email });
 
+/** The only languages a person can choose. Anything else is refused, never stored. */
+export const setLanguageBody = z.object({ language: z.enum(LANGUAGES) });
+
 export type SignUpBody = z.infer<typeof signUpBody>;
 export type InviteStudentBody = z.infer<typeof inviteStudentBody>;
 
 export interface MeResponse {
-  user: { id: string; name: string; email: string; emailVerified: boolean };
+  user: { id: string; name: string; email: string; emailVerified: boolean; language: Language };
   memberships: { tenantId: string; tenantName: string; role: "teacher" | "student" }[];
 }
 

@@ -12,7 +12,7 @@ describe("teacher invites a student", () => {
     expect((await invite(t.cookie, email)).status).toBe(202);
     const mails = await emailsTo(email);
     expect(mails.map((m) => m.kind)).toEqual(["invite"]);
-    expect(mails[0]!.body_text).toContain("Ms Lan invited you");
+    expect(mails[0]!.body_text).toContain("Ms Lan đã mời bạn"); // a new address: Vietnamese
     const list = await call("/api/invites", { cookie: t.cookie });
     expect(list.json.invites).toMatchObject([{ email, name: "Sam", state: "sent" }]);
   });

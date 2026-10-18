@@ -605,7 +605,7 @@ describe("sending a receipt", () => {
     await send(t, d.Hoa!);
     const mails = (await emailsTo(hoa.email)).filter((m) => m.kind === "invoice");
     expect(mails).toHaveLength(1);
-    expect(mails[0]!.body_text).toContain("fee receipt for January 2020");
+    expect(mails[0]!.body_text).toContain("fee receipt for 01/2020");
     expect(mails[0]!.body_text).toContain(`/my/invoices/${d.Hoa!.id}`);
   });
 

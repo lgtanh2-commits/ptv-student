@@ -8,7 +8,11 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: "./wrangler.test.jsonc" },
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+        miniflare: {
+          bindings: { TEST_MIGRATIONS: migrations },
+          // An empty database for test/language.test.ts, which migrates it step by step.
+          d1Databases: ["MIGRATION_DB"],
+        },
       }),
     ],
     test: {

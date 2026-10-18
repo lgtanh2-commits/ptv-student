@@ -1,6 +1,7 @@
 import type { StudentAttendanceInfo } from "@lms/shared";
 import { computed, onMounted, ref, watch } from "vue";
 import { api } from "@/api/client";
+import { messages } from "@/messages";
 
 /** How often one student came to lessons, one page of the marks at a time. Logic only. */
 export function useStudentAttendance(studentId: string) {
@@ -23,8 +24,7 @@ export function useStudentAttendance(studentId: string) {
         error.value = null;
       }
     } catch (err) {
-      if (mine === latest)
-        error.value = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (mine === latest) error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     } finally {
       if (mine === latest) loading.value = false;
     }

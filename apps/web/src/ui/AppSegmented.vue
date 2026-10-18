@@ -8,12 +8,12 @@ const model = defineModel<string>({ required: true });
 </script>
 
 <template>
-  <div class="join" role="group" :aria-label="label">
+  <div class="join max-w-full" role="group" :aria-label="label">
     <button
       v-for="o in options"
       :key="o.value"
       type="button"
-      class="btn join-item btn-sm min-h-9 px-4"
+      class="btn join-item btn-sm h-auto min-h-9 min-w-0 shrink whitespace-normal px-4 py-1.5 leading-tight"
       :class="
         model === o.value
           ? {

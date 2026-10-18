@@ -12,6 +12,9 @@ coverage/
 playwright-report/
 test-results/
 
+# The owner's text spreadsheets (scripts/i18n). Never committed.
+*.xlsx
+
 # Legacy Frappe Education (kept in tag legacy-frappe-education)
 *.pyc
 *.egg-info
@@ -21,3 +24,6 @@ education/docs/current
 education/public/frontend
 education/www/education.html
 education/www/student-portal.html
+
+# Brainstorm mockups and agent workspaces
+.superpowers/

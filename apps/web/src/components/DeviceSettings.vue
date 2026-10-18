@@ -4,6 +4,7 @@ import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "@/features/auth/api";
 import { useSession } from "@/features/auth/session";
+import { formatWhen } from "@/features/format";
 import { usePaging } from "@/features/paging";
 import { useTelegramLink } from "@/features/telegram/useTelegram";
 import { useToast } from "@/features/toast/useToast";
@@ -16,7 +17,6 @@ import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppLoading from "@/ui/AppLoading.vue";
-import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
 
 const t = messages.devices;
@@ -86,21 +86,20 @@ async function endAll() {
 
 // A rough guess of the kind of device, only to pick an icon.
 const isPhone = (ua: string | null) => /iphone|android|mobile/i.test(ua ?? "");
-const when = (iso: string) => new Date(iso).toLocaleString();
 onMounted(load);
 </script>
 
 <template>
-  <AppPage :title="t.title" :subtitle="t.intro">
-    <template #actions>
-      <AppButton variant="danger" compact :loading="endingAll" @click="askingAll = true"
-        ><AppIcon name="sign-out" :size="16" />{{ t.signOutAll }}</AppButton
-      >
-    </template>
+  <div class="flex flex-col gap-6">
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
     <AppLoading v-if="loading" :label="messages.common.loading" />
     <AppCard v-else-if="sessions.length === 0"><AppEmpty icon="devices" :title="t.empty" /></AppCard>
-    <AppCard v-else flush>
+    <AppCard v-else flush :title="messages.settings.devicesTitle" :description="t.intro">
+      <template #actions>
+        <AppButton variant="danger" compact :loading="endingAll" @click="askingAll = true"
+          ><AppIcon name="sign-out" :size="16" />{{ t.signOutAll }}</AppButton
+        >
+      </template>
       <ul class="divide-y divide-base-300">
         <li v-for="s in paging.shown.value" :key="s.id" class="flex flex-wrap items-center gap-4 px-5 py-4">
           <span class="grid size-11 place-items-center rounded-field bg-base-200 text-base-content/70">
@@ -108,7 +107,7 @@ onMounted(load);
           </span>
           <div class="min-w-0 flex-1 basis-56">
             <p class="truncate font-medium">{{ s.userAgent ?? "-" }}</p>
-            <p class="text-sm text-base-content/60">{{ t.lastUsed }}: {{ when(s.lastSeenAt) }}</p>
+            <p class="text-sm text-base-content/60">{{ t.lastUsed }}: {{ formatWhen(s.lastSeenAt) }}</p>
           </div>
           <AppBadge v-if="s.current" tone="success">{{ t.thisDevice }}</AppBadge>
           <AppButton variant="secondary" compact :loading="endingId === s.id" @click="askingEnd = s">{{
@@ -192,5 +191,5 @@ onMounted(load);
       :loading="telegram.unlinking.value"
       @confirm="unlinkTelegram"
     />
-  </AppPage>
+  </div>
 </template>

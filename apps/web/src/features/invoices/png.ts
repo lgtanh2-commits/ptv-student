@@ -200,7 +200,7 @@ function layout(ctx: Ctx, data: SheetData, t: PngLabels, qr: boolean[][] | null,
   if (data.note) {
     y += 34;
     text(t.note, PAD, { size: 15, color: MUTED });
-    paragraph(data.note, PAD, WIDTH - 2 * PAD, { size: 18 }, 25);
+    paragraph(data.note, PAD, WIDTH - 2 * PAD, { size: 24 }, 34);
   }
 
   // --- payment: the QR code in the middle. Only when there is no QR do the bank details show as words.

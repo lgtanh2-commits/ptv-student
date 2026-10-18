@@ -19,6 +19,7 @@ export const en = {
     trustDevice: "This is my own device. Keep me signed in.",
     tryAgain: "Try again",
     somethingWrong: "Something went wrong. Please try again.",
+    cannotReachServer: "We could not reach the server. Please check your internet and try again.",
     pages: "Pages",
     previous: "Previous",
     next: "Next",
@@ -97,6 +98,24 @@ export const en = {
     submit: "Join",
     expired: "This invite is no longer valid. Please ask your teacher to send a new one.",
   },
+  settings: {
+    title: "Settings",
+    intro: "Your account settings.",
+    devicesTitle: "Devices",
+  },
+  language: {
+    title: "Language",
+    intro: "The language of the app, and of the emails and notifications sent to you.",
+    vi: "Tiếng Việt",
+    en: "English",
+    inUse: "In use",
+    save: "Save language",
+    confirmTitle: "Change the language to {language}?",
+    confirmText:
+      "The app, and the emails and notifications sent to you, will use {language}. You can change it back at any time.",
+    confirmLabel: "Change language",
+    changing: "Changing the language...",
+  },
   devices: {
     title: "Devices",
     intro: "These devices are signed in to your account.",
@@ -151,7 +170,7 @@ export const en = {
     students: "Students",
     schedule: "Schedule",
     invoices: "Fee receipts",
-    devices: "Devices",
+    settings: "Settings",
     myCourses: "My courses",
     myInvoices: "Fee receipts",
     signIn: "Sign in",
@@ -229,6 +248,8 @@ export const en = {
     addToCourse: "Add to a course (optional)",
     noCourse: "No course",
     addedButNotEnrolled: "The student was added, but could not join the course: {reason}",
+    courseFull: "This course is full.",
+    couldNotJoin: "The student could not join the course.",
     submit: "Add student",
     import: "Import from a file",
     search: "Search by name or email",
@@ -269,6 +290,7 @@ export const en = {
     nothingToAdd: "No other students to add. Add students first on the Students page.",
     selectAll: "Select all shown",
     ownPriceLabel: "Own price for these students (optional)",
+    priceWhole: "Please enter the price as a whole number, for example 150000.",
     addSelected: "Add {n} students",
     resultAdded: "{n} added",
     resultAlready: "{n} already in the course",
@@ -393,7 +415,9 @@ export const en = {
     step3: "Plan your lessons",
     step3Text: "Add one lesson, or repeat it every week.",
     stepDone: "Done",
-    stepGo: "Go",
+    step1Go: "Create a course",
+    step2Go: "Add students",
+    step3Go: "Add lessons",
     studentTitle: "Welcome",
     studentText: "Your teacher will share your lessons and homework here soon.",
   },
@@ -523,6 +547,14 @@ export const en = {
     toScore: "{n} to score",
     due: "Due",
     noDue: "No due date",
+    dueLessThanHour: "Due in less than an hour",
+    dueHour: "Due in 1 hour",
+    dueHours: "Due in {n} hours",
+    dueDay: "Due in 1 day",
+    dueDays: "Due in {n} days",
+    overdueToday: "Overdue since today",
+    overdueDay: "Overdue by 1 day",
+    overdueDays: "Overdue by {n} days",
     lateOk: "Late work is accepted",
     lateNo: "Late work is not accepted",
     newTitle: "New homework",
@@ -581,6 +613,9 @@ export const en = {
     importSummary: "{n} questions found.",
     importReviewCount: "{n} need a check.",
     importReviewNote: "Please check this",
+    importReviewConflict: "More than one answer is marked correct — choose the right one again.",
+    importReviewLine: 'A line was not understood: "{line}"',
+    importReviewKind: "The kind could not be told — kept as Writing. Please check it.",
     hintChoice:
       "The student picks one answer. Choose the correct one, and the system scores it. Or leave it empty and score it yourself.",
     hintShort:
@@ -1018,4 +1053,6 @@ export const en = {
   },
 } as const;
 
-export type Messages = typeof en;
+/** The same shape with every text widened to `string`, so another language (vi.ts) can fill it. */
+type Widen<T> = T extends string ? string : { readonly [K in keyof T]: Widen<T[K]> };
+export type Messages = Widen<typeof en>;

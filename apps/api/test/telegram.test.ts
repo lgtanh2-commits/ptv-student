@@ -77,9 +77,9 @@ describe("linking a Telegram chat", () => {
     const res = await requestCode(t);
     const code = codeOf(res.json.deepLink);
     await webhook(111, `/start ${code}`);
-    await webhook(222, `/start ${code}`);
+    await webhook(7222, `/start ${code}`); // a chat nobody linked: the reply is in Vietnamese
     expect(telegramFake.asked[0]!.text).toMatch(/Linked/);
-    expect(telegramFake.asked[1]!.text).toMatch(/not valid/);
+    expect(telegramFake.asked[1]!.text).toMatch(/không còn hiệu lực/);
     expect((await status(t)).json.linked).toBe(true); // the second try changed nothing
   });
 
@@ -90,8 +90,8 @@ describe("linking a Telegram chat", () => {
       "UPDATE telegram_link_codes SET expires_at = '2020-01-01T00:00:00.000Z' WHERE user_id = ?",
       t.userId,
     );
-    await webhook(111, `/start ${codeOf(res.json.deepLink)}`);
-    expect(telegramFake.asked[0]!.text).toMatch(/not valid/);
+    await webhook(7111, `/start ${codeOf(res.json.deepLink)}`);
+    expect(telegramFake.asked[0]!.text).toMatch(/không còn hiệu lực/);
     expect((await status(t)).json.linked).toBe(false);
   });
 
@@ -119,9 +119,9 @@ describe("linking a Telegram chat", () => {
 
   it("a message with no code, or plain text, gets a hint and links nothing", async () => {
     const t = await createTeacher();
-    await webhook(111, "hello");
-    expect(telegramFake.asked[0]!.text).toMatch(/Send \/start/);
-    await webhook(111, undefined);
+    await webhook(7333, "hello");
+    expect(telegramFake.asked[0]!.text).toMatch(/Gửi lệnh \/start/);
+    await webhook(7333, undefined);
     expect((await status(t)).json.linked).toBe(false);
   });
 

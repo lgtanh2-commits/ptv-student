@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { decideRoute, type RouteRules } from "@/features/auth/guards";
 import { useSession } from "@/features/auth/session";
+import { openFresh } from "@/features/i18n/language";
 
 declare module "vue-router" {
   interface RouteMeta extends RouteRules {}
@@ -16,8 +17,8 @@ export const router = createRouter({
     { path: "/verify-email", component: () => import("@/pages/VerifyEmailPage.vue") },
     { path: "/magic-link", component: () => import("@/pages/MagicLinkPage.vue") },
     { path: "/accept-invite", component: () => import("@/pages/AcceptInvitePage.vue") },
-    // Hidden from students for now (temporary).
-    { path: "/devices", component: () => import("@/pages/DevicesPage.vue"), meta: { requiresTeacher: true } },
+    { path: "/settings", component: () => import("@/pages/SettingsPage.vue"), meta: { requiresAuth: true } },
+    { path: "/devices", redirect: "/settings" },
     { path: "/courses", component: () => import("@/pages/CoursesPage.vue"), meta: { requiresTeacher: true } },
     {
       path: "/courses/new",
@@ -118,7 +119,8 @@ export const router = createRouter({
 
 router.beforeEach(async (to) => {
   const session = useSession();
-  await session.load();
+  // The account's language differs from this page's: start again at the same address, built in it.
+  if (await session.load()) return openFresh(to.fullPath);
   const decision = decideRoute(to.meta, session.me, to.fullPath);
   return decision === "ok" ? true : decision;
 });

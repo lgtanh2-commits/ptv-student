@@ -95,10 +95,19 @@ make a second bot with @BotFather instead (free, one more `/newbot`) and give it
      -d "url=<APP_URL>/api/telegram/webhook" \
      -d "secret_token=<the webhook secret>"
    ```
-4. On the Devices page, a teacher presses "Link Telegram", opens the link it gives in Telegram, and presses Start.
+4. On the Settings page, a teacher presses "Link Telegram", opens the link it gives in Telegram, and presses Start.
 
 Local development needs the same three settings in `apps/api/.dev.vars` (already gitignored) to try the feature;
 without them it is simply off, same as in production.
+
+## Language (Vietnamese and English)
+
+Migration `0021_user_language.sql` adds `users.language` (only `vi` or `en`, default `vi`) and sets every account that exists when it runs to `en`. So existing accounts stay English, new accounts start Vietnamese, and anyone can change it in Settings. The `/devices` link now goes to `/settings`.
+
+Apply the migration and deploy the new code together, as the production workflow does (migrations, then deploy, in one run):
+
+- If the migration runs long before the code, accounts created in that gap by the old code get `vi`.
+- If the code runs before the migration, every query that reads `language` fails.
 
 ## Rules
 
