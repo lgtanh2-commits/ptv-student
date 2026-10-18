@@ -120,8 +120,13 @@ function confirmImport() {
               }}</span>
               {{ kindText[q.kind] }}
             </p>
-            <AppButton v-if="v.questions.length > 1" variant="ghost" compact @click="f.removeQuestion(qi)"
-              ><AppIcon name="close" :size="16" />{{ t.removeQuestion }}</AppButton
+            <AppButton
+              v-if="!f.wordsOnly.value"
+              variant="ghost"
+              compact
+              :aria-label="t.removeQuestion"
+              @click="f.removeQuestion(qi)"
+              ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
             >
           </div>
 
