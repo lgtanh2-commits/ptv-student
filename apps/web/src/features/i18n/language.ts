@@ -19,3 +19,15 @@ export function rememberLanguage(lang: Language): void {
     // The language then stays what it was; nothing else depends on this write.
   }
 }
+
+/**
+ * Opens `target` as a new page load, so every screen is built in the language just stored. Never
+ * settles: the page is going away, and a button that started this keeps its loading state.
+ */
+export function openFresh(
+  target: string,
+  go: (url: string) => void = (url) => location.replace(url),
+): Promise<never> {
+  go(target);
+  return new Promise<never>(() => {});
+}

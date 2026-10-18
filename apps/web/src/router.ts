@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { decideRoute, type RouteRules } from "@/features/auth/guards";
 import { useSession } from "@/features/auth/session";
+import { openFresh } from "@/features/i18n/language";
 
 declare module "vue-router" {
   interface RouteMeta extends RouteRules {}
@@ -118,7 +119,8 @@ export const router = createRouter({
 
 router.beforeEach(async (to) => {
   const session = useSession();
-  await session.load();
+  // The account's language differs from this page's: start again at the same address, built in it.
+  if (await session.load()) return openFresh(to.fullPath);
   const decision = decideRoute(to.meta, session.me, to.fullPath);
   return decision === "ok" ? true : decision;
 });

@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { authApi } from "@/features/auth/api";
 import { useSession } from "@/features/auth/session";
+import { openFresh } from "@/features/i18n/language";
 import { useOneClick } from "@/features/auth/useOneClick";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -20,7 +21,8 @@ const token = computed(() => String(route.query.token ?? ""));
 
 const action = useOneClick(async () => {
   await authApi.verifyEmail(token.value);
-  await session.load(true);
+  // A new page load when the account's language differs, so the home page is built in it.
+  if (await session.load(true)) return openFresh("/");
   await router.replace("/");
 });
 </script>

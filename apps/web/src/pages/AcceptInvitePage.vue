@@ -5,6 +5,7 @@ import GoogleButton from "@/components/GoogleButton.vue";
 import { authApi } from "@/features/auth/api";
 import { errorFromAddress, useGoogleAvailable } from "@/features/auth/google";
 import { useSession } from "@/features/auth/session";
+import { openFresh } from "@/features/i18n/language";
 import { useOneClick } from "@/features/auth/useOneClick";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -26,7 +27,8 @@ const problem = errorFromAddress(route.query.error);
 
 const action = useOneClick(async () => {
   await authApi.acceptInvite(token.value, trust.value);
-  await session.load(true);
+  // A new page load when the account's language differs, so the home page is built in it.
+  if (await session.load(true)) return openFresh("/");
   await router.replace("/");
 });
 </script>

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { en } from "@/messages/en";
 import { vi as viMessages } from "@/messages/vi";
-import { rememberLanguage, storedLanguage } from "./language";
+import { openFresh, rememberLanguage, storedLanguage } from "./language";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -68,5 +68,16 @@ function keysOf(value: unknown, prefix = ""): string[] {
 describe("catalogs", () => {
   it("vi and en have identical key sets", () => {
     expect(keysOf(viMessages).sort()).toEqual(keysOf(en).sort());
+  });
+});
+
+describe("openFresh", () => {
+  it("opens the address as a new page load and never settles", async () => {
+    const go = vi.fn();
+    const settled = vi.fn();
+    void openFresh("/", go).then(settled, settled);
+    await Promise.resolve();
+    expect(go).toHaveBeenCalledWith("/");
+    expect(settled).not.toHaveBeenCalled();
   });
 });
