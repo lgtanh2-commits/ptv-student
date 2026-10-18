@@ -123,6 +123,12 @@ async function seed() {
 }
 
 const ids = await seed();
+/** The Feedback page's main button opens its form: the open dialog is screenshotted as well. */
+const openDialog = async (page) => {
+  await page.locator("main header").getByRole("button").last().click();
+  await page.locator("dialog[open]").waitFor();
+  return "dialog";
+};
 const publicPages = [
   ["home", "/"],
   ["sign-in", "/sign-in"],
@@ -150,6 +156,7 @@ const teacherPages = [
   ["invoices", "/invoices"],
   ["invoice-new", "/invoices/new"],
   ...(ids.invoice ? [["invoice-detail", `/invoices/${ids.invoice}`]] : []),
+  ["feedback", "/feedback", openDialog],
 ];
 const studentPages = [
   ["home", "/"],
@@ -159,7 +166,16 @@ const studentPages = [
   ["my-work", `/my/work/${ids.myWork}`],
   ["my-invoices", "/my/invoices"],
   ...(ids.myInvoice ? [["my-invoice", `/my/invoices/${ids.myInvoice}`]] : []),
+  ["feedback", "/feedback", openDialog],
 ];
+
+/** A screenshot of the page as it is now, and how far it sticks out sideways. */
+async function shoot(page, label) {
+  await page.screenshot({ path: path.join(OUT, `${label}.png`), fullPage: true });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  rows.push({ label, overflow });
+  console.log(`${overflow > 0 ? "OVERFLOW" : "ok      "} ${String(overflow).padStart(4)}px  ${label}`);
+}
 
 for (const lang of LANGUAGES) {
   for (const [size, viewport] of VIEWPORTS) {
@@ -169,15 +185,16 @@ for (const lang of LANGUAGES) {
       ["student", STUDENT, studentPages],
     ]) {
       const { context, page } = await open(viewport, lang, person);
-      for (const [name, route] of pages) {
+      for (const [name, route, then] of pages) {
         await page.goto(BASE + route);
         await page.waitForLoadState("networkidle").catch(() => {});
         await page.waitForTimeout(400);
-        const label = `${lang}-${size}-${who}-${name}`;
-        await page.screenshot({ path: path.join(OUT, `${label}.png`), fullPage: true });
-        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-        rows.push({ label, overflow });
-        console.log(`${overflow > 0 ? "OVERFLOW" : "ok      "} ${String(overflow).padStart(4)}px  ${label}`);
+        await shoot(page, `${lang}-${size}-${who}-${name}`);
+        if (then) {
+          const more = await then(page);
+          await page.waitForTimeout(400);
+          await shoot(page, `${lang}-${size}-${who}-${name}-${more}`);
+        }
       }
       await context.close();
     }
