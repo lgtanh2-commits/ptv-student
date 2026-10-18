@@ -1,4 +1,6 @@
 import type { MyWorkItem } from "@lms/shared";
+import { fill } from "@/features/text";
+import { messages } from "@/messages";
 
 const DAY = 86_400_000;
 
@@ -7,18 +9,19 @@ const DAY = 86_400_000;
  * `dueAt` is a UTC moment; `now` is passed in so the words can be tested.
  */
 export function dueWords(dueAt: string | null, now: Date = new Date()): string {
-  if (!dueAt) return "No due date";
+  const t = messages.homework;
+  if (!dueAt) return t.noDue;
   const diff = new Date(dueAt).getTime() - now.getTime();
   if (diff < 0) {
     const days = Math.floor(-diff / DAY);
-    if (days === 0) return "Overdue since today";
-    return days === 1 ? "Overdue by 1 day" : `Overdue by ${days} days`;
+    if (days === 0) return t.overdueToday;
+    return days === 1 ? t.overdueDay : fill(t.overdueDays, { n: days });
   }
   const hours = Math.floor(diff / 3_600_000);
-  if (hours < 1) return "Due in less than an hour";
-  if (hours < 24) return hours === 1 ? "Due in 1 hour" : `Due in ${hours} hours`;
+  if (hours < 1) return t.dueLessThanHour;
+  if (hours < 24) return hours === 1 ? t.dueHour : fill(t.dueHours, { n: hours });
   const days = Math.floor(diff / DAY);
-  return days === 1 ? "Due in 1 day" : `Due in ${days} days`;
+  return days === 1 ? t.dueDay : fill(t.dueDays, { n: days });
 }
 
 export const isOverdue = (dueAt: string | null, now: Date = new Date()): boolean =>
