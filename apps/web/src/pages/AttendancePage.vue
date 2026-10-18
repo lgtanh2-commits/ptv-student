@@ -51,7 +51,9 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
     :back-label="t.back"
   >
     <template v-if="lesson?.status === 'scheduled'" #actions>
-      <AppButton variant="ghost" @click="askCancel(lesson)">{{ l.cancel }}</AppButton>
+      <AppButton variant="ghost" @click="askCancel(lesson)"
+        ><AppIcon name="ban" :size="18" />{{ l.cancel }}</AppButton
+      >
     </template>
     <template v-else-if="lesson?.status === 'cancelled'" #actions>
       <AppButton variant="ghost" :loading="restoringId === lesson.id" @click="restore(lesson.id)">
