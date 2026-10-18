@@ -123,16 +123,18 @@ To find your chat id: send any message to the bot, then open `https://api.telegr
 
 **Managing feedback.** Run these in production with `wrangler d1 execute DB --env production --remote --command "..."`. Replace `<id>` with the id shown in the Telegram message (or in the list). Titles are shown to every signed-in person, so never copy private details into them.
 
+Writing a title inside the command: the title sits between single quotes, so write a `'` inside it twice (`Can''t open the schedule`). The whole command sits between double quotes for the shell, so do not put `"`, `$` or a backtick in a title.
+
 List new feedback:
 
 ```sh
-wrangler d1 execute DB --env production --remote --command "SELECT id, kind, role, created_at, message FROM feedback WHERE status = 'new' ORDER BY created_at"
+wrangler d1 execute DB --env production --remote --command "SELECT id, kind, role, created_at, page, message FROM feedback WHERE status = 'new' ORDER BY created_at"
 ```
 
-Accept (shows on the board under "To do"; `public_title_en` is optional and is shown to people reading in English, others see `public_title`):
+Accept. Accepting is what makes an item public: it then shows on the board under "To do" with its title. `public_title_en` is optional and is shown to people reading in English (others see `public_title`); replace `NULL` with a title in quotes, or keep `NULL`:
 
 ```sh
-wrangler d1 execute DB --env production --remote --command "UPDATE feedback SET status = 'todo', public_title = 'Your title in Vietnamese', public_title_en = 'Your title in English', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = '<id>'"
+wrangler d1 execute DB --env production --remote --command "UPDATE feedback SET status = 'todo', public_title = 'Your title in Vietnamese', public_title_en = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = '<id>'"
 ```
 
 Move to "In progress", then "Done":
