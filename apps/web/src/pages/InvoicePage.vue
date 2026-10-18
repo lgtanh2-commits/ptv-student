@@ -282,14 +282,9 @@ const canSend = computed(
                           {{ formatVnd(amounts[i] ?? 0) }}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        class="btn btn-square btn-ghost"
-                        :aria-label="t.removeLine"
-                        @click="inv.removeRow(r.key)"
+                      <AppButton variant="ghost" :aria-label="t.removeLine" @click="inv.removeRow(r.key)"
+                        ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
                       >
-                        <AppIcon name="trash" :size="18" />
-                      </button>
                     </div>
                   </template>
                   <template v-else>
@@ -304,14 +299,9 @@ const canSend = computed(
                           @update:model-value="inv.choose(r, $event)"
                         />
                       </div>
-                      <button
-                        type="button"
-                        class="btn btn-square btn-ghost"
-                        :aria-label="t.removeLine"
-                        @click="inv.removeRow(r.key)"
+                      <AppButton variant="ghost" :aria-label="t.removeLine" @click="inv.removeRow(r.key)"
+                        ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
                       >
-                        <AppIcon name="trash" :size="18" />
-                      </button>
                     </div>
                     <template v-if="r.kind === 'course'">
                       <div class="sm:col-span-3">

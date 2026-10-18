@@ -129,7 +129,11 @@ const statusTone = {
         </div>
         <p v-if="day.lessons.length === 0" class="text-sm text-base-content/40">{{ t.empty }}</p>
         <ul v-else class="flex min-w-0 flex-1 flex-col gap-2">
-          <li v-for="lesson in day.lessons" :key="lesson.id" class="flex items-stretch gap-1">
+          <li
+            v-for="lesson in day.lessons"
+            :key="lesson.id"
+            class="flex flex-col gap-1 sm:flex-row sm:items-center"
+          >
             <RouterLink
               :to="`/lessons/${lesson.id}/attendance`"
               class="flex min-w-0 flex-1 flex-wrap items-center gap-3 rounded-field border border-base-300 px-3 py-2 hover:bg-base-200/60"
@@ -149,35 +153,30 @@ const statusTone = {
                 statusText[lessonLabel(lesson)]
               }}</AppBadge>
             </RouterLink>
-            <button
-              v-if="lesson.status === 'scheduled'"
-              type="button"
-              class="btn btn-ghost btn-square shrink-0"
-              :aria-label="l.edit"
-              @click="edit.open(lesson)"
-            >
-              <AppIcon name="edit" :size="18" />
-            </button>
-            <button
-              v-if="lesson.status === 'scheduled'"
-              type="button"
-              class="btn btn-ghost btn-square shrink-0"
-              :aria-label="l.cancel"
-              @click="askCancel(lesson)"
-            >
-              <AppIcon name="ban" :size="18" />
-            </button>
-            <button
-              v-if="lesson.status === 'cancelled'"
-              type="button"
-              class="btn btn-ghost btn-square shrink-0"
-              :aria-label="l.restore"
-              :disabled="restoringId === lesson.id"
-              @click="restore(lesson.id)"
-            >
-              <span v-if="restoringId === lesson.id" class="loading loading-spinner loading-xs" />
-              <AppIcon v-else name="restore" :size="18" />
-            </button>
+            <div class="flex shrink-0 justify-end gap-1">
+              <AppButton
+                v-if="lesson.status === 'scheduled'"
+                variant="ghost"
+                compact
+                @click="edit.open(lesson)"
+                ><AppIcon name="edit" :size="16" />{{ l.edit }}</AppButton
+              >
+              <AppButton
+                v-if="lesson.status === 'scheduled'"
+                variant="ghost"
+                compact
+                @click="askCancel(lesson)"
+                ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppButton
+              >
+              <AppButton
+                v-if="lesson.status === 'cancelled'"
+                variant="ghost"
+                compact
+                :loading="restoringId === lesson.id"
+                @click="restore(lesson.id)"
+                ><AppIcon name="restore" :size="16" />{{ l.restore }}</AppButton
+              >
+            </div>
           </li>
         </ul>
       </section>

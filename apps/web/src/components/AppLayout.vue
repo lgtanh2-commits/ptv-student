@@ -55,23 +55,17 @@ async function signOut() {
       <AppNavItem v-if="session.isTeacher" to="/devices" icon="devices">{{ t.devices }}</AppNavItem>
     </template>
     <template #footer>
-      <div class="flex items-center gap-3 rounded-box border border-base-300 p-3">
-        <AppAvatar :name="session.me.user.name" />
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium">{{ session.me.user.name }}</p>
-          <p class="truncate text-xs text-base-content/60">{{ role }}</p>
+      <div class="flex flex-col gap-2 rounded-box border border-base-300 p-3">
+        <div class="flex items-center gap-3">
+          <AppAvatar :name="session.me.user.name" />
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium">{{ session.me.user.name }}</p>
+            <p class="truncate text-xs text-base-content/60">{{ role }}</p>
+          </div>
         </div>
-        <button
-          type="button"
-          class="btn btn-square btn-ghost btn-sm"
-          :disabled="signingOut"
-          :aria-busy="signingOut || undefined"
-          :aria-label="t.signOut"
-          @click="signOut"
+        <AppButton variant="ghost" compact block :loading="signingOut" @click="signOut"
+          ><AppIcon name="sign-out" :size="16" />{{ t.signOut }}</AppButton
         >
-          <span v-if="signingOut" class="loading loading-spinner loading-sm" aria-hidden="true" />
-          <AppIcon v-else name="sign-out" :size="18" />
-        </button>
       </div>
     </template>
     <slot />

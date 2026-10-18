@@ -163,15 +163,14 @@ function confirmImport() {
               <div class="flex-1">
                 <AppInput v-model="q.options[oi]!" :label="fill(t.answerN, { n: oi + 1 })" />
               </div>
-              <button
+              <AppButton
                 v-if="q.options.length > 2"
-                type="button"
-                class="btn btn-square btn-ghost mb-0.5"
+                variant="ghost"
+                class="mb-0.5"
                 :aria-label="t.removeAnswer"
                 @click="f.removeOption(qi, oi)"
+                ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
               >
-                <AppIcon name="close" :size="18" />
-              </button>
             </div>
             <div class="flex flex-wrap gap-2">
               <AppButton v-if="q.options.length < 6" variant="ghost" compact @click="f.addOption(qi)"
@@ -191,14 +190,13 @@ function confirmImport() {
               <div class="flex-1">
                 <AppInput v-model="q.accepted[ai]!" :label="fill(t.acceptedN, { n: ai + 1 })" />
               </div>
-              <button
-                type="button"
-                class="btn btn-square btn-ghost mb-0.5"
+              <AppButton
+                variant="ghost"
+                class="mb-0.5"
                 :aria-label="t.removeAccepted"
                 @click="f.removeAccepted(qi, ai)"
+                ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
               >
-                <AppIcon name="close" :size="18" />
-              </button>
             </div>
             <div>
               <AppButton v-if="q.accepted.length < 10" variant="ghost" compact @click="f.addAccepted(qi)"
@@ -234,14 +232,9 @@ function confirmImport() {
         <div v-for="(l, li) in v.links" :key="li" class="grid items-end gap-3 md:grid-cols-[1fr_2fr_auto]">
           <AppInput v-model="l.title" :label="t.linkTitle" />
           <AppInput v-model="l.url" :label="t.linkUrl" type="url" placeholder="https://" />
-          <button
-            type="button"
-            class="btn btn-square btn-ghost mb-0.5"
-            :aria-label="t.removeLink"
-            @click="f.removeLink(li)"
+          <AppButton variant="ghost" class="mb-0.5" :aria-label="t.removeLink" @click="f.removeLink(li)"
+            ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
           >
-            <AppIcon name="close" :size="18" />
-          </button>
         </div>
         <div>
           <AppButton v-if="v.links.length < 10" variant="secondary" @click="f.addLink"

@@ -42,33 +42,28 @@ const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as co
       <h3 class="text-sm font-semibold">{{ t.listTitle }}</h3>
       <AppAlert v-if="actionError" kind="error">{{ actionError }}</AppAlert>
       <ul class="flex flex-col gap-3">
-        <li v-for="invite in paging.shown.value" :key="invite.studentId" class="flex items-center gap-3">
+        <li
+          v-for="invite in paging.shown.value"
+          :key="invite.studentId"
+          class="flex flex-wrap items-center gap-x-3 gap-y-1"
+        >
           <AppAvatar :name="invite.name" size="sm" />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">{{ invite.name }}</p>
             <p class="truncate text-xs text-base-content/60">{{ invite.email }}</p>
           </div>
           <AppBadge :tone="stateTone[invite.state]">{{ stateText[invite.state] }}</AppBadge>
-          <div class="flex shrink-0">
-            <button
-              type="button"
-              class="btn btn-square btn-ghost btn-sm"
-              :aria-label="t.resend"
-              :title="t.resend"
-              @click="resend(invite.studentId)"
+          <div class="flex basis-full gap-1 ps-8">
+            <AppButton variant="ghost" compact @click="resend(invite.studentId)"
+              ><AppIcon name="send" :size="16" />{{ t.resend }}</AppButton
             >
-              <AppIcon name="send" :size="16" />
-            </button>
-            <button
+            <AppButton
               v-if="invite.state !== 'revoked'"
-              type="button"
-              class="btn btn-square btn-ghost btn-sm"
-              :aria-label="t.cancel"
-              :title="t.cancel"
+              variant="ghost"
+              compact
               @click="cancel(invite.studentId)"
+              ><AppIcon name="close" :size="16" />{{ t.cancel }}</AppButton
             >
-              <AppIcon name="close" :size="16" />
-            </button>
           </div>
         </li>
       </ul>
