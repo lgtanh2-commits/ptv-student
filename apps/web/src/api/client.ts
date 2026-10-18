@@ -1,5 +1,5 @@
-import { type ApiErrorBody, type ErrorCode, translate } from "@lms/shared";
-import { language } from "@/messages";
+import type { ApiErrorBody, ErrorCode } from "@lms/shared";
+import { language, messages } from "@/messages";
 
 /** An error returned by the API, with the stable code the UI can react to. */
 export class ApiError extends Error {
@@ -44,11 +44,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       signal: options.signal,
     });
   } catch {
-    throw new ApiError(
-      "NETWORK",
-      translate("We could not reach the server. Please check your internet and try again.", language),
-      0,
-    );
+    throw new ApiError("NETWORK", messages.common.cannotReachServer, 0);
   }
 
   if (res.ok) return (await res.json()) as T;
@@ -62,7 +58,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   }
   throw new ApiError(
     error?.code ?? "INTERNAL",
-    error?.message ?? translate("Something went wrong. Please try again.", language),
+    error?.message ?? messages.common.somethingWrong,
     res.status,
     error?.fields,
     error?.requestId,

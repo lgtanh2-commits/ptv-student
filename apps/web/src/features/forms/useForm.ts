@@ -2,7 +2,7 @@ import { nextTick, reactive, ref } from "vue";
 import type { ZodType } from "zod";
 import { translate } from "@lms/shared";
 import { ApiError } from "@/api/client";
-import { language } from "@/messages";
+import { language, messages } from "@/messages";
 
 /**
  * Scrolls to the first field that failed, or to the general error message when no one field
@@ -64,7 +64,7 @@ export function useForm<T extends Record<string, unknown>>(
       await options.submit(values as T);
     } catch (err) {
       if (!(err instanceof ApiError)) {
-        formError.value = translate("Something went wrong. Please try again.", language);
+        formError.value = messages.common.somethingWrong;
         scrollToError();
         return;
       }
