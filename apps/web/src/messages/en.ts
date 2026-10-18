@@ -600,7 +600,7 @@ export const en = {
     notFound: "We could not find this homework.",
     publish: "Open for students",
     published: "Homework is open.",
-    close: "Close",
+    close: "Close for students",
     closed: "Homework closed.",
     reopen: "Open again",
     edit: "Edit",

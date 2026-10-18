@@ -128,7 +128,9 @@ const deleteWords = computed(() => {
     <template v-if="a" #actions>
       <AppBadge>{{ summaryLine(a.questions.length, a.maxScore) }}</AppBadge>
       <AppBadge :tone="assignmentStatusTone[a.status]">{{ assignmentStatusText[a.status] }}</AppBadge>
-      <AppButton variant="ghost" compact @click="deleting = true">{{ t.delete }}</AppButton>
+      <AppButton variant="ghost" compact @click="deleting = true"
+        ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppButton
+      >
       <AppButton variant="secondary" compact @click="router.push(`/assignments/${a.id}/edit`)"
         ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
       >
