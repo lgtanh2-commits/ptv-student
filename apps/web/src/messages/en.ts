@@ -1018,4 +1018,6 @@ export const en = {
   },
 } as const;
 
-export type Messages = typeof en;
+/** The same shape with every text widened to `string`, so another language (vi.ts) can fill it. */
+type Widen<T> = T extends string ? string : { readonly [K in keyof T]: Widen<T[K]> };
+export type Messages = Widen<typeof en>;
