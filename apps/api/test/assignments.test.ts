@@ -620,6 +620,19 @@ describe("course links", () => {
     await call(`/api/courses/${course.id}/archive`, { method: "POST", cookie: t.cookie, body: {} });
     expect((await add(t, course.id)).status).toBe(409);
   });
+
+  it("does not change or remove links of an archived course", async () => {
+    const { t, course } = await setup();
+    const id = (await add(t, course.id)).json.materials[0].id;
+    await call(`/api/courses/${course.id}/archive`, { method: "POST", cookie: t.cookie, body: {} });
+    const body = { title: "x", url: "https://x.example", published: true };
+    expect(
+      (await call(`/api/courses/${course.id}/materials/${id}`, { method: "PUT", cookie: t.cookie, body })).status,
+    ).toBe(409);
+    expect(
+      (await call(`/api/courses/${course.id}/materials/${id}`, { method: "DELETE", cookie: t.cookie })).status,
+    ).toBe(409);
+  });
 });
 
 describe("the database refuses rows that mix tenants", () => {
