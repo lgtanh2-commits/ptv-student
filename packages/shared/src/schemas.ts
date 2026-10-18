@@ -1005,3 +1005,35 @@ export interface TelegramLinkCode {
   deepLink: string;
   expiresInMinutes: number;
 }
+
+// ------------------------------------------------------------- feedback
+
+export const FEEDBACK_KINDS = ["inconvenient", "bug", "feature"] as const;
+export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
+
+export const feedbackBody = z.object({
+  kind: z.enum(FEEDBACK_KINDS, "Please choose a kind of feedback."),
+  message: z
+    .string("Please write at least 5 characters.")
+    .trim()
+    .min(5, "Please write at least 5 characters.")
+    .max(2000, "This text is too long."),
+  /** The page the person was on. Kept only when it is a plain path inside the app. */
+  page: z.string().max(2000).optional(),
+});
+export type FeedbackBody = z.infer<typeof feedbackBody>;
+
+/** One item on the public board. Only what the owner chose to show: never the sender's words or who sent it. */
+export interface FeedbackCard {
+  id: string;
+  title: string;
+  kind: FeedbackKind;
+  role: "teacher" | "student";
+  createdAt: string;
+}
+
+export interface FeedbackBoard {
+  todo: FeedbackCard[];
+  inProgress: FeedbackCard[];
+  done: FeedbackCard[];
+}

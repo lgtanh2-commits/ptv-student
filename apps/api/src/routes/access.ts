@@ -63,6 +63,8 @@ export const ROUTE_ACCESS: Record<string, Access> = {
   "GET /api/telegram/status": "user",
   "POST /api/telegram/link-code": "user",
   "POST /api/telegram/unlink": "user",
+  "POST /api/feedback": "user",
+  "GET /api/feedback/board": "user",
   "POST /api/telegram/webhook": "public", // checks its own secret header (routes/telegram.ts), not a session
   "GET /api/invoices": "teacher",
   "POST /api/invoices": "teacher",
