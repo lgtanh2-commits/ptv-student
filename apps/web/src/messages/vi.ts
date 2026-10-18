@@ -115,7 +115,7 @@ export const vi: Messages = {
     kindBug: "Lỗi",
     kindFeature: "Tính năng mới",
     roleTeacher: "Giáo viên",
-    roleStudent: "Học sinh",
+    roleStudent: "Học viên",
     dialogTitle: "Gửi góp ý cho Tutorio",
     kindLabel: "Bạn muốn góp ý về điều gì?",
     messageLabel: "Bạn gặp chuyện gì, hoặc muốn có gì?",
