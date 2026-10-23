@@ -431,8 +431,31 @@ describe("reminding about work that is overdue", () => {
     await extend(new Date(Date.now() + 2 * 3_600_000));
     await runNotificationJobs(env);
     expect(await overdue(nam)).toEqual([]);
-    await extend(new Date(Date.now() - 3 * 3_600_000));
+    // An extension that ended long before the deadline (outside the 24 h window) changes nothing: still one reminder.
+    await extend(new Date(Date.now() - 30 * 3_600_000));
     await runNotificationJobs(env);
+    await runNotificationJobs(env);
+    expect(await overdue(nam)).toHaveLength(1);
+  });
+
+  it("reminds once for an extension that ended after the deadline but is already past", async () => {
+    const { nam, id, t } = await setup();
+    await dueAgo(3 * 60, id);
+    await setSql(
+      "INSERT INTO submission_extensions (assignment_id, student_id, tenant_id, until_at) VALUES (?, ?, ?, ?)",
+      id,
+      nam.studentId,
+      t.tenantId,
+      new Date(Date.now() - 10 * 60_000).toISOString(),
+    );
+    await runNotificationJobs(env);
+    await runNotificationJobs(env);
+    expect(await overdue(nam)).toHaveLength(1);
+  });
+
+  it("still reminds about work that went overdue just under a day ago", async () => {
+    const { nam, id } = await setup();
+    await dueAgo(23 * 60, id);
     await runNotificationJobs(env);
     expect(await overdue(nam)).toHaveLength(1);
   });
