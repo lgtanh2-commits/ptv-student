@@ -3,6 +3,31 @@
  * Never touched here: the audit log (it can only grow), invites (they show who was ever invited), and anything of a student's.
  */
 
+/**
+ * Push addresses of sessions that ended (or are about to be removed below). Must run before the sessions
+ * are deleted: a subscription points at its session.
+ */
+export const deleteEndedSessionSubscriptionsStatement = (
+  db: D1Database,
+  cutoffIso: string,
+  nowIso: string,
+): D1PreparedStatement =>
+  db
+    .prepare(
+      `DELETE FROM push_subscriptions
+       WHERE session_id IN (
+         SELECT id FROM sessions
+         WHERE revoked_at IS NOT NULL OR expires_at < ?2
+            OR expires_at < ?1
+            OR datetime(last_seen_at, '+' || (idle_days + 1) || ' days') < datetime(?2)
+       )`,
+    )
+    .bind(cutoffIso, nowIso);
+
+/** Messages still waiting after a day will not be sent any more. */
+export const deleteOldQueueStatement = (db: D1Database, cutoffIso: string): D1PreparedStatement =>
+  db.prepare("DELETE FROM outbound_queue WHERE created_at < ?").bind(cutoffIso);
+
 /** Sessions that ended (by time, by idling, or because the person signed out) a while ago. */
 export const deleteOldSessionsStatement = (
   db: D1Database,

@@ -1000,6 +1000,28 @@ export interface TelegramStatus {
   linked: boolean;
 }
 
+// ------------------------------------------------------------- push notifications
+
+export interface PushStatus {
+  /** The app owner set up push keys. When false, the app hides the whole feature. */
+  enabled: boolean;
+  /** The key a browser needs to subscribe; null when push is off. */
+  publicKey: string | null;
+}
+
+/** What a browser hands over after the person allows notifications (PushSubscription.toJSON()). */
+export const pushSubscribeBody = z.object({
+  endpoint: z.string().min(1).max(2048),
+  keys: z.object({ p256dh: z.string().min(1).max(256), auth: z.string().min(1).max(64) }),
+});
+
+export const pushEndpointBody = z.object({ endpoint: z.string().min(1).max(2048) });
+
+export interface PushCheck {
+  /** This address is saved for this person and this very sign in. */
+  subscribed: boolean;
+}
+
 export interface TelegramLinkCode {
   /** Open this to start the bot with the code already filled in (as if the person had typed "/start <code>"). */
   deepLink: string;

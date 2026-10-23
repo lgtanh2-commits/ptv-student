@@ -137,4 +137,45 @@ describe("cleaning up old rows", () => {
     expect(second).toEqual({ sessions: 0, tokens: 0, counters: 0, outbox: 0 });
     expect(await count("SELECT COUNT(*) AS n FROM audit_log")).toBe(before);
   });
+
+  it("removes subscriptions of ended sessions before the sessions themselves, and old queue rows", async () => {
+    const t = await createTeacher();
+    const live = await session(t.userId);
+    const ended = await session(t.userId, { revoked: ago(10) });
+    const sub = async (sessionId: string) => {
+      const id = crypto.randomUUID();
+      await run(
+        `INSERT INTO push_subscriptions (id, user_id, session_id, endpoint, p256dh, auth, created_at)
+         VALUES (?1, ?2, ?3, ?4, 'k', 'a', ?5)`,
+        id,
+        t.userId,
+        sessionId,
+        `https://fcm.googleapis.com/${id}`,
+        ago(20),
+      );
+      return id;
+    };
+    const queued = async (createdAt: string) => {
+      const id = crypto.randomUUID();
+      await run(
+        `INSERT INTO outbound_queue (id, channel, target, content, created_at, next_at)
+         VALUES (?1, 'push', 't', 'c', ?2, ?2)`,
+        id,
+        createdAt,
+      );
+      return id;
+    };
+    const liveSub = await sub(live);
+    const endedSub = await sub(ended);
+    const oldQueue = await queued(new Date(NOW.getTime() - 25 * 3_600_000).toISOString());
+    const freshQueue = await queued(new Date(NOW.getTime() - 3_600_000).toISOString());
+
+    await runMaintenance(env, NOW);
+
+    expect(await exists("push_subscriptions", endedSub)).toBe(false);
+    expect(await exists("sessions", ended)).toBe(false);
+    expect(await exists("push_subscriptions", liveSub)).toBe(true);
+    expect(await exists("outbound_queue", oldQueue)).toBe(false);
+    expect(await exists("outbound_queue", freshQueue)).toBe(true);
+  });
 });
