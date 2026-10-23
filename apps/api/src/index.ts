@@ -3,7 +3,8 @@ import type { Env } from "./env";
 import { extendOpenSeries } from "./lessons/jobs";
 import { runMaintenance } from "./maintenance/jobs";
 import { drainQueue } from "./notifications/delivery";
-import { runNotificationJobs } from "./notifications/jobs";
+import { makeReminders, sendReminders } from "./notifications/jobs";
+import type { NotifiedRow } from "./repos/notifications";
 
 const app = createApp();
 
@@ -13,7 +14,7 @@ const EVERY_MINUTE = "* * * * *";
 export default {
   fetch: app.fetch,
   // Two schedules (see "triggers" in wrangler.jsonc). Every minute: only the messages that wait to be sent.
-  // Once an hour: reminders, the next lessons of repeats that have no end date, and cleaning up.
+  // Once an hour: reminders, the next lessons of repeats that have no end date, cleaning up, then sending the reminders.
   scheduled(event, env, ctx) {
     if (event.cron === EVERY_MINUTE) {
       ctx.waitUntil(
@@ -23,12 +24,15 @@ export default {
       );
       return;
     }
-    // One job that fails must not stop the others.
-    const jobs = [
-      ["reminders", runNotificationJobs],
+    // One job that fails must not stop the others. Sending is last: it uses the most CPU, so if the run is
+    // stopped for using too much, the other jobs are done already (and what was not sent waits in the queue).
+    let reminders: NotifiedRow[] = [];
+    const jobs: [string, (env: Env) => Promise<unknown>][] = [
+      ["reminders", async (e) => void (reminders = await makeReminders(e))],
       ["repeating lessons", extendOpenSeries],
       ["clean up", runMaintenance],
-    ] as const;
+      ["send reminders", (e) => sendReminders(e, reminders)],
+    ];
     ctx.waitUntil(
       (async () => {
         for (const [name, job] of jobs) {

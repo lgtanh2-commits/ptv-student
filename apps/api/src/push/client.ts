@@ -78,6 +78,8 @@ export async function sendPush(
         Authorization: authorization,
       },
       body,
+      // A push service answers itself; a redirect would make the server call an address nobody checked.
+      redirect: "manual",
       signal: AbortSignal.timeout(8000),
     });
     // The answer's body is never read or logged.

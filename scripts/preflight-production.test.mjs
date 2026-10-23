@@ -13,7 +13,7 @@ const good = () => ({
     },
     production: {
       name: "app",
-      triggers: { crons: ["0 * * * *"] },
+      triggers: { crons: ["0 * * * *", "* * * * *"] },
       vars: {
         ENVIRONMENT: "production",
         EMAIL_MODE: "smtp",
@@ -80,6 +80,14 @@ test("the test outbox, the local Google stand-in and a missing schedule are refu
     "triggers.crons",
   );
   has(
+    change((p) => (p.triggers = { crons: ["0 * * * *"] })),
+    '"* * * * *"',
+  );
+  has(
+    change((p) => (p.triggers = { crons: ["* * * * *"] })),
+    '"0 * * * *"',
+  );
+  has(
     change((p) => (p.vars.ENVIRONMENT = "staging")),
     "ENVIRONMENT",
   );
@@ -122,7 +130,11 @@ test("wrangler.jsonc is read with its comments and trailing commas, and a // ins
   const real = parseJsonc(readFileSync(new URL("../apps/api/wrangler.jsonc", import.meta.url), "utf8"));
   assert.equal(real.env.production.vars.ENVIRONMENT, "production");
   assert.equal(real.env.production.vars.EMAIL_MODE, "smtp");
-  assert.ok(real.env.production.triggers.crons.length > 0, "the real production settings have a schedule");
+  assert.deepEqual(
+    checkConfig(real).filter((e) => e.includes("cron")),
+    [],
+    "the real production settings have both schedules",
+  );
   assert.equal("GOOGLE_MODE" in real.env.production.vars, false);
   assert.equal("GOOGLE_MODE" in real.env.staging.vars, false);
 });

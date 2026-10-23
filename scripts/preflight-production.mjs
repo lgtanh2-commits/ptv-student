@@ -59,9 +59,15 @@ export function checkConfig(config) {
     errors.push("vars.APP_URL is the address of staging.");
   if (!vars.GOOGLE_CLIENT_ID)
     errors.push("vars.GOOGLE_CLIENT_ID is not set (the only way to sign in without a bot check).");
-  if (!prod.triggers?.crons?.length) {
-    errors.push("triggers.crons is missing: reminders, repeating lessons and the clean up would never run.");
-  }
+  const crons = prod.triggers?.crons ?? [];
+  if (!crons.includes("0 * * * *"))
+    errors.push(
+      'triggers.crons needs "0 * * * *": reminders, repeating lessons and the clean up would never run.',
+    );
+  if (!crons.includes("* * * * *"))
+    errors.push(
+      'triggers.crons needs "* * * * *": notifications over the send limit would wait in the queue for ever.',
+    );
   if (!prod.name || prod.name === staging?.name)
     errors.push("The name of the production Worker must be its own.");
 

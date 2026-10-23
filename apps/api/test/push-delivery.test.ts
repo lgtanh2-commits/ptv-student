@@ -1,7 +1,13 @@
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
-import { deliver, drainQueue, REQUEST_SEND_LIMIT } from "../src/notifications/delivery";
+import {
+  deliver,
+  drainQueue,
+  JOB_SEND_LIMIT,
+  MAX_IN_FLIGHT,
+  REQUEST_SEND_LIMIT,
+} from "../src/notifications/delivery";
 import { runNotificationJobs } from "../src/notifications/jobs";
 import { sendPush } from "../src/push/client";
 import { call, createCourse, createTeacher, pushFake, telegramFake, type Person } from "./helpers";
@@ -24,9 +30,11 @@ type Receiver = Awaited<ReturnType<typeof makeReceiver>>;
 let device = 0;
 
 /** Turns push on in the browser this person is signed in on. Returns the browser's side, to read what arrives. */
-async function enablePush(p: Person): Promise<{ endpoint: string; receiver: Receiver }> {
+async function enablePush(
+  p: Person,
+  endpoint = `https://fcm.googleapis.com/fcm/send/${Date.now()}-${device++}`,
+): Promise<{ endpoint: string; receiver: Receiver }> {
   const receiver = await makeReceiver();
-  const endpoint = `https://fcm.googleapis.com/fcm/send/${Date.now()}-${device++}`;
   const res = await call("/api/push/subscribe", {
     method: "POST",
     cookie: p.cookie,
@@ -68,10 +76,23 @@ async function linkTelegram(p: Person, chatId: number) {
 
 const later = (minutes: number) => new Date(Date.now() + minutes * 60_000);
 
+/** Runs the Worker's schedule as the runtime would, and waits for what it handed to waitUntil. */
+async function runSchedule(cron: string) {
+  const waiting: Promise<unknown>[] = [];
+  await worker.scheduled!({ cron } as never, env, {
+    waitUntil: (p: Promise<unknown>) => waiting.push(p),
+  } as never);
+  await Promise.all(waiting);
+}
+
 beforeEach(async () => {
   pushFake.sent = [];
   pushFake.status = 201;
   pushFake.throws = false;
+  pushFake.delayMs = 0;
+  pushFake.inFlight = 0;
+  pushFake.maxInFlight = 0;
+  pushFake.onSend = undefined;
   telegramFake.asked = [];
   telegramFake.ok = true;
   await setSql("DELETE FROM outbound_queue");
@@ -134,13 +155,13 @@ describe("pushing notifications to browsers", () => {
   });
 
   it("sends no more than the limit at once and queues the rest, which the minute job sends", async () => {
-    const { t, course, kids } = await classWithPush(25);
+    const { t, course, kids } = await classWithPush(REQUEST_SEND_LIMIT + 5);
     await publish(t, course.id, mixed());
-    expect(pushFake.sent).toHaveLength(20);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
     expect(await queued()).toBe(5);
 
     await drainQueue(env);
-    expect(pushFake.sent).toHaveLength(25);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT + 5);
     expect(new Set(pushFake.sent.map((s) => s.endpoint))).toEqual(new Set(kids.map((k) => k.endpoint)));
     expect(await queued()).toBe(0);
 
@@ -151,17 +172,19 @@ describe("pushing notifications to browsers", () => {
   });
 
   it("counts Telegram in the same limit", async () => {
-    const { t, course, kids } = await classWithPush(15);
-    for (const [i, kid] of kids.slice(0, 10).entries()) await linkTelegram(kid, 9100 + i);
+    const pushes = REQUEST_SEND_LIMIT - 2;
+    const chats = 7;
+    const { t, course, kids } = await classWithPush(pushes);
+    for (const [i, kid] of kids.slice(0, chats).entries()) await linkTelegram(kid, 9100 + i);
     telegramFake.asked = []; // the "Linked." replies are not notifications
 
     await publish(t, course.id, mixed());
-    expect(pushFake.sent.length + telegramFake.asked.length).toBe(20);
-    expect(await queued()).toBe(5);
+    expect(pushFake.sent.length + telegramFake.asked.length).toBe(REQUEST_SEND_LIMIT);
+    expect(await queued()).toBe(pushes + chats - REQUEST_SEND_LIMIT);
 
     await drainQueue(env);
-    expect(pushFake.sent).toHaveLength(15);
-    expect(telegramFake.asked).toHaveLength(10);
+    expect(pushFake.sent).toHaveLength(pushes);
+    expect(telegramFake.asked).toHaveLength(chats);
     expect(telegramFake.asked.every((m) => m.text.startsWith("New homework: Unit 1 test"))).toBe(true);
     expect(await queued()).toBe(0);
   });
@@ -220,7 +243,7 @@ describe("pushing notifications to browsers", () => {
   });
 
   it("drops a queued message whose device was signed out before it went", async () => {
-    const { t, course, kids } = await classWithPush(21);
+    const { t, course, kids } = await classWithPush(REQUEST_SEND_LIMIT + 1);
     await publish(t, course.id, mixed());
     expect(await queued()).toBe(1);
     const waiting = await env.DB.prepare(
@@ -230,7 +253,7 @@ describe("pushing notifications to browsers", () => {
     await call("/api/auth/sign-out", { method: "POST", cookie: kid.cookie });
 
     await drainQueue(env);
-    expect(pushFake.sent).toHaveLength(20);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
     expect(await queued()).toBe(0);
   });
 
@@ -319,7 +342,7 @@ describe("pushing notifications to browsers", () => {
   });
 
   it("the hourly job sends due-soon and overdue reminders within one limit", async () => {
-    const { t, course } = await classWithPush(21);
+    const { t, course } = await classWithPush(JOB_SEND_LIMIT / 2 + 1);
     const soon = await publish(t, course.id, mixed({ title: "Soon" }));
     const late = await publish(t, course.id, mixed({ title: "Late", allowLate: true }));
     pushFake.sent = []; // the "new homework" pushes
@@ -336,25 +359,144 @@ describe("pushing notifications to browsers", () => {
     );
 
     await runNotificationJobs(env);
-    expect(pushFake.sent).toHaveLength(40);
+    expect(pushFake.sent).toHaveLength(JOB_SEND_LIMIT);
     expect(await queued()).toBe(2);
     await drainQueue(env);
-    expect(pushFake.sent).toHaveLength(42);
+    expect(pushFake.sent).toHaveLength(JOB_SEND_LIMIT + 2);
   });
 
   it("the minute schedule sends what waits", async () => {
-    const { t, course } = await classWithPush(21);
+    const { t, course } = await classWithPush(REQUEST_SEND_LIMIT + 1);
     await publish(t, course.id, mixed());
     expect(await queued()).toBe(1);
-    const run = async (cron: string) => {
-      const waiting: Promise<unknown>[] = [];
-      await worker.scheduled!({ cron } as never, env, {
-        waitUntil: (p: Promise<unknown>) => waiting.push(p),
-      } as never);
-      await Promise.all(waiting);
+    await runSchedule("* * * * *");
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT + 1);
+    expect(await queued()).toBe(0);
+  });
+
+  it("the hourly schedule sends the reminders last, after the other jobs are done", async () => {
+    const { t, course } = await classWithPush(1);
+    const soon = await publish(t, course.id, mixed({ title: "Soon" }));
+    pushFake.sent = [];
+    await setSql(
+      "UPDATE assignments SET due_at = ? WHERE id = ?",
+      new Date(Date.now() + 5 * 3_600_000).toISOString(),
+      soon.id,
+    );
+    // Something the clean up removes: a dev email older than a week.
+    await setSql(
+      `INSERT INTO email_outbox (id, kind, to_email, subject, body_text, status, created_at)
+       VALUES ('order-check', 'invite', 'a@example.com', 's', 'link', 'logged', ?)`,
+      new Date(Date.now() - 8 * 86_400_000).toISOString(),
+    );
+    const cleanedBeforeSend: number[] = [];
+    pushFake.onSend = async () => {
+      cleanedBeforeSend.push(await count("SELECT COUNT(*) AS n FROM email_outbox WHERE id = 'order-check'"));
     };
-    await run("* * * * *");
-    expect(pushFake.sent).toHaveLength(21);
+    await runSchedule("0 * * * *");
+    expect(pushFake.sent).toHaveLength(1);
+    expect(cleanedBeforeSend).toEqual([0]);
+  });
+
+  it("never has more than a few sends open at once", async () => {
+    const { kids } = await classWithPush(REQUEST_SEND_LIMIT);
+    pushFake.delayMs = 20;
+    await deliver(env, homeworkRows(kids), REQUEST_SEND_LIMIT);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
+    expect(pushFake.maxInFlight).toBe(MAX_IN_FLIGHT);
+
+    pushFake.maxInFlight = 0;
+    pushFake.status = 500;
+    await deliver(env, homeworkRows(kids), REQUEST_SEND_LIMIT);
+    pushFake.status = 201;
+    pushFake.maxInFlight = 0;
+    await drainQueue(env, undefined, later(6));
+    expect(await queued()).toBe(0);
+    expect(pushFake.maxInFlight).toBe(MAX_IN_FLIGHT);
+  });
+
+  it("does not follow a redirect from a push service", async () => {
+    const { t, course } = await classWithPush(1);
+    await publish(t, course.id, mixed());
+    expect(pushFake.sent[0]!.redirect).toBe("manual");
+  });
+
+  it("does not push to a person whose account was turned off, also not what waits", async () => {
+    const { t, course, kids } = await classWithPush(2);
+    pushFake.status = 500;
+    await publish(t, course.id, mixed());
+    expect(await queued()).toBe(2);
+    await setSql("UPDATE users SET disabled_at = ? WHERE id = ?", new Date().toISOString(), kids[0]!.userId);
+    pushFake.status = 201;
+    pushFake.sent = [];
+    await drainQueue(env, undefined, later(6));
+    expect(pushFake.sent.map((s) => s.endpoint)).toEqual([kids[1]!.endpoint]);
+
+    pushFake.sent = [];
+    await deliver(env, homeworkRows(kids), REQUEST_SEND_LIMIT);
+    expect(pushFake.sent.map((s) => s.endpoint)).toEqual([kids[1]!.endpoint]);
+  });
+
+  it("does not send what waited for one person to the next person on the same browser", async () => {
+    const { t, course, kids } = await classWithPush(2);
+    const [a, b] = [kids[0]!, kids[1]!];
+    pushFake.status = 500;
+    await publish(t, course.id, mixed());
+    expect(await queued()).toBe(2);
+    const idOf = async (endpoint: string) =>
+      (await env.DB.prepare("SELECT id FROM push_subscriptions WHERE endpoint = ?")
+        .bind(endpoint)
+        .first<{ id: string }>())!.id;
+    const before = await idOf(a.endpoint);
+    // A signs out; B signs in on the same browser and turns push on there.
+    await call("/api/auth/sign-out", { method: "POST", cookie: a.cookie });
+    await enablePush(b, a.endpoint);
+    expect(await idOf(a.endpoint)).not.toBe(before); // a new owner is a new row id
+
+    pushFake.status = 201;
+    pushFake.sent = [];
+    await drainQueue(env, undefined, later(6));
+    // A's message is not sent to the browser B now uses (B's own waited for the address B left, so it went too).
+    expect(pushFake.sent).toEqual([]);
+    expect(await queued()).toBe(0);
+  });
+
+  it("checks the person of a waiting push, not only the address", async () => {
+    const { t, course, kids } = await classWithPush(2);
+    const [a, b] = [kids[0]!, kids[1]!];
+    pushFake.status = 500;
+    await publish(t, course.id, mixed());
+    // The address row moves to B but keeps its id (as an older version of the upsert did).
+    await setSql(
+      `UPDATE push_subscriptions SET user_id = ?, session_id = (SELECT session_id FROM push_subscriptions WHERE endpoint = ?)
+       WHERE endpoint = ?`,
+      b.userId,
+      b.endpoint,
+      a.endpoint,
+    );
+    await setSql("DELETE FROM push_subscriptions WHERE endpoint = ?", b.endpoint);
+    pushFake.status = 201;
+    pushFake.sent = [];
+    await drainQueue(env, undefined, later(6));
+    expect(pushFake.sent).toEqual([]);
+    expect(await queued()).toBe(0);
+  });
+
+  it("does not send a waiting Telegram message to a chat that is now linked to someone else", async () => {
+    const { t, course, kids } = await classWithPush(2);
+    const [a, b] = [kids[0]!, kids[1]!];
+    await linkTelegram(a, 9400);
+    await setSql("DELETE FROM push_subscriptions WHERE user_id IN (?, ?)", a.userId, b.userId);
+    telegramFake.asked = [];
+    telegramFake.ok = false;
+    await publish(t, course.id, mixed());
+    expect(await count("SELECT COUNT(*) AS n FROM outbound_queue WHERE channel = 'telegram'")).toBe(1);
+    await linkTelegram(b, 9400);
+
+    telegramFake.ok = true;
+    telegramFake.asked = [];
+    await drainQueue(env, undefined, later(6));
+    expect(telegramFake.asked).toEqual([]);
     expect(await queued()).toBe(0);
   });
 

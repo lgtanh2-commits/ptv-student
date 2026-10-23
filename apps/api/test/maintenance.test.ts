@@ -158,8 +158,8 @@ describe("cleaning up old rows", () => {
     const queued = async (createdAt: string) => {
       const id = crypto.randomUUID();
       await run(
-        `INSERT INTO outbound_queue (id, channel, target, content, created_at, next_at)
-         VALUES (?1, 'push', 't', 'c', ?2, ?2)`,
+        `INSERT INTO outbound_queue (id, channel, user_id, target, content, created_at, next_at)
+         VALUES (?1, 'push', 'u', 't', 'c', ?2, ?2)`,
         id,
         createdAt,
       );

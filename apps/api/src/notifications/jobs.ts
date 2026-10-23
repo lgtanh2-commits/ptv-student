@@ -15,11 +15,10 @@ const OVERDUE_HOURS = 24;
 
 /**
  * What the app does by itself, once an hour: makes the reminders for work that is due soon or just overdue (one for each
- * person and piece of work), sends the ones that were made to browsers with push on and to linked Telegram chats (all of
- * them within one send limit; the rest waits for the job that runs every minute), and removes notifications older than
- * 90 days. Nothing is sent by email.
+ * person and piece of work) and removes notifications older than 90 days. Returns the reminders that were made, for
+ * `deliver`; nothing is sent here. Nothing is sent by email.
  */
-export async function runNotificationJobs(env: Env, now: Date = new Date()): Promise<void> {
+export async function makeReminders(env: Env, now: Date = new Date()): Promise<NotifiedRow[]> {
   const db = env.DB;
   const dueRows = (
     await notifyDueSoonStatement(
@@ -35,6 +34,15 @@ export async function runNotificationJobs(env: Env, now: Date = new Date()): Pro
       now.toISOString(),
     ).all<NotifiedRow>()
   ).results;
-  await deliver(env, [...dueRows, ...overdueRows], JOB_SEND_LIMIT);
   await cleanupStatement(db, new Date(now.getTime() - 90 * 86_400_000).toISOString()).run();
+  return [...dueRows, ...overdueRows];
+}
+
+/** Sends reminders to browsers with push on and to linked Telegram chats, within one send limit; the rest waits for the job that runs every minute. */
+export const sendReminders = (env: Env, rows: NotifiedRow[]): Promise<void> =>
+  deliver(env, rows, JOB_SEND_LIMIT);
+
+/** Makes the reminders and sends them at once. The hourly schedule (src/index.ts) does the same, with other jobs in between. */
+export async function runNotificationJobs(env: Env, now: Date = new Date()): Promise<void> {
+  await sendReminders(env, await makeReminders(env, now));
 }

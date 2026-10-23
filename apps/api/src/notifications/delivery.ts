@@ -23,18 +23,23 @@ import { telegramClient } from "../telegram/client";
 /**
  * The Free plan allows about 50 outgoing requests per request or cron run, and every push (one per browser) and
  * every Telegram message is one. A request that makes notifications sends at most this many, a cron run at most
- * JOB_SEND_LIMIT; the rest waits in the queue for the job that runs every minute.
+ * JOB_SEND_LIMIT; the rest waits in the queue for the job that runs every minute. The 10 ms of CPU a run may use
+ * are the tighter limit (each push is encrypted and signed), so these are set low until the CPU per message is
+ * read on Workers (docs/spikes.md, "Web Push CPU").
  */
-export const REQUEST_SEND_LIMIT = 20;
-export const JOB_SEND_LIMIT = 40;
+export const REQUEST_SEND_LIMIT = 10;
+export const JOB_SEND_LIMIT = 20;
+/** Workers keep at most 6 connections open at once; more sends wait for a free one before they start. */
+export const MAX_IN_FLIGHT = 6;
 /** A message is tried this many times in all, then given up. */
 export const MAX_TRIES = 3;
 /** The wait before the next try, for every try so far. */
 const RETRY_MINUTES = 5;
 
+/** `userId`: the person the message is for. */
 type Message =
-  | { channel: "push"; sub: PushSubscriptionRow; content: PushContent }
-  | { channel: "telegram"; chatId: string; text: string };
+  | { channel: "push"; userId: string; sub: PushSubscriptionRow; content: PushContent }
+  | { channel: "telegram"; userId: string; chatId: string; text: string };
 
 type Outcome = "sent" | "gone" | "failed";
 
@@ -57,9 +62,27 @@ async function send(env: Env, m: Message): Promise<Outcome> {
   }
 }
 
+/**
+ * Runs `work` on every item, at most MAX_IN_FLIGHT at once, and returns the results in order. A send only starts
+ * (and its timeout only begins) once a connection is free.
+ */
+async function inPool<T, R>(items: T[], work: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await work(items[i]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(MAX_IN_FLIGHT, items.length) }, worker));
+  return results;
+}
+
 const queueRow = (m: Message, tries: number, createdAt: string, nextAt: string) => ({
   id: uuidv7(),
   channel: m.channel,
+  userId: m.userId,
   target: m.channel === "push" ? m.sub.id : m.chatId,
   content: m.channel === "push" ? JSON.stringify(m.content) : m.text,
   tries,
@@ -88,10 +111,22 @@ export async function deliver(env: Env, rows: NotifiedRow[], limit: number): Pro
     const messages: Message[] = rows.flatMap((r) => {
       const toPush: Message[] = subs
         .filter((s) => s.user_id === r.user_id)
-        .map((sub) => ({ channel: "push", sub, content: { ...noticeIn(r, sub.language), link: r.link } }));
+        .map((sub) => ({
+          channel: "push",
+          userId: r.user_id,
+          sub,
+          content: { ...noticeIn(r, sub.language), link: r.link },
+        }));
       const chat = chats.get(r.user_id);
       const toChat: Message[] = chat
-        ? [{ channel: "telegram", chatId: chat.chatId, text: telegramText(r, chat.language, base) }]
+        ? [
+            {
+              channel: "telegram",
+              userId: r.user_id,
+              chatId: chat.chatId,
+              text: telegramText(r, chat.language, base),
+            },
+          ]
         : [];
       return [...toPush, ...toChat];
     });
@@ -104,7 +139,7 @@ export async function deliver(env: Env, rows: NotifiedRow[], limit: number): Pro
     // Saved before anything is sent, so the messages over the limit are not lost if this run is cut short.
     if (waiting.length > 0) await enqueueStatement(db, waiting).run();
 
-    const outcomes = await Promise.all(first.map((m) => send(env, m)));
+    const outcomes = await inPool(first, (m) => send(env, m));
     const failed = first
       .filter((_, i) => outcomes[i] === "failed")
       .map((m) => queueRow(m, 1, nowIso, retryAt));
@@ -119,18 +154,23 @@ export async function deliver(env: Env, rows: NotifiedRow[], limit: number): Pro
   }
 }
 
-/** Turns a queued row back into a message, or null when it can no longer be sent (the browser or the chat is gone). */
+/**
+ * Turns a queued row back into a message, or null when it can no longer be sent: the browser or the chat is gone,
+ * or it now belongs to someone else than the person the message is for (a shared computer, a chat linked again).
+ */
 function messageOf(
   q: QueuedMessage,
   subs: Map<string, PushSubscriptionRow>,
-  chats: Set<string>,
+  chats: Map<string, string>,
 ): Message | null {
   if (q.channel === "telegram")
-    return chats.has(q.target) ? { channel: "telegram", chatId: q.target, text: q.content } : null;
+    return chats.get(q.target) === q.user_id
+      ? { channel: "telegram", userId: q.user_id, chatId: q.target, text: q.content }
+      : null;
   const sub = subs.get(q.target);
-  if (!sub) return null;
+  if (!sub || sub.user_id !== q.user_id) return null;
   try {
-    return { channel: "push", sub, content: JSON.parse(q.content) as PushContent };
+    return { channel: "push", userId: q.user_id, sub, content: JSON.parse(q.content) as PushContent };
   } catch {
     return null;
   }
@@ -139,8 +179,8 @@ function messageOf(
 /**
  * Runs every minute: sends the oldest waiting messages whose time has come, at most `limit`. A message that
  * fails again waits longer each time, and is given up after MAX_TRIES. A push for a browser that was signed out
- * (or is gone) in the meantime is dropped, so a shared computer stops getting someone's messages; so is a
- * Telegram message for a chat that was unlinked.
+ * (or is gone, or is now someone else's) in the meantime is dropped, so a shared computer stops getting someone's
+ * messages; so is a Telegram message for a chat that was unlinked or linked to someone else.
  */
 export async function drainQueue(env: Env, limit = JOB_SEND_LIMIT, now: Date = new Date()): Promise<void> {
   const db = env.DB;
@@ -158,21 +198,19 @@ export async function drainQueue(env: Env, limit = JOB_SEND_LIMIT, now: Date = n
   const done: string[] = [];
   const retry: string[] = [];
   const gone: string[] = [];
-  await Promise.all(
-    due.map(async (q) => {
-      const m = messageOf(q, subs, chats);
-      if (!m) return void done.push(q.id);
-      const outcome = await send(env, m);
-      if (outcome === "sent") done.push(q.id);
-      else if (outcome === "gone") {
-        done.push(q.id);
-        if (m.channel === "push") gone.push(m.sub.id);
-      } else if (q.tries + 1 >= MAX_TRIES) {
-        console.error(JSON.stringify({ msg: "message given up", channel: q.channel, tries: q.tries + 1 }));
-        done.push(q.id);
-      } else retry.push(q.id);
-    }),
-  );
+  await inPool(due, async (q) => {
+    const m = messageOf(q, subs, chats);
+    if (!m) return void done.push(q.id);
+    const outcome = await send(env, m);
+    if (outcome === "sent") done.push(q.id);
+    else if (outcome === "gone") {
+      done.push(q.id);
+      if (m.channel === "push") gone.push(m.sub.id);
+    } else if (q.tries + 1 >= MAX_TRIES) {
+      console.error(JSON.stringify({ msg: "message given up", channel: q.channel, tries: q.tries + 1 }));
+      done.push(q.id);
+    } else retry.push(q.id);
+  });
 
   const writes: D1PreparedStatement[] = [];
   if (done.length > 0) writes.push(deleteMessagesStatement(db, done));

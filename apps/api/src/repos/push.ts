@@ -11,8 +11,9 @@ export interface PushSubscriptionRow {
 
 /**
  * The browsers that can be told something about each of these people: only devices whose session is still
- * signed in, by the same rule as the sign in check (middleware/auth.ts): not signed out, not past its end, and
- * not idle for longer than it may be. Signing out (or a session ending) stops messages to that device.
+ * signed in, by the same rule as the sign in check (middleware/auth.ts): not signed out, not past its end, not
+ * idle for longer than it may be, and the account not turned off. Signing out (or a session ending) stops
+ * messages to that device.
  */
 export async function liveSubscriptionsOf(
   db: D1Database,
@@ -27,7 +28,7 @@ export async function liveSubscriptionsOf(
        JOIN sessions s ON s.id = p.session_id
        JOIN users u ON u.id = p.user_id
        WHERE p.user_id IN (SELECT value FROM json_each(?1)) AND s.revoked_at IS NULL AND s.expires_at > ?2
-         AND datetime(s.last_seen_at, '+' || s.idle_days || ' days') > datetime(?2)`,
+         AND u.disabled_at IS NULL AND datetime(s.last_seen_at, '+' || s.idle_days || ' days') > datetime(?2)`,
     )
     .bind(JSON.stringify(userIds), nowIso)
     .all<Omit<PushSubscriptionRow, "language"> & { language: string }>();
@@ -48,7 +49,7 @@ export async function liveSubscriptionsByIds(
        JOIN sessions s ON s.id = p.session_id
        JOIN users u ON u.id = p.user_id
        WHERE p.id IN (SELECT value FROM json_each(?1)) AND s.revoked_at IS NULL AND s.expires_at > ?2
-         AND datetime(s.last_seen_at, '+' || s.idle_days || ' days') > datetime(?2)`,
+         AND u.disabled_at IS NULL AND datetime(s.last_seen_at, '+' || s.idle_days || ' days') > datetime(?2)`,
     )
     .bind(JSON.stringify(ids), nowIso)
     .all<Omit<PushSubscriptionRow, "language"> & { language: string }>();
@@ -79,6 +80,8 @@ export const deleteOtherSessionSubscriptionsStatement = (
 export interface QueuedMessage {
   id: string;
   channel: "push" | "telegram";
+  /** The person the message is for. */
+  user_id: string;
   /** A push subscription id, or a Telegram chat id. */
   target: string;
   /** For push the JSON `{ title, body, link }`, for Telegram the finished text. */
@@ -89,12 +92,13 @@ export interface QueuedMessage {
 /** Puts these messages in the queue, all in one statement however many there are. */
 export const enqueueStatement = (
   db: D1Database,
-  rows: (Omit<QueuedMessage, "id"> & { id: string; createdAt: string; nextAt: string })[],
+  rows: (Omit<QueuedMessage, "user_id"> & { userId: string; createdAt: string; nextAt: string })[],
 ): D1PreparedStatement =>
   db
     .prepare(
-      `INSERT INTO outbound_queue (id, channel, target, content, created_at, tries, next_at)
-       SELECT json_extract(value, '$.id'), json_extract(value, '$.channel'), json_extract(value, '$.target'),
+      `INSERT INTO outbound_queue (id, channel, user_id, target, content, created_at, tries, next_at)
+       SELECT json_extract(value, '$.id'), json_extract(value, '$.channel'), json_extract(value, '$.userId'),
+              json_extract(value, '$.target'),
               json_extract(value, '$.content'), json_extract(value, '$.createdAt'), json_extract(value, '$.tries'),
               json_extract(value, '$.nextAt')
        FROM json_each(?)`,
@@ -105,7 +109,7 @@ export const enqueueStatement = (
 export async function dueMessages(db: D1Database, nowIso: string, limit: number): Promise<QueuedMessage[]> {
   const res = await db
     .prepare(
-      `SELECT id, channel, target, content, tries FROM outbound_queue
+      `SELECT id, channel, user_id, target, content, tries FROM outbound_queue
        WHERE next_at <= ? ORDER BY created_at, id LIMIT ?`,
     )
     .bind(nowIso, limit)
@@ -134,7 +138,10 @@ export const retryMessagesStatement = (
     )
     .bind(JSON.stringify(ids), nowIso, minutesPerTry);
 
-/** One row per address. Whoever subscribed last owns it, from the session they subscribed in. */
+/**
+ * One row per address. Whoever subscribed last owns it, from the session they subscribed in. A new owner gets a
+ * new id, so nothing that waited in the queue for the one before can reach them.
+ */
 export const upsertSubscriptionStatement = (
   db: D1Database,
   s: {
@@ -152,8 +159,8 @@ export const upsertSubscriptionStatement = (
       `INSERT INTO push_subscriptions (id, user_id, session_id, endpoint, p256dh, auth, created_at)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
        ON CONFLICT (endpoint) DO UPDATE SET
-         user_id = excluded.user_id, session_id = excluded.session_id,
-         p256dh = excluded.p256dh, auth = excluded.auth`,
+         id = excluded.id, user_id = excluded.user_id, session_id = excluded.session_id,
+         p256dh = excluded.p256dh, auth = excluded.auth, created_at = excluded.created_at`,
     )
     .bind(s.id, s.userId, s.sessionId, s.endpoint, s.p256dh, s.auth, s.createdAt);
 
