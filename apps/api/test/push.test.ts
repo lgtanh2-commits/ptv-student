@@ -93,6 +93,21 @@ describe("saving push subscriptions", () => {
     expect((await check(b, body.endpoint)).json).toEqual({ subscribed: true });
   });
 
+  it("keeps one address per signed in browser: a new one replaces the old, other browsers keep theirs", async () => {
+    const t = await createTeacher();
+    const other: Person = { ...t, cookie: await signInWithLink(t.email) };
+    const first = await subscribeBody();
+    const second = await subscribeBody();
+    const elsewhere = await subscribeBody();
+    await subscribe(t, first);
+    await subscribe(other, elsewhere);
+    await subscribe(t, second);
+    expect(await rowsOf(first.endpoint)).toBe(0);
+    expect(await rowsOf(second.endpoint)).toBe(1);
+    expect(await rowsOf(elsewhere.endpoint)).toBe(1);
+    expect(await count("SELECT COUNT(*) AS n FROM push_subscriptions WHERE user_id = ?", t.userId)).toBe(2);
+  });
+
   it("is not this device any more after signing out", async () => {
     const t = await createTeacher();
     const body = await subscribeBody();

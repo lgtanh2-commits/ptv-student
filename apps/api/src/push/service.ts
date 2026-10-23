@@ -5,7 +5,12 @@ import type { Env } from "../env";
 import { AppError } from "../lib/errors";
 import { uuidv7 } from "../lib/id";
 import { nowIso } from "../lib/time";
-import { deleteOwnSubscriptionStatement, isSubscribed, upsertSubscriptionStatement } from "../repos/push";
+import {
+  deleteOtherSessionSubscriptionsStatement,
+  deleteOwnSubscriptionStatement,
+  isSubscribed,
+  upsertSubscriptionStatement,
+} from "../repos/push";
 import { b64url } from "./crypto";
 
 /** Push needs both keys: the public one is given to the browser, the private one signs what the server sends. */
@@ -64,15 +69,20 @@ export async function subscribe(
   if (!isPushOn(ctx.env)) throw new AppError("NOT_FOUND");
   if (!isPushEndpoint(body.endpoint) || !isValidP256dh(body.keys.p256dh) || !isValidAuth(body.keys.auth))
     throw new AppError("VALIDATION_FAILED");
-  await upsertSubscriptionStatement(ctx.env.DB, {
-    id: uuidv7(),
-    userId: actor.userId,
-    sessionId: actor.sessionId,
-    endpoint: body.endpoint,
-    p256dh: body.keys.p256dh,
-    auth: body.keys.auth,
-    createdAt: nowIso(),
-  }).run();
+  // One address per session (a session is one browser): the new one replaces any the session had before.
+  const db = ctx.env.DB;
+  await db.batch([
+    upsertSubscriptionStatement(db, {
+      id: uuidv7(),
+      userId: actor.userId,
+      sessionId: actor.sessionId,
+      endpoint: body.endpoint,
+      p256dh: body.keys.p256dh,
+      auth: body.keys.auth,
+      createdAt: nowIso(),
+    }),
+    deleteOtherSessionSubscriptionsStatement(db, actor.sessionId, body.endpoint),
+  ]);
 }
 
 export async function check(ctx: Ctx, actor: Actor, endpoint: string): Promise<PushCheck> {

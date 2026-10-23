@@ -45,8 +45,9 @@
   "env": {
     "staging": {
       "name": "ptv-lms-staging",
-      // Once an hour: reminders (in the app) for work that is due soon, and removing old notifications.
-      "triggers": { "crons": ["0 * * * *"] },
+      // Once an hour: reminders for work that is due soon or just overdue, and removing old notifications.
+      // Every minute: push and Telegram messages that waited because of the send limit (only those).
+      "triggers": { "crons": ["0 * * * *", "* * * * *"] },
       "vars": {
         "ENVIRONMENT": "staging",
         // Real email through an SMTP server. The account and its password are secrets (docs/deploy.md, "Sending email").
@@ -73,9 +74,10 @@
     },
     "production": {
       "name": "ptv-lms",
-      // Once an hour: reminders for work that is due soon, the next lessons of repeats with no end date, and clean up.
+      // Once an hour: reminders for work that is due soon or just overdue, the next lessons of repeats with no end
+      // date, and clean up. Every minute: push and Telegram messages that waited because of the send limit.
       // Without this, none of those would ever run.
-      "triggers": { "crons": ["0 * * * *"] },
+      "triggers": { "crons": ["0 * * * *", "* * * * *"] },
       "vars": {
         "ENVIRONMENT": "production",
         // Real email through an SMTP server. The account and its password are secrets (docs/production.md).

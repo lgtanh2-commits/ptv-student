@@ -25,8 +25,28 @@ export const telegramFake: { asked: { chatId: string; text: string }[]; ok: bool
   ok: true,
 };
 
+/**
+ * Every message the app sent to a browser push service. `status`: what the push service answers back;
+ * `throws`: the request fails before any answer (the network is down).
+ */
+export const pushFake: {
+  sent: { endpoint: string; headers: Headers; body: Uint8Array }[];
+  status: number;
+  throws: boolean;
+} = { sent: [], status: 201, throws: false };
+
+const PUSH_HOSTS =
+  /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[^/]+\.push\.apple\.com|[^/]+\.notify\.windows\.com)\//;
+
 vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input instanceof Request ? input.url : input);
+  if (PUSH_HOSTS.test(url)) {
+    if (pushFake.throws) throw new Error("network down");
+    const raw = init?.body;
+    const body = raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer);
+    pushFake.sent.push({ endpoint: url, headers: new Headers(init?.headers), body });
+    return new Response(null, { status: pushFake.status });
+  }
   if (url.includes("challenges.cloudflare.com")) return Response.json(turnstileAnswer);
   if (url === "https://oauth2.googleapis.com/token" && googleFake.answer) {
     const form = new URLSearchParams(String(init?.body));
