@@ -62,6 +62,8 @@
         // Not a secret. The bot's @username, without the @ (docs/deploy.md, "Telegram notifications").
         // Notifications on Telegram stay off until TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET are also set.
         "TELEGRAM_BOT_USERNAME": "ptv_lms_noti_bot",
+        // Not a secret: browsers receive it. Push stays off until VAPID_PRIVATE_KEY is also set (docs/deploy.md).
+        "VAPID_PUBLIC_KEY": "BE2xW21F1Sl_Uv__-dI_5TMRGDKA5KQ_qvNeuP0gLNL8i8C9yTRgs2PNH1durzjQNME44GAwIhTUWH50Cm5Qt_8",
       },
       "d1_databases": [
         {
