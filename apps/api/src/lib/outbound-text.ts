@@ -44,6 +44,13 @@ export const EMAIL_IDS: Record<string, readonly string[]> = {
 export const NOTICE_IDS: Record<Kind, { title: readonly string[]; body: readonly string[] }> = {
   homework_new: { title: ["New homework: {title}"], body: [] },
   homework_due: { title: ["Due soon: {title}"], body: [] },
+  homework_overdue: {
+    title: [
+      "Overdue: {title}. Please finish it soon.",
+      "Overdue and closed: {title}. Ask your teacher to open it again.",
+    ],
+    body: [],
+  },
   homework_returned: { title: ["Your work was scored: {title}"], body: [] },
   homework_again: { title: ["Please change your work: {title}"], body: [] },
   receipt_sent: { title: ["New fee receipt: {monthName(current.period)}"], body: [] },

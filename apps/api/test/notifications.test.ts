@@ -352,3 +352,113 @@ describe("the hourly job: reminders and cleaning", () => {
     expect(await count("SELECT COUNT(*) AS n FROM email_outbox WHERE kind = 'notification'")).toBe(0);
   });
 });
+
+describe("reminding about work that is overdue", () => {
+  beforeEach(async () => {
+    await setSql("DELETE FROM notifications");
+  });
+
+  const dueAgo = (minutes: number, id: string) =>
+    setSql(
+      "UPDATE assignments SET due_at = ? WHERE id = ?",
+      new Date(Date.now() - minutes * 60_000).toISOString(),
+      id,
+    );
+  const overdue = async (p: Person) => (await mine(p)).items.filter((i) => i.kind === "homework_overdue");
+
+  it("tells a student who has not handed in, once, right after the deadline", async () => {
+    const { hoa, nam, id, qs } = await setup();
+    await submit(hoa, id, fullAnswers(qs));
+    await setSql("UPDATE assignments SET allow_late = 1 WHERE id = ?", id);
+    await dueAgo(30, id);
+    await runNotificationJobs(env);
+    await runNotificationJobs(env);
+    const items = await overdue(nam);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      title: "Overdue: Unit 1 test. Please finish it soon.",
+      body: "English A1",
+      link: `/my/work/${id}`,
+    });
+    expect(await overdue(hoa)).toEqual([]);
+  });
+
+  it("says the work is closed when late work is not allowed", async () => {
+    const { nam, id } = await setup();
+    await setSql("UPDATE assignments SET allow_late = 0 WHERE id = ?", id);
+    await dueAgo(30, id);
+    await runNotificationJobs(env);
+    expect((await overdue(nam))[0]!.title).toBe(
+      "Overdue and closed: Unit 1 test. Ask your teacher to open it again.",
+    );
+  });
+
+  it("in Vietnamese, uses the owner's words", async () => {
+    const { nam, id } = await setup();
+    await setSql("UPDATE users SET language = 'vi' WHERE id = ?", nam.userId);
+    await setSql("UPDATE assignments SET allow_late = 1 WHERE id = ?", id);
+    await dueAgo(30, id);
+    await runNotificationJobs(env);
+    expect((await overdue(nam))[0]!.title).toBe("Bài Unit 1 test đã quá hạn, hãy nhanh chóng hoàn thiện nhé.");
+    await setSql("DELETE FROM notifications");
+    await setSql("UPDATE assignments SET allow_late = 0 WHERE id = ?", id);
+    await runNotificationJobs(env);
+    expect((await overdue(nam))[0]!.title).toBe(
+      "Bài Unit 1 test đã quá hạn và đã khoá nộp. Liên hệ với giáo viên để được mở nộp bài",
+    );
+  });
+
+  it("says nothing about work that went overdue more than a day ago, or has no deadline", async () => {
+    const { t, course, nam, id } = await setup();
+    const none = (await publish(t, course.id, homework({ title: "No date" }))).id;
+    await dueAgo(25 * 60, id);
+    await setSql("UPDATE assignments SET due_at = NULL WHERE id = ?", none);
+    await runNotificationJobs(env);
+    expect(await overdue(nam)).toEqual([]);
+  });
+
+  it("waits for a student's own extension, and uses the later of the two times", async () => {
+    const { nam, id, t } = await setup();
+    await dueAgo(30, id);
+    const extend = (until: Date) =>
+      setSql(
+        "INSERT OR REPLACE INTO submission_extensions (assignment_id, student_id, tenant_id, until_at) VALUES (?, ?, ?, ?)",
+        id,
+        nam.studentId,
+        t.tenantId,
+        until.toISOString(),
+      );
+    await extend(new Date(Date.now() + 2 * 3_600_000));
+    await runNotificationJobs(env);
+    expect(await overdue(nam)).toEqual([]);
+    await extend(new Date(Date.now() - 3 * 3_600_000));
+    await runNotificationJobs(env);
+    await runNotificationJobs(env);
+    expect(await overdue(nam)).toHaveLength(1);
+  });
+
+  it("reminds a student whose work was sent back for changes, and not archived students or ones outside the target", async () => {
+    const { t, course, hoa, nam, id, qs } = await setup();
+    await submit(hoa, id, fullAnswers(qs));
+    await setSql(
+      "UPDATE submissions SET status = 'revision_requested' WHERE assignment_id = ? AND student_id = ?",
+      id,
+      hoa.studentId,
+    );
+    const archived = await joinedKid(t, course.id, "Archived");
+    await call(`/api/students/${archived.studentId}/archive`, { method: "POST", cookie: t.cookie, body: {} });
+    const chosenOnly = (
+      await publish(
+        t,
+        course.id,
+        homework({ title: "Only Hoa", targetMode: "selected", studentIds: [hoa.studentId] }),
+      )
+    ).id;
+    await dueAgo(30, id);
+    await dueAgo(30, chosenOnly);
+    await runNotificationJobs(env);
+    expect(await overdue(hoa)).toHaveLength(2);
+    expect(await overdue(nam)).toHaveLength(1);
+    expect(await overdue(archived)).toEqual([]);
+  });
+});
