@@ -11,5 +11,8 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - daisyui@5.7.42
 
+# Patched versions of packages that only the build and test tools use (pnpm audit --audit-level high in CI).
 overrides:
-  sharp: ">=0.35.4"
+  sharp: ">=0.35.5"
+  undici: ">=7.29.1 <8"
+  source-map-js: ">=1.2.2"
