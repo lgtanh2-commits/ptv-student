@@ -399,7 +399,9 @@ describe("reminding about work that is overdue", () => {
     await setSql("UPDATE assignments SET allow_late = 1 WHERE id = ?", id);
     await dueAgo(30, id);
     await runNotificationJobs(env);
-    expect((await overdue(nam))[0]!.title).toBe("Bài Unit 1 test đã quá hạn, hãy nhanh chóng hoàn thiện nhé.");
+    expect((await overdue(nam))[0]!.title).toBe(
+      "Bài Unit 1 test đã quá hạn, hãy nhanh chóng hoàn thiện nhé.",
+    );
     await setSql("DELETE FROM notifications");
     await setSql("UPDATE assignments SET allow_late = 0 WHERE id = ?", id);
     await runNotificationJobs(env);
