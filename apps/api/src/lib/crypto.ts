@@ -1,6 +1,7 @@
 const encoder = new TextEncoder();
 
-function toBase64Url(bytes: Uint8Array): string {
+/** Bytes as base64url (no padding). */
+export function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -27,14 +28,18 @@ export async function sha256Base64Url(value: string): Promise<string> {
   return toBase64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value))));
 }
 
-/** Reads a base64url string (as used in tokens) back to text. Throws on bad input. */
-export function fromBase64Url(value: string): string {
+/** Reads a base64url string back to bytes. Throws on bad input. */
+export function fromBase64UrlBytes(value: string): Uint8Array {
   const b64 = value
     .replace(/-/g, "+")
     .replace(/_/g, "/")
     .padEnd(Math.ceil(value.length / 4) * 4, "=");
-  const binary = atob(b64);
-  return new TextDecoder().decode(Uint8Array.from(binary, (ch) => ch.charCodeAt(0)));
+  return Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+}
+
+/** Reads a base64url string (as used in tokens) back to text. Throws on bad input. */
+export function fromBase64Url(value: string): string {
+  return new TextDecoder().decode(fromBase64UrlBytes(value));
 }
 
 /** Text as base64url. */
