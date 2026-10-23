@@ -112,7 +112,13 @@ the two keys below, push is off and the app hides the feature.
    browsers receive it).
 4. Apply migration `0023_push.sql` (it only adds tables) together with the deploy.
 
-Changing the pair later makes every saved subscription useless, so people have to allow notifications again.
+Changing (rotating) the pair later makes every saved subscription fail: no browser gets a push until its person
+turns notifications on again in Settings (the browser then subscribes with the new key). Rotate only when the private
+key may have leaked, and tell people to turn notifications on again.
+
+Push needs the second schedule, `* * * * *` in `triggers.crons`, which sends what waits over the send limit
+(`scripts/preflight-production.mjs` refuses production without both `0 * * * *` and `* * * * *`). The Free plan allows
+5 cron triggers for the whole account; staging and production now use 4 (two each), so there is room for one more.
 
 ## Language (Vietnamese and English)
 

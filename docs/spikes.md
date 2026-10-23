@@ -8,11 +8,11 @@ Results of the technical checks planned for M0 (see `docs/plan.md`, Section 7).
 
 **Question:** can we hash passwords with Argon2id inside a Worker, and how long does it take?
 
-| Option | Result |
-|---|---|
-| `hash-wasm` (WebAssembly) | **Does not work.** Fails with `CompileError: WebAssembly.compile(): Wasm code generation disallowed by embedder`. Workers do not allow WebAssembly to be compiled from bytes at runtime. |
-| `@noble/hashes` (pure JavaScript) | **Works.** Measured in the Workers runtime (workerd, local machine): m=19 MiB t=2 p=1 → **149 ms**; m=12 MiB t=3 → 120 ms; m=64 MiB t=3 → 643 ms. |
-| PBKDF2 (WebCrypto) | Not used. workerd limits it to 100,000 rounds, below the OWASP advice (600,000). |
+| Option                            | Result                                                                                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hash-wasm` (WebAssembly)         | **Does not work.** Fails with `CompileError: WebAssembly.compile(): Wasm code generation disallowed by embedder`. Workers do not allow WebAssembly to be compiled from bytes at runtime. |
+| `@noble/hashes` (pure JavaScript) | **Works.** Measured in the Workers runtime (workerd, local machine): m=19 MiB t=2 p=1 → **149 ms**; m=12 MiB t=3 → 120 ms; m=64 MiB t=3 → 643 ms.                                        |
+| PBKDF2 (WebCrypto)                | Not used. workerd limits it to 100,000 rounds, below the OWASP advice (600,000).                                                                                                         |
 
 **Decision:** `@noble/hashes` Argon2id with the OWASP minimum (m=19456 KiB, t=2, p=1). Code: `apps/api/src/auth/password.ts`.
 
@@ -40,11 +40,30 @@ Results of the technical checks planned for M0 (see `docs/plan.md`, Section 7).
 Rough numbers measured on a laptop with Node (V8, close to the Workers engine). They are **not** Cloudflare numbers.
 Check the real CPU time in the Workers dashboard after the first deploy.
 
-| Work | Time |
-|---|---|
-| Check a CSV import of 200 rows (first call, cold) | about 2 ms |
-| The same, after warm up | about 0.1 to 0.5 ms |
-| Check one course | 0.005 ms |
-| Hash a session token and an IP address | 0.004 ms |
+| Work                                              | Time                |
+| ------------------------------------------------- | ------------------- |
+| Check a CSV import of 200 rows (first call, cold) | about 2 ms          |
+| The same, after warm up                           | about 0.1 to 0.5 ms |
+| Check one course                                  | 0.005 ms            |
+| Hash a session token and an IP address            | 0.004 ms            |
 
 The Free plan allows 10 ms of CPU per request. Waiting for the database or the email server does not count as CPU time.
+
+## 5. Web Push CPU — NOT MEASURED ON WORKERS YET
+
+Every push is encrypted for its browser (an ECDH key, HKDF and AES-GCM, RFC 8291), and the VAPID signature (ECDSA,
+RFC 8292) is made once per push service per batch. A rough run with Node WebCrypto on a laptop: **about 0.47 ms of CPU
+per message**. That is not a Cloudflare number. Waiting for the push service does not count as CPU time.
+
+With 10 ms of CPU per request or cron run on the Free plan, the send limits are set low until real numbers are read:
+`REQUEST_SEND_LIMIT = 10` per request and `JOB_SEND_LIMIT = 20` per cron run (`apps/api/src/notifications/delivery.ts`).
+The hourly cron makes the reminders first, then runs the repeating lessons and the clean up, and sends last, so a run
+stopped for using too much CPU cannot take the other jobs down (what was not sent waits in the queue).
+
+How to measure, on staging:
+
+1. Turn push on in several browsers (or several accounts), and publish homework to a class with that many devices.
+2. In the Cloudflare dashboard, Workers, the staging Worker, Observability: read the CPU time of the request that
+   published, and of the `* * * * *` cron runs that sent what waited.
+3. CPU per message is about (CPU of the run minus CPU of the same run with nothing to send) / messages sent.
+4. Raise the limits only with room to spare (for example half of 10 ms), and update this section.

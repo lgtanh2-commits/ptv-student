@@ -40,6 +40,10 @@ wants **one more reminder after the deadline** for students who still have not h
   students get the notification a few minutes late.
 - A student with their own extension (`submission_extensions`) is "overdue" only after **their** extended time.
 - Work with no deadline gets no overdue reminder. A student who handed in gets nothing more.
+- **Push only reaches a device that is still signed in** (our call, pending owner check). A student who did not choose
+  "keep me signed in" is signed out after a day without using the app, and then gets no more push there. We keep that
+  privacy rule and say it on the Push card, in the "on" and "off" states: "Notifications only arrive while this device
+  stays signed in. On your own device, choose "This is my own device. Keep me signed in." when you sign in."
 
 ## Goals
 
