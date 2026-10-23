@@ -57,9 +57,16 @@ export async function sendPush(
   if (!publicKey || !privateKey) return "failed";
   // Checked again here, because the server is about to call this address.
   if (!isPushEndpoint(sub.endpoint)) return "gone";
+  let body: Uint8Array;
   try {
-    // A stored key that is not a real point makes this throw: that is one failed message, nothing more.
-    const body = await encryptPayload(payload(content), sub.p256dh, sub.auth);
+    body = await encryptPayload(payload(content), sub.p256dh, sub.auth);
+  } catch {
+    // The stored keys are not a real key (they passed the checks at subscribe, but are not a point on the
+    // curve). That can never work, so the subscription is treated as gone, not tried again.
+    console.error(JSON.stringify({ msg: "push subscription unusable" }));
+    return "gone";
+  }
+  try {
     const authorization = await vapidHeader(sub.endpoint, { publicKey, privateKey }, appUrl(env));
     const res = await fetch(sub.endpoint, {
       method: "POST",

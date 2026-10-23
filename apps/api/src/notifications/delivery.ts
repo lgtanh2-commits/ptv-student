@@ -101,6 +101,8 @@ export async function deliver(env: Env, rows: NotifiedRow[], limit: number): Pro
     const retryAt = new Date(now.getTime() + RETRY_MINUTES * 60_000).toISOString();
     const first = messages.slice(0, limit);
     const waiting = messages.slice(limit).map((m) => queueRow(m, 0, nowIso, nowIso));
+    // Saved before anything is sent, so the messages over the limit are not lost if this run is cut short.
+    if (waiting.length > 0) await enqueueStatement(db, waiting).run();
 
     const outcomes = await Promise.all(first.map((m) => send(env, m)));
     const failed = first
@@ -109,7 +111,7 @@ export async function deliver(env: Env, rows: NotifiedRow[], limit: number): Pro
     const gone = first.flatMap((m, i) => (outcomes[i] === "gone" && m.channel === "push" ? [m.sub.id] : []));
 
     const writes: D1PreparedStatement[] = [];
-    if (waiting.length + failed.length > 0) writes.push(enqueueStatement(db, [...waiting, ...failed]));
+    if (failed.length > 0) writes.push(enqueueStatement(db, failed));
     if (gone.length > 0) writes.push(deleteSubscriptionsStatement(db, gone));
     if (writes.length > 0) await db.batch(writes);
   } catch (err) {

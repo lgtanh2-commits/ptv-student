@@ -95,8 +95,9 @@ const TOKEN_LIFETIME_S = 12 * 3600;
 /** A cached header is replaced this long before its token runs out. */
 const REFRESH_BEFORE_S = 3600;
 
-// Signed headers, kept for the life of the Worker so a batch of sends signs once per push service.
-const headerCache = new Map<string, { header: string; exp: number }>();
+// Signed headers, kept for the life of the Worker so a batch of sends signs once per push service. The
+// promise is kept (not only the finished header), so sends that start together share one signing too.
+const headerCache = new Map<string, { header: Promise<string>; exp: number }>();
 
 /**
  * The `Authorization` header for one push request: `vapid t=<JWT>, k=<public key>`. The token
@@ -117,6 +118,21 @@ export async function vapidHeader(
   if (cached && nowS < cached.exp - REFRESH_BEFORE_S) return cached.header;
 
   const exp = nowS + TOKEN_LIFETIME_S;
+  const header = signHeader(aud, exp, keys, subject);
+  headerCache.set(cacheKey, { header, exp });
+  // A signing that failed (a bad key) is not kept, so the next send tries again.
+  header.catch(() => {
+    if (headerCache.get(cacheKey)?.header === header) headerCache.delete(cacheKey);
+  });
+  return header;
+}
+
+async function signHeader(
+  aud: string,
+  exp: number,
+  keys: { publicKey: string; privateKey: string },
+  subject: string,
+): Promise<string> {
   const unsigned = `${toBase64UrlText(JSON.stringify({ typ: "JWT", alg: "ES256" }))}.${toBase64UrlText(
     JSON.stringify({ aud, exp, sub: subject }),
   )}`;
@@ -141,7 +157,5 @@ export async function vapidHeader(
     await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, privateKey, encoder.encode(unsigned)),
   );
 
-  const header = `vapid t=${unsigned}.${b64url.encode(signature)}, k=${keys.publicKey}`;
-  headerCache.set(cacheKey, { header, exp });
-  return header;
+  return `vapid t=${unsigned}.${b64url.encode(signature)}, k=${keys.publicKey}`;
 }

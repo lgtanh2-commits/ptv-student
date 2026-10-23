@@ -1,12 +1,12 @@
 import { env } from "cloudflare:workers";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
-import { drainQueue } from "../src/notifications/delivery";
+import { deliver, drainQueue, REQUEST_SEND_LIMIT } from "../src/notifications/delivery";
 import { runNotificationJobs } from "../src/notifications/jobs";
 import { sendPush } from "../src/push/client";
 import { call, createCourse, createTeacher, pushFake, telegramFake, type Person } from "./helpers";
 import { joinedKid, mixed, publish, type Kid } from "./homework";
-import { decryptPayload, makeReceiver, verifyVapidJwt } from "./push";
+import { decryptPayload, makeReceiver, makeVapidKeys, verifyVapidJwt } from "./push";
 
 const PUBLIC_KEY = "BAlC8WGJJ97ul3Kuet85phrlxLlLHYIvqVIujZmh2J_9c7rOphKuGmrBr8cXUH0AgfMCK5BFMrJy70vdH4zNabE";
 
@@ -75,7 +75,23 @@ beforeEach(async () => {
   telegramFake.asked = [];
   telegramFake.ok = true;
   await setSql("DELETE FROM outbound_queue");
+  // Failed sends are logged on purpose; the tests below make many of them.
+  vi.spyOn(console, "error").mockImplementation(() => {});
 });
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+/** The "new homework" notifications of these kids, as the statement would return them. */
+const homeworkRows = (kids: { userId: string }[]) =>
+  kids.map((k) => ({
+    user_id: k.userId,
+    kind: "homework_new",
+    title: "New homework: Unit 1 test",
+    body: "English A1",
+    link: "/my/work/1",
+  }));
 
 describe("pushing notifications to browsers", () => {
   it("pushes a new homework to every subscribed device of the class, in each person's language", async () => {
@@ -234,7 +250,7 @@ describe("pushing notifications to browsers", () => {
     expect(await queued()).toBe(0);
   });
 
-  it("treats a stored key that cannot be used as a failure of that one message", async () => {
+  it("forgets a subscription whose stored key cannot be used, without failing the others", async () => {
     const { t, course, kids } = await classWithPush(2);
     // 65 bytes starting with 0x04 pass the check at subscribe, but are not a point on the curve.
     const notOnCurve = Buffer.from(new Uint8Array([4, ...new Array(64).fill(1)])).toString("base64url");
@@ -245,7 +261,35 @@ describe("pushing notifications to browsers", () => {
     );
     await publish(t, course.id, mixed());
     expect(pushFake.sent.map((s) => s.endpoint)).toEqual([kids[1]!.endpoint]);
-    expect(await queued()).toBe(1);
+    expect(await queued()).toBe(0); // it can never work, so it is not tried again
+    expect(
+      await count("SELECT COUNT(*) AS n FROM push_subscriptions WHERE endpoint = ?", kids[0]!.endpoint),
+    ).toBe(0);
+  });
+
+  it("keeps the messages over the limit in the queue even when saving the results fails", async () => {
+    const { kids } = await classWithPush(REQUEST_SEND_LIMIT + 3);
+    pushFake.status = 500;
+    // Saving what happened to the sends (failures to retry) fails, for example the run was cut short.
+    vi.spyOn(env.DB, "batch").mockRejectedValue(new Error("database gone"));
+    await deliver(env, homeworkRows(kids), REQUEST_SEND_LIMIT);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
+    expect(await queued()).toBe(3);
+  });
+
+  it("signs once for a whole batch to one push service", async () => {
+    const { kids } = await classWithPush(REQUEST_SEND_LIMIT + 1);
+    // Fresh keys, so nothing is cached from the tests before.
+    const keys = await makeVapidKeys();
+    const sign = vi.spyOn(crypto.subtle, "sign");
+    await deliver(
+      { ...env, VAPID_PUBLIC_KEY: keys.publicKey, VAPID_PRIVATE_KEY: keys.privateKey },
+      homeworkRows(kids),
+      REQUEST_SEND_LIMIT,
+    );
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
+    expect(sign).toHaveBeenCalledTimes(1);
+    expect(new Set(pushFake.sent.map((s) => s.headers.get("authorization"))).size).toBe(1);
   });
 
   it("never fails the action when sending fails", async () => {
