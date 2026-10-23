@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import PushHint from "@/components/PushHint.vue";
 import WorkRow from "@/components/WorkRow.vue";
 import { invoiceStatusText, invoiceStatusTone } from "@/components/invoiceLabels";
 import { useSession } from "@/features/auth/session";
@@ -58,6 +59,7 @@ function jump(id: string) {
 
 <template>
   <AppPage :title="fill(t.homeTitle, { name: fullName })" :subtitle="t.homeText">
+    <PushHint />
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
     <AppLoading v-if="loading" :label="messages.common.loading" />
 

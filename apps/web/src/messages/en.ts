@@ -155,6 +155,21 @@ export const en = {
     endAllTitle: "Sign out everywhere?",
     endAllText: "Every device, also this one, will need to sign in again.",
   },
+  push: {
+    title: "Notifications on this device",
+    text: "Get notifications right on your phone or computer, even when Tutorio is not open.",
+    enableButton: "Turn on notifications",
+    disableButton: "Turn off notifications",
+    onTitle: "On for this device",
+    blocked:
+      "Your browser is blocking notifications from Tutorio. Allow them in the browser's site settings.",
+    install:
+      'On iPhone/iPad: in Safari tap the Share button, choose "Add to Home Screen", then open Tutorio from the new icon and turn on notifications here.',
+    unsupported: "This browser does not support notifications yet.",
+    hint: "Turn on notifications so you do not miss your homework.",
+    hintAction: "Turn on now",
+    hintLater: "Later",
+  },
   telegram: {
     title: "Telegram notifications",
     text: "Get a message on Telegram for the things that also ring the bell here, like a student handing in work.",
