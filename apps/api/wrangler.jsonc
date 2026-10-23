@@ -96,6 +96,9 @@
         // so it points here once this is set up; staging's Telegram linking then stops).
         // Notifications on Telegram stay off until TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET are also set.
         "TELEGRAM_BOT_USERNAME": "ptv_lms_noti_bot",
+        // Not a secret: browsers receive it. Its own pair, not staging's. Push stays off until VAPID_PRIVATE_KEY is
+        // also set (docs/deploy.md).
+        "VAPID_PUBLIC_KEY": "BNPTNJwwZ5tFqXzwMZ3PTRkW_hGZYSbuqkI_sIKdKBV0eGaS2UbDH6FlfdDP1f8zH9Vdd1ZDYb29I4vLgKEU0wo",
       },
       "d1_databases": [
         {
