@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { call, createTeacher, signInWithLink, type Person } from "./helpers";
 import { makeReceiver } from "./push";
 
-const PUBLIC_KEY = "BAlC8WGJJ97ul3Kuet85phrlxLlLHYIvqVIujZmh2J_9c7rOphKuGmrBr8cXUH0AgfMCK5BFMrJy70vdH4zNabE";
+// The configured key (wrangler.test.jsonc, or a developer's own .dev.vars, which the test runner also reads).
+const PUBLIC_KEY = env.VAPID_PUBLIC_KEY!;
 const count = async (sql: string, ...args: unknown[]) =>
   (await env.DB.prepare(sql)
     .bind(...args)

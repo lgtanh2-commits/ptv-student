@@ -383,6 +383,18 @@ describe("reminding about work that is overdue", () => {
     expect(await overdue(hoa)).toEqual([]);
   });
 
+  it("can be run by hand on a local machine (dev/run-jobs), and not anywhere else", async () => {
+    const { nam, id } = await setup();
+    await dueAgo(30, id);
+    expect((await call("/api/dev/run-jobs?job=hour", { env: { ENVIRONMENT: "staging" } })).status).toBe(404);
+    expect(await overdue(nam)).toEqual([]);
+    const res = await call("/api/dev/run-jobs?job=hour");
+    expect(res.status).toBe(200);
+    expect(res.json).toEqual({ ran: "hour" });
+    expect(await overdue(nam)).toHaveLength(1);
+    expect((await call("/api/dev/run-jobs?job=minute")).json).toEqual({ ran: "minute" });
+  });
+
   it("says the work is closed when late work is not allowed", async () => {
     const { nam, id } = await setup();
     await setSql("UPDATE assignments SET allow_late = 0 WHERE id = ?", id);

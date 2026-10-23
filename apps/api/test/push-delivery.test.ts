@@ -14,7 +14,8 @@ import { call, createCourse, createTeacher, pushFake, telegramFake, type Person 
 import { joinedKid, mixed, publish, type Kid } from "./homework";
 import { decryptPayload, makeReceiver, makeVapidKeys, verifyVapidJwt } from "./push";
 
-const PUBLIC_KEY = "BAlC8WGJJ97ul3Kuet85phrlxLlLHYIvqVIujZmh2J_9c7rOphKuGmrBr8cXUH0AgfMCK5BFMrJy70vdH4zNabE";
+// The configured key (wrangler.test.jsonc, or a developer's own .dev.vars, which the test runner also reads).
+const PUBLIC_KEY = env.VAPID_PUBLIC_KEY!;
 
 const setSql = (sql: string, ...args: unknown[]) =>
   env.DB.prepare(sql)
