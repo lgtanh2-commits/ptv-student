@@ -1,7 +1,11 @@
 import type { PushCheck, PushStatus } from "@lms/shared";
 import { onMounted, ref } from "vue";
-import { api } from "@/api/client";
+import { ApiError, api } from "@/api/client";
 import { messages } from "@/messages";
+
+/** The server's words for its own errors; a browser's error is in English and means nothing to people, so it is not shown. */
+const errorText = (err: unknown): string =>
+  err instanceof ApiError ? err.message : messages.common.somethingWrong;
 
 export type PushState = "loading" | "hidden" | "unsupported" | "install" | "blocked" | "off" | "on";
 
@@ -73,7 +77,7 @@ export function usePush() {
     } catch (err) {
       // push is on but this device could not be checked: keep the card so it can be turned on or off
       state.value = "off";
-      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
+      error.value = errorText(err);
     }
   }
 
@@ -99,7 +103,7 @@ export function usePush() {
       await api("/push/subscribe", { method: "POST", body: sub.toJSON() });
       state.value = "on";
     } catch (err) {
-      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
+      error.value = errorText(err);
     } finally {
       busy.value = false;
     }
@@ -117,7 +121,7 @@ export function usePush() {
       }
       state.value = "off";
     } catch (err) {
-      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
+      error.value = errorText(err);
     } finally {
       busy.value = false;
     }

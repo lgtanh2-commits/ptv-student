@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { messages } from "@/messages";
+import { en } from "@/messages/en";
+import { vi as viText } from "@/messages/vi";
 import { usePush } from "./usePush";
 
 // 65 bytes of 0..64, base64url, like the server's public key.
@@ -18,6 +21,9 @@ interface Setup {
   touch?: number;
   oldKey?: boolean;
   checkFails?: boolean;
+  subscribeFails?: boolean;
+  registerFails?: boolean;
+  unsubscribeFails?: boolean;
 }
 
 function setup(o: Setup = {}) {
@@ -28,7 +34,10 @@ function setup(o: Setup = {}) {
   });
   const order: string[] = [];
   const fetchOrder: string[] = [];
-  const unsubscribe = vi.fn(async () => (order.push("browser"), true));
+  const unsubscribe = vi.fn(async () => {
+    if (o.unsubscribeFails) throw new DOMException("Unsubscription failed", "AbortError");
+    return (order.push("browser"), true);
+  });
   const sub = {
     endpoint: SUB_JSON.endpoint,
     toJSON: () => SUB_JSON,
@@ -36,9 +45,15 @@ function setup(o: Setup = {}) {
     options: { applicationServerKey: o.oldKey ? new Uint8Array([1, 2, 3]).buffer : BYTES.buffer },
   };
   let current: typeof sub | null = o.existing ? sub : null;
-  const subscribe = vi.fn(async () => (current = sub));
+  const subscribe = vi.fn(async () => {
+    if (o.subscribeFails) throw new DOMException("Registration failed - push service error", "AbortError");
+    return (current = sub);
+  });
   const reg = { pushManager: { getSubscription: async () => current, subscribe } };
-  const register = vi.fn(async () => reg);
+  const register = vi.fn(async () => {
+    if (o.registerFails) throw new TypeError("Failed to register a ServiceWorker: script error");
+    return reg;
+  });
   vi.stubGlobal("navigator", {
     userAgent: o.ua ?? "Mozilla/5.0 (Windows NT 10.0) Chrome/130",
     standalone: o.standalone,
@@ -176,6 +191,33 @@ describe("usePush", () => {
     const p = await loaded();
     expect(p.state.value).toBe("off");
     expect(p.error.value).not.toBeNull();
+  });
+
+  it("shows our own words, not the browser's, when the browser cannot subscribe", async () => {
+    setup({ subscribeFails: true });
+    const p = await loaded();
+    await p.enable();
+    expect(p.error.value).toBe(messages.common.somethingWrong);
+    expect(p.state.value).toBe("off");
+  });
+
+  it("shows our own words when the service worker cannot be registered", async () => {
+    setup({ registerFails: true });
+    const p = await loaded();
+    await p.enable();
+    expect(p.error.value).toBe(messages.common.somethingWrong);
+  });
+
+  it("shows our own words when the browser cannot unsubscribe", async () => {
+    setup({ existing: true, unsubscribeFails: true });
+    const p = await loaded();
+    await p.disable();
+    expect(p.error.value).toBe(messages.common.somethingWrong);
+  });
+
+  it("says push only reaches a device that stays signed in, naming the exact choice on the sign in page", () => {
+    expect(en.push.signedInOnly).toContain(`"${en.common.trustDevice}"`);
+    expect(viText.push.signedInOnly).toContain(`"${viText.common.trustDevice}"`);
   });
 
   it("remembers that the hint was dismissed", async () => {

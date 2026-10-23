@@ -161,6 +161,8 @@ export const vi: Messages = {
     enableButton: "Bật thông báo",
     disableButton: "Tắt thông báo",
     onTitle: "Đã bật trên thiết bị này",
+    signedInOnly:
+      'Thông báo chỉ đến khi thiết bị này còn đăng nhập. Trên thiết bị của riêng bạn, hãy chọn "Đây là thiết bị cá nhân của tôi. Duy trì đăng nhập trên thiết bị này." khi đăng nhập.',
     blocked:
       "Trình duyệt đang chặn thông báo của Tutorio. Hãy cho phép trong phần cài đặt trang web của trình duyệt.",
     install:

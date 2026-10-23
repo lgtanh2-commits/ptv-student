@@ -161,6 +161,8 @@ export const en = {
     enableButton: "Turn on notifications",
     disableButton: "Turn off notifications",
     onTitle: "On for this device",
+    signedInOnly:
+      'Notifications only arrive while this device stays signed in. On your own device, choose "This is my own device. Keep me signed in." when you sign in.',
     blocked:
       "Your browser is blocking notifications from Tutorio. Allow them in the browser's site settings.",
     install:
