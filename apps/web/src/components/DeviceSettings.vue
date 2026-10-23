@@ -2,7 +2,6 @@
 import type { SessionInfo } from "@lms/shared";
 import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import PushCard from "@/components/PushCard.vue";
 import { authApi } from "@/features/auth/api";
 import { useSession } from "@/features/auth/session";
 import { formatWhen } from "@/features/format";
@@ -118,8 +117,6 @@ onMounted(load);
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
     </AppCard>
-
-    <PushCard />
 
     <AppCard v-if="!telegram.loading.value && telegram.status.value?.enabled" :title="tg.title">
       <AppAlert v-if="telegram.error.value" kind="error">{{ telegram.error.value }}</AppAlert>
