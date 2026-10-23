@@ -19,7 +19,7 @@ export interface MaintenanceResult {
 
 /**
  * Once an hour: removes what is old, so the database does not grow for ever with things nobody reads.
- * Sessions that ended more than a week ago, sign in links older than 30 days, counters of finished windows,
+ * Sessions that ended more than a week ago (an idle one only if it has no push address), sign in links older than 30 days, counters of finished windows,
  * and dev emails older than a week. Returns how many rows went from each table.
  */
 export async function runMaintenance(env: Env, now: Date = new Date()): Promise<MaintenanceResult> {

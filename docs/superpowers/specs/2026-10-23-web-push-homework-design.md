@@ -40,10 +40,13 @@ wants **one more reminder after the deadline** for students who still have not h
   students get the notification a few minutes late.
 - A student with their own extension (`submission_extensions`) is "overdue" only after **their** extended time.
 - Work with no deadline gets no overdue reminder. A student who handed in gets nothing more.
-- **Push only reaches a device that is still signed in** (our call, pending owner check). A student who did not choose
-  "keep me signed in" is signed out after a day without using the app, and then gets no more push there. We keep that
-  privacy rule and say it on the Push card, in the "on" and "off" states: "Notifications only arrive while this device
-  stays signed in. On your own device, choose "This is my own device. Keep me signed in." when you sign in."
+- **Push stops only when the session is signed out (owner decision, 2026-10-23).** A person who turned push on keeps
+  getting pushes on that device even when they have not opened the app for a long time, whether or not they ticked
+  "This is my own device. Keep me signed in." at sign in. Push stops only when the session is signed out (sign out,
+  end this device, sign out everywhere), when it reaches its absolute end (90 days), or when the account is disabled.
+  The idle rule still signs the person out of the app as before; it just no longer stops push. The owner accepts the
+  trade-off: on a shared computer, a student who forgets to sign out keeps getting their notifications there. The
+  Push card says nothing about staying signed in.
 
 ## Goals
 
@@ -114,7 +117,10 @@ wants **one more reminder after the deadline** for students who still have not h
 - **Shared devices (our call).** A browser has one push address whoever is signed in, so an address belongs to **one
   person only** (unique per address). When someone else turns push on in that browser, the address moves to them.
   **Signing out removes this device's subscription**, so a student who signs out on a family or school computer stops
-  getting pushes there, and the next person's homework titles never show for the previous one.
+  getting pushes there, and the next person's homework titles never show for the previous one. A student who only
+  closes the browser and forgets to sign out keeps getting pushes there until the session ends (owner decision above);
+  maintenance keeps an idle session that still has a push address, and removes it (with the address) once it is signed
+  out or past its end.
 
 ### Sending
 

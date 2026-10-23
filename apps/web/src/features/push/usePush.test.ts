@@ -215,11 +215,6 @@ describe("usePush", () => {
     expect(p.error.value).toBe(messages.common.somethingWrong);
   });
 
-  it("says push only reaches a device that stays signed in, naming the exact choice on the sign in page", () => {
-    expect(en.push.signedInOnly).toContain(`"${en.common.trustDevice}"`);
-    expect(viText.push.signedInOnly).toContain(`"${viText.common.trustDevice}"`);
-  });
-
   it("remembers that the hint was dismissed", async () => {
     setup();
     const p = await loaded();

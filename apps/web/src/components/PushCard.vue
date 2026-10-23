@@ -20,7 +20,6 @@ const push = usePush();
         <AppBadge tone="success">{{ t.onTitle }}</AppBadge>
         <p class="text-base-content/70">{{ t.text }}</p>
       </div>
-      <p class="text-base-content/60 text-sm">{{ t.signedInOnly }}</p>
       <div>
         <AppButton variant="secondary" compact :loading="push.busy.value" @click="push.disable">{{
           t.disableButton
@@ -34,7 +33,6 @@ const push = usePush();
       <AppAlert v-else-if="push.state.value === 'blocked'" kind="warning">{{ t.blocked }}</AppAlert>
       <p v-else-if="push.state.value === 'unsupported'" class="text-base-content/60">{{ t.unsupported }}</p>
       <template v-else>
-        <p class="text-base-content/60 text-sm">{{ t.signedInOnly }}</p>
         <div>
           <AppButton :loading="push.busy.value" @click="push.enable"
             ><AppIcon name="bell" :size="16" />{{ t.enableButton }}</AppButton

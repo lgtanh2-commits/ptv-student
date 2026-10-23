@@ -11,9 +11,9 @@ export interface PushSubscriptionRow {
 
 /**
  * The browsers that can be told something about each of these people: only devices whose session is still
- * signed in, by the same rule as the sign in check (middleware/auth.ts): not signed out, not past its end, not
- * idle for longer than it may be, and the account not turned off. Signing out (or a session ending) stops
- * messages to that device.
+ * signed in: not signed out, not past its end, and the account not turned off. Being idle does NOT stop
+ * messages (owner decision): idling only signs the person out of the app (middleware/auth.ts), while the device
+ * keeps getting messages until the session is signed out or reaches its end.
  */
 export async function liveSubscriptionsOf(
   db: D1Database,
@@ -28,7 +28,7 @@ export async function liveSubscriptionsOf(
        JOIN sessions s ON s.id = p.session_id
        JOIN users u ON u.id = p.user_id
        WHERE p.user_id IN (SELECT value FROM json_each(?1)) AND s.revoked_at IS NULL AND s.expires_at > ?2
-         AND u.disabled_at IS NULL AND datetime(s.last_seen_at, '+' || s.idle_days || ' days') > datetime(?2)`,
+         AND u.disabled_at IS NULL`,
     )
     .bind(JSON.stringify(userIds), nowIso)
     .all<Omit<PushSubscriptionRow, "language"> & { language: string }>();
@@ -49,7 +49,7 @@ export async function liveSubscriptionsByIds(
        JOIN sessions s ON s.id = p.session_id
        JOIN users u ON u.id = p.user_id
        WHERE p.id IN (SELECT value FROM json_each(?1)) AND s.revoked_at IS NULL AND s.expires_at > ?2
-         AND u.disabled_at IS NULL AND datetime(s.last_seen_at, '+' || s.idle_days || ' days') > datetime(?2)`,
+         AND u.disabled_at IS NULL`,
     )
     .bind(JSON.stringify(ids), nowIso)
     .all<Omit<PushSubscriptionRow, "language"> & { language: string }>();

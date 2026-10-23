@@ -230,7 +230,7 @@ describe("pushing notifications to browsers", () => {
     expect(await queued()).toBe(0);
   });
 
-  it("does not push to a device whose session idled out", async () => {
+  it("still pushes to a device whose session idled out of the app", async () => {
     const { t, course, kids } = await classWithPush(1);
     await setSql(
       `UPDATE sessions SET last_seen_at = ?
@@ -239,7 +239,20 @@ describe("pushing notifications to browsers", () => {
       kids[0]!.endpoint,
     );
     await publish(t, course.id, mixed());
-    expect(pushFake.sent).toEqual([]);
+    expect(pushFake.sent.map((s) => s.endpoint)).toEqual([kids[0]!.endpoint]);
+  });
+
+  it("still sends a queued message to a device whose session idled out of the app", async () => {
+    const { t, course } = await classWithPush(REQUEST_SEND_LIMIT + 1);
+    await publish(t, course.id, mixed());
+    expect(await queued()).toBe(1);
+    await setSql(
+      "UPDATE sessions SET last_seen_at = ?",
+      new Date(Date.now() - 31 * 86_400_000).toISOString(),
+    );
+    await drainQueue(env);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT + 1);
+    expect(await queued()).toBe(0);
   });
 
   it("drops a queued message whose device was signed out before it went", async () => {

@@ -72,6 +72,35 @@ describe("cleaning up old rows", () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
+  it("keeps an idle session that still has a push address, and removes the others with theirs first", async () => {
+    const t = await createTeacher();
+    const sub = (sessionId: string) =>
+      run(
+        `INSERT INTO push_subscriptions (id, user_id, session_id, endpoint, p256dh, auth, created_at)
+         VALUES (?1, ?2, ?3, ?4, 'k', 'a', ?5)`,
+        crypto.randomUUID(),
+        t.userId,
+        sessionId,
+        `https://push.example/${sessionId}`,
+        ago(50),
+      );
+    const idleWithPush = await session(t.userId, { seen: ago(20), idle: 7 });
+    const idleWithout = await session(t.userId, { seen: ago(20), idle: 7 });
+    const revokedWithPush = await session(t.userId, { revoked: ago(9) });
+    const endedWithPush = await session(t.userId, { expires: ago(8) });
+    for (const id of [idleWithPush, revokedWithPush, endedWithPush]) await sub(id);
+    const result = await runMaintenance(env, NOW);
+    expect(result.sessions).toBe(3);
+    expect(await exists("sessions", idleWithPush)).toBe(true);
+    expect(
+      await count("SELECT COUNT(*) AS n FROM push_subscriptions WHERE session_id = ?", idleWithPush),
+    ).toBe(1);
+    for (const id of [idleWithout, revokedWithPush, endedWithPush]) {
+      expect(await exists("sessions", id), id).toBe(false);
+      expect(await count("SELECT COUNT(*) AS n FROM push_subscriptions WHERE session_id = ?", id)).toBe(0);
+    }
+  });
+
   it("removes old sign in links but never an invite", async () => {
     const t = await createTeacher();
     const kid = await addStudent(t, { name: "Bao", invite: true });
