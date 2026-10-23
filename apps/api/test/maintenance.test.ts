@@ -72,6 +72,35 @@ describe("cleaning up old rows", () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
+  it("keeps an idle session that still has a push address, and removes the others with theirs first", async () => {
+    const t = await createTeacher();
+    const sub = (sessionId: string) =>
+      run(
+        `INSERT INTO push_subscriptions (id, user_id, session_id, endpoint, p256dh, auth, created_at)
+         VALUES (?1, ?2, ?3, ?4, 'k', 'a', ?5)`,
+        crypto.randomUUID(),
+        t.userId,
+        sessionId,
+        `https://push.example/${sessionId}`,
+        ago(50),
+      );
+    const idleWithPush = await session(t.userId, { seen: ago(20), idle: 7 });
+    const idleWithout = await session(t.userId, { seen: ago(20), idle: 7 });
+    const revokedWithPush = await session(t.userId, { revoked: ago(9) });
+    const endedWithPush = await session(t.userId, { expires: ago(8) });
+    for (const id of [idleWithPush, revokedWithPush, endedWithPush]) await sub(id);
+    const result = await runMaintenance(env, NOW);
+    expect(result.sessions).toBe(3);
+    expect(await exists("sessions", idleWithPush)).toBe(true);
+    expect(
+      await count("SELECT COUNT(*) AS n FROM push_subscriptions WHERE session_id = ?", idleWithPush),
+    ).toBe(1);
+    for (const id of [idleWithout, revokedWithPush, endedWithPush]) {
+      expect(await exists("sessions", id), id).toBe(false);
+      expect(await count("SELECT COUNT(*) AS n FROM push_subscriptions WHERE session_id = ?", id)).toBe(0);
+    }
+  });
+
   it("removes old sign in links but never an invite", async () => {
     const t = await createTeacher();
     const kid = await addStudent(t, { name: "Bao", invite: true });
@@ -136,5 +165,46 @@ describe("cleaning up old rows", () => {
     const second = await runMaintenance(env, NOW);
     expect(second).toEqual({ sessions: 0, tokens: 0, counters: 0, outbox: 0 });
     expect(await count("SELECT COUNT(*) AS n FROM audit_log")).toBe(before);
+  });
+
+  it("removes subscriptions of ended sessions before the sessions themselves, and old queue rows", async () => {
+    const t = await createTeacher();
+    const live = await session(t.userId);
+    const ended = await session(t.userId, { revoked: ago(10) });
+    const sub = async (sessionId: string) => {
+      const id = crypto.randomUUID();
+      await run(
+        `INSERT INTO push_subscriptions (id, user_id, session_id, endpoint, p256dh, auth, created_at)
+         VALUES (?1, ?2, ?3, ?4, 'k', 'a', ?5)`,
+        id,
+        t.userId,
+        sessionId,
+        `https://fcm.googleapis.com/${id}`,
+        ago(20),
+      );
+      return id;
+    };
+    const queued = async (createdAt: string) => {
+      const id = crypto.randomUUID();
+      await run(
+        `INSERT INTO outbound_queue (id, channel, user_id, target, content, created_at, next_at)
+         VALUES (?1, 'push', 'u', 't', 'c', ?2, ?2)`,
+        id,
+        createdAt,
+      );
+      return id;
+    };
+    const liveSub = await sub(live);
+    const endedSub = await sub(ended);
+    const oldQueue = await queued(new Date(NOW.getTime() - 25 * 3_600_000).toISOString());
+    const freshQueue = await queued(new Date(NOW.getTime() - 3_600_000).toISOString());
+
+    await runMaintenance(env, NOW);
+
+    expect(await exists("push_subscriptions", endedSub)).toBe(false);
+    expect(await exists("sessions", ended)).toBe(false);
+    expect(await exists("push_subscriptions", liveSub)).toBe(true);
+    expect(await exists("outbound_queue", oldQueue)).toBe(false);
+    expect(await exists("outbound_queue", freshQueue)).toBe(true);
   });
 });

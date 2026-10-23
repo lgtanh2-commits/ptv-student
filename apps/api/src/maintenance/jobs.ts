@@ -2,6 +2,8 @@ import type { Env } from "../env";
 import {
   deleteOldCountersStatement,
   deleteOldOutboxStatement,
+  deleteEndedSessionSubscriptionsStatement,
+  deleteOldQueueStatement,
   deleteOldSessionsStatement,
   deleteOldTokensStatement,
 } from "../repos/maintenance";
@@ -17,17 +19,20 @@ export interface MaintenanceResult {
 
 /**
  * Once an hour: removes what is old, so the database does not grow for ever with things nobody reads.
- * Sessions that ended more than a week ago, sign in links older than 30 days, counters of finished windows,
+ * Sessions that ended more than a week ago (an idle one only if it has no push address), sign in links older than 30 days, counters of finished windows,
  * and dev emails older than a week. Returns how many rows went from each table.
  */
 export async function runMaintenance(env: Env, now: Date = new Date()): Promise<MaintenanceResult> {
   const db = env.DB;
   const iso = (days: number) => new Date(now.getTime() - days * DAY_MS).toISOString();
-  const [sessions, tokens, counters, outbox] = await db.batch([
+  const [, sessions, tokens, counters, outbox] = await db.batch([
+    // Push addresses first: they point at sessions, and D1 enforces foreign keys.
+    deleteEndedSessionSubscriptionsStatement(db, iso(7), now.toISOString()),
     deleteOldSessionsStatement(db, iso(7), now.toISOString()),
     deleteOldTokensStatement(db, iso(30)),
     deleteOldCountersStatement(db, Math.floor((now.getTime() - 2 * DAY_MS) / 1000)),
     deleteOldOutboxStatement(db, iso(7)),
+    deleteOldQueueStatement(db, new Date(now.getTime() - DAY_MS).toISOString()),
   ]);
   return {
     sessions: sessions?.meta.changes ?? 0,

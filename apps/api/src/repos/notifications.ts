@@ -4,6 +4,7 @@ import { nowIso } from "../lib/time";
 export type Kind =
   | "homework_new"
   | "homework_due"
+  | "homework_overdue"
   | "homework_returned"
   | "homework_again"
   | "receipt_sent"
@@ -130,6 +131,37 @@ export const notifyDueSoonStatement = (
          JOIN students s ON s.id = e.student_id AND s.tenant_id = a.tenant_id AND s.user_id IS NOT NULL AND s.status != 'archived'
          LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = s.id
        WHERE a.status = 'published' AND a.due_at > ?2 AND a.due_at <= ?3
+         AND (sub.id IS NULL OR sub.status IN ('drafted', 'revision_requested'))
+         AND (a.target_mode = 'all' OR EXISTS (SELECT 1 FROM assignment_targets g WHERE g.assignment_id = a.id AND g.student_id = s.id))
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, kind, title, body, link`,
+    )
+    .bind(nowIso(), fromIso, untilIso);
+
+/**
+ * A reminder, once for each person and piece of work, for everyone who has not handed in work whose deadline passed
+ * between `fromIso` and `untilIso`. A student's own extension counts when it is later than the deadline. Work with no
+ * due date never sends one. The words say whether late work is still allowed.
+ */
+export const notifyOverdueStatement = (
+  db: D1Database,
+  fromIso: string,
+  untilIso: string,
+): D1PreparedStatement =>
+  db
+    .prepare(
+      `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at, dedupe_key)
+       SELECT ${NEW_ID}, a.tenant_id, s.user_id, 'homework_overdue',
+         CASE WHEN a.allow_late = 1 THEN 'Overdue: ' || a.title || '. Please finish it soon.'
+           ELSE 'Overdue and closed: ' || a.title || '. Ask your teacher to open it again.' END,
+         c.name, '/my/work/' || a.id, ?1, 'overdue:' || a.id
+       FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND c.status != 'archived' AND a.deleted_at IS NULL
+         JOIN enrollments e ON e.tenant_id = a.tenant_id AND e.course_id = a.course_id AND e.status = 'active'
+         JOIN students s ON s.id = e.student_id AND s.tenant_id = a.tenant_id AND s.user_id IS NOT NULL AND s.status != 'archived'
+         LEFT JOIN submissions sub ON sub.assignment_id = a.id AND sub.student_id = s.id
+         LEFT JOIN submission_extensions x ON x.assignment_id = a.id AND x.student_id = s.id
+       WHERE a.status = 'published' AND a.due_at IS NOT NULL
+         AND max(a.due_at, coalesce(x.until_at, a.due_at)) > ?2 AND max(a.due_at, coalesce(x.until_at, a.due_at)) <= ?3
          AND (sub.id IS NULL OR sub.status IN ('drafted', 'revision_requested'))
          AND (a.target_mode = 'all' OR EXISTS (SELECT 1 FROM assignment_targets g WHERE g.assignment_id = a.id AND g.student_id = s.id))
        ON CONFLICT DO NOTHING

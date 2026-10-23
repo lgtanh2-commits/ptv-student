@@ -24,6 +24,7 @@ import { lessons } from "./routes/lessons";
 import { my } from "./routes/my";
 import { notifications } from "./routes/notifications";
 import { students } from "./routes/students";
+import { push } from "./routes/push";
 import { telegram } from "./routes/telegram";
 
 /** The most a request can carry. */
@@ -67,6 +68,7 @@ export function createApp() {
   api.route("/", invoices);
   api.route("/", notifications);
   api.route("/", telegram);
+  api.route("/", push);
   api.route("/", feedback);
   api.route("/", dev);
   app.route("/api", api);

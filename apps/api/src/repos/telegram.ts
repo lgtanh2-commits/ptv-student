@@ -34,6 +34,19 @@ export async function linkedChatsOf(
   );
 }
 
+/**
+ * Who each of these chats is linked to now, by chat id. A chat unlinked since is missing, so it gets nothing more;
+ * a chat linked to someone else since gets nothing that waited for the person before.
+ */
+export async function stillLinkedChats(db: D1Database, chatIds: string[]): Promise<Map<string, string>> {
+  if (chatIds.length === 0) return new Map();
+  const res = await db
+    .prepare("SELECT chat_id, user_id FROM telegram_links WHERE chat_id IN (SELECT value FROM json_each(?))")
+    .bind(JSON.stringify(chatIds))
+    .all<{ chat_id: string; user_id: string }>();
+  return new Map(res.results.map((r) => [r.chat_id, r.user_id]));
+}
+
 /** The language of the person this chat is linked to; Vietnamese for a chat nobody linked. */
 export async function languageOfChat(db: D1Database, chatId: string): Promise<Language> {
   const row = await db

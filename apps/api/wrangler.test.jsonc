@@ -13,6 +13,9 @@
     "TELEGRAM_BOT_TOKEN": "test-bot-token",
     "TELEGRAM_BOT_USERNAME": "TestLmsBot",
     "TELEGRAM_WEBHOOK_SECRET": "test-webhook-secret",
+    // A throwaway pair made with scripts/vapid-keys.mjs, used only by tests.
+    "VAPID_PUBLIC_KEY": "BAlC8WGJJ97ul3Kuet85phrlxLlLHYIvqVIujZmh2J_9c7rOphKuGmrBr8cXUH0AgfMCK5BFMrJy70vdH4zNabE",
+    "VAPID_PRIVATE_KEY": "G-qVzoxdvnN58UHrlUAIyEy3V55w07akUjwt51oMjvg",
   },
   "d1_databases": [
     {

@@ -100,6 +100,26 @@ make a second bot with @BotFather instead (free, one more `/newbot`) and give it
 Local development needs the same three settings in `apps/api/.dev.vars` (already gitignored) to try the feature;
 without them it is simply off, same as in production.
 
+## Push notifications (optional)
+
+With push, a browser that a person allowed can show the app's notifications even when the app is closed. Without
+the two keys below, push is off and the app hides the feature.
+
+1. Make a key pair (once, and use a different pair for each environment): `node scripts/vapid-keys.mjs`. It prints
+   `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`.
+2. Put the private key in as a secret: `wrangler secret put VAPID_PRIVATE_KEY --env <env>`.
+3. Put the public key into `vars` of that environment in `wrangler.jsonc` as `VAPID_PUBLIC_KEY` (it is not a secret;
+   browsers receive it).
+4. Apply migration `0023_push.sql` (it only adds tables) together with the deploy.
+
+Changing (rotating) the pair later makes every saved subscription fail: no browser gets a push until its person
+turns notifications on again in Settings (the browser then subscribes with the new key). Rotate only when the private
+key may have leaked, and tell people to turn notifications on again.
+
+Push needs the second schedule, `* * * * *` in `triggers.crons`, which sends what waits over the send limit
+(`scripts/preflight-production.mjs` refuses production without both `0 * * * *` and `* * * * *`). The Free plan allows
+5 cron triggers for the whole account; staging and production now use 4 (two each), so there is room for one more.
+
 ## Language (Vietnamese and English)
 
 Migration `0021_user_language.sql` adds `users.language` (only `vi` or `en`, default `vi`) and sets every account that exists when it runs to `en`. So existing accounts stay English, new accounts start Vietnamese, and anyone can change it in Settings. The `/devices` link now goes to `/settings`.

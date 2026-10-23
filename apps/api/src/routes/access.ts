@@ -12,6 +12,7 @@ export const ROUTE_ACCESS: Record<string, Access> = {
   "GET /api/health": "public",
   "GET /api/openapi.json": "public",
   "GET /api/dev/outbox": "public", // answers "not found" unless running locally
+  "GET /api/dev/run-jobs": "public", // answers "not found" unless running locally
   "GET /api/auth/options": "public",
   "GET /api/auth/google/start": "public",
   "GET /api/auth/google/callback": "public",
@@ -63,6 +64,10 @@ export const ROUTE_ACCESS: Record<string, Access> = {
   "GET /api/telegram/status": "user",
   "POST /api/telegram/link-code": "user",
   "POST /api/telegram/unlink": "user",
+  "GET /api/push/status": "user",
+  "POST /api/push/subscribe": "user",
+  "POST /api/push/check": "user",
+  "POST /api/push/unsubscribe": "user",
   "POST /api/feedback": "user",
   "GET /api/feedback/board": "user",
   "POST /api/telegram/webhook": "public", // checks its own secret header (routes/telegram.ts), not a session

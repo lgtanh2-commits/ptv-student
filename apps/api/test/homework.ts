@@ -98,7 +98,7 @@ export function fullAnswers(
 export type Kid = Person & { studentId: string };
 export async function joinedKid(t: Person, courseId: string, name = "Kid"): Promise<Kid> {
   const kid = await createStudent(t, name);
-  const all = (await call("/api/students?page=1", { cookie: t.cookie })).json.students as {
+  const all = (await call("/api/students?page=1&pageSize=100", { cookie: t.cookie })).json.students as {
     id: string;
     email: string;
   }[];

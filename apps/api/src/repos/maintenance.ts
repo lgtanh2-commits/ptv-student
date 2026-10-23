@@ -3,7 +3,36 @@
  * Never touched here: the audit log (it can only grow), invites (they show who was ever invited), and anything of a student's.
  */
 
-/** Sessions that ended (by time, by idling, or because the person signed out) a while ago. */
+/**
+ * Push addresses of sessions that ended (signed out or past their end) and are about to be removed below. Must
+ * run before the sessions are deleted: a subscription points at its session. Idling is not an end: an idle
+ * session that has a push address stays (see below).
+ */
+export const deleteEndedSessionSubscriptionsStatement = (
+  db: D1Database,
+  cutoffIso: string,
+  nowIso: string,
+): D1PreparedStatement =>
+  db
+    .prepare(
+      `DELETE FROM push_subscriptions
+       WHERE session_id IN (
+         SELECT id FROM sessions
+         WHERE revoked_at IS NOT NULL OR expires_at < ?2
+            OR expires_at < ?1
+       )`,
+    )
+    .bind(cutoffIso, nowIso);
+
+/** Messages still waiting after a day will not be sent any more. */
+export const deleteOldQueueStatement = (db: D1Database, cutoffIso: string): D1PreparedStatement =>
+  db.prepare("DELETE FROM outbound_queue WHERE created_at < ?").bind(cutoffIso);
+
+/**
+ * Sessions that ended (by time, or because the person signed out) a while ago, and sessions that idled out of
+ * the app, unless they still have a push address: that device keeps getting messages until it signs out or the
+ * session reaches its end (owner decision), so the row it hangs on stays.
+ */
 export const deleteOldSessionsStatement = (
   db: D1Database,
   cutoffIso: string,
@@ -14,7 +43,8 @@ export const deleteOldSessionsStatement = (
       `DELETE FROM sessions
        WHERE expires_at < ?1
           OR (revoked_at IS NOT NULL AND revoked_at < ?1)
-          OR datetime(last_seen_at, '+' || (idle_days + 1) || ' days') < datetime(?2)`,
+          OR (datetime(last_seen_at, '+' || (idle_days + 1) || ' days') < datetime(?2)
+              AND NOT EXISTS (SELECT 1 FROM push_subscriptions p WHERE p.session_id = sessions.id))`,
     )
     .bind(cutoffIso, nowIso);
 

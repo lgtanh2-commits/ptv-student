@@ -679,6 +679,16 @@ export const SERVER_TEXT: readonly ServerText[] = [
   { id: "New homework: {title}", en: "New homework: {title}", vi: "Bài tập mới: {title}" },
   { id: "Due soon: {title}", en: "Due soon: {title}", vi: "Sắp đến hạn nộp: {title}" },
   {
+    id: "Overdue: {title}. Please finish it soon.",
+    en: "Overdue: {title}. Please finish it soon.",
+    vi: "Bài {title} đã quá hạn, hãy nhanh chóng hoàn thiện nhé.",
+  },
+  {
+    id: "Overdue and closed: {title}. Ask your teacher to open it again.",
+    en: "Overdue and closed: {title}. Ask your teacher to open it again.",
+    vi: "Bài {title} đã quá hạn và đã khoá nộp. Liên hệ với giáo viên để được mở nộp bài",
+  },
+  {
     id: "Your work was scored: {title}",
     en: "Your work was scored: {title}",
     vi: "Bài của bạn đã được chấm điểm: {title}",

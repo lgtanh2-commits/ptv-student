@@ -155,6 +155,21 @@ export const vi: Messages = {
     endAllTitle: "Đăng xuất khỏi tất cả thiết bị?",
     endAllText: "Bạn sẽ cần đăng nhập lại trên tất cả thiết bị, bao gồm cả thiết bị này.",
   },
+  push: {
+    title: "Thông báo trên thiết bị",
+    text: "Nhận thông báo ngay trên điện thoại hoặc máy tính, kể cả khi không mở Tutorio.",
+    enableButton: "Bật thông báo",
+    disableButton: "Tắt thông báo",
+    onTitle: "Đã bật trên thiết bị này",
+    blocked:
+      "Trình duyệt đang chặn thông báo của Tutorio. Hãy cho phép trong phần cài đặt trang web của trình duyệt.",
+    install:
+      'Trên iPhone/iPad: trong Safari bấm nút Chia sẻ, chọn "Thêm vào MH chính", rồi mở Tutorio từ biểu tượng mới và bật thông báo tại đây.',
+    unsupported: "Trình duyệt này chưa hỗ trợ thông báo.",
+    hint: "Bật thông báo để không bỏ lỡ bài tập về nhà.",
+    hintAction: "Bật ngay",
+    hintLater: "Để sau",
+  },
   telegram: {
     title: "Thông báo Telegram",
     text: "Nhận thông báo qua Telegram cho các sự kiện cũng xuất hiện tại đây, chẳng hạn khi học viên nộp bài.",
