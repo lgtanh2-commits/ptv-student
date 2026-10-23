@@ -15,6 +15,9 @@ interface Setup {
   existing?: boolean;
   checked?: boolean;
   noPush?: boolean;
+  touch?: number;
+  oldKey?: boolean;
+  checkFails?: boolean;
 }
 
 function setup(o: Setup = {}) {
@@ -23,8 +26,15 @@ function setup(o: Setup = {}) {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, v),
   });
-  const unsubscribe = vi.fn(async () => true);
-  const sub = { endpoint: SUB_JSON.endpoint, toJSON: () => SUB_JSON, unsubscribe };
+  const order: string[] = [];
+  const fetchOrder: string[] = [];
+  const unsubscribe = vi.fn(async () => (order.push("browser"), true));
+  const sub = {
+    endpoint: SUB_JSON.endpoint,
+    toJSON: () => SUB_JSON,
+    unsubscribe,
+    options: { applicationServerKey: o.oldKey ? new Uint8Array([1, 2, 3]).buffer : BYTES.buffer },
+  };
   let current: typeof sub | null = o.existing ? sub : null;
   const subscribe = vi.fn(async () => (current = sub));
   const reg = { pushManager: { getSubscription: async () => current, subscribe } };
@@ -32,6 +42,7 @@ function setup(o: Setup = {}) {
   vi.stubGlobal("navigator", {
     userAgent: o.ua ?? "Mozilla/5.0 (Windows NT 10.0) Chrome/130",
     standalone: o.standalone,
+    maxTouchPoints: o.touch ?? 0,
     serviceWorker: { register, ready: Promise.resolve(reg), getRegistration: async () => reg },
   });
   const requestPermission = vi.fn(async () => o.requested ?? "granted");
@@ -46,14 +57,17 @@ function setup(o: Setup = {}) {
     vi.fn(async (url: string, init?: RequestInit) => {
       const body = init?.body ? JSON.parse(String(init.body)) : undefined;
       calls.push({ url, body });
+      if (url.endsWith("/push/unsubscribe")) order.push("server");
+      fetchOrder.push(url.replace("/api", ""));
       if (url.endsWith("/push/status")) {
         return Response.json({ enabled: o.enabled ?? true, publicKey: o.enabled === false ? null : KEY });
       }
+      if (url.endsWith("/push/check") && o.checkFails) throw new Error("offline");
       if (url.endsWith("/push/check")) return Response.json({ subscribed: o.checked ?? true });
       return Response.json({ ok: true });
     }),
   );
-  return { calls, subscribe, unsubscribe, requestPermission, register };
+  return { calls, order, fetchOrder, subscribe, unsubscribe, requestPermission, register };
 }
 
 afterEach(() => {
@@ -76,6 +90,11 @@ describe("usePush", () => {
 
   it("asks iPhone users to add the app to the home screen first", async () => {
     setup({ ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari", noPush: true });
+    expect((await loaded()).state.value).toBe("install");
+  });
+
+  it("treats an iPad that reports a Mac as an iPhone-like device", async () => {
+    setup({ ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari", touch: 5, noPush: true });
     expect((await loaded()).state.value).toBe("install");
   });
 
@@ -136,7 +155,27 @@ describe("usePush", () => {
     expect(idx).toBeGreaterThan(-1);
     expect(s.calls[idx]?.body).toEqual({ endpoint: SUB_JSON.endpoint });
     expect(s.unsubscribe).toHaveBeenCalledTimes(1);
+    const serverCall = s.fetchOrder.findIndex((x) => x === "/push/unsubscribe");
+    expect(serverCall).toBeGreaterThan(-1);
+    expect(s.order).toEqual(["server", "browser"]);
     expect(p.state.value).toBe("off");
+  });
+
+  it("replaces a subscription made with another key", async () => {
+    const s = setup({ existing: true, checked: false, oldKey: true });
+    const p = await loaded();
+    await p.enable();
+    expect(s.order).toEqual(["browser"]);
+    const arg = (s.subscribe.mock.calls[0] as unknown[])[0] as { applicationServerKey: Uint8Array };
+    expect(Array.from(arg.applicationServerKey)).toEqual(Array.from(BYTES));
+    expect(p.state.value).toBe("on");
+  });
+
+  it("keeps the card as off with an error when the check fails", async () => {
+    setup({ existing: true, checkFails: true });
+    const p = await loaded();
+    expect(p.state.value).toBe("off");
+    expect(p.error.value).not.toBeNull();
   });
 
   it("remembers that the hint was dismissed", async () => {

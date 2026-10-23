@@ -22,7 +22,9 @@ function sameBytes(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
 
 /** iPhone and iPad only allow notifications for an app added to the home screen. */
 function needsInstall(): boolean {
-  if (!/iphone|ipad|ipod/i.test(navigator.userAgent)) return false;
+  // iPadOS 13+ Safari reports a Mac user agent, but a Mac has no touch screen.
+  const ipad = /macintosh/i.test(navigator.userAgent) && (navigator.maxTouchPoints ?? 0) > 1;
+  if (!ipad && !/iphone|ipad|ipod/i.test(navigator.userAgent)) return false;
   const standalone =
     (navigator as Navigator & { standalone?: boolean }).standalone === true ||
     window.matchMedia?.("(display-mode: standalone)").matches === true;
@@ -49,8 +51,14 @@ export function usePush() {
   }
 
   async function load() {
+    let status: PushStatus;
     try {
-      const status = await api<PushStatus>("/push/status");
+      status = await api<PushStatus>("/push/status");
+    } catch {
+      // cannot tell: the feature stays out of the way rather than showing a wrong state
+      return void (state.value = "hidden");
+    }
+    try {
       publicKey = status.publicKey;
       if (!status.enabled || !publicKey) return void (state.value = "hidden");
       if (needsInstall()) return void (state.value = "install");
@@ -62,9 +70,10 @@ export function usePush() {
       if (!sub) return void (state.value = "off");
       const check = await api<PushCheck>("/push/check", { method: "POST", body: { endpoint: sub.endpoint } });
       state.value = check.subscribed ? "on" : "off";
-    } catch {
-      // cannot tell: the feature stays out of the way rather than showing a wrong state
-      state.value = "hidden";
+    } catch (err) {
+      // push is on but this device could not be checked: keep the card so it can be turned on or off
+      state.value = "off";
+      error.value = err instanceof Error ? err.message : messages.common.somethingWrong;
     }
   }
 

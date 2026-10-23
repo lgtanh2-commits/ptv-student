@@ -20,17 +20,29 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const link = new URL(
-    (event.notification.data && event.notification.data.link) || "/",
-    self.location.origin,
-  );
-  // Only ever open a page of this app, whatever the payload says.
-  const target = link.origin === self.location.origin ? link.href : self.location.origin + "/";
+  const origin = self.location.origin;
+  let target = origin + "/";
+  try {
+    const link = new URL((event.notification.data && event.notification.data.link) || "/", origin);
+    // Only ever open a page of this app, whatever the payload says.
+    if (link.origin === origin) target = link.href;
+  } catch {
+    // a malformed link: open the home page
+  }
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-      const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
-      if (open) return open.focus().then((w) => (w || open).navigate(target));
-      return self.clients.openWindow(target);
+    // Without includeUncontrolled this lists only windows this worker controls, the only ones navigate() accepts.
+    self.clients.matchAll({ type: "window" }).then(async (windows) => {
+      const open = windows.find((w) => new URL(w.url).origin === origin);
+      if (open) {
+        try {
+          const focused = await open.focus();
+          await (focused || open).navigate(target);
+          return;
+        } catch {
+          // navigating failed: open a new window instead
+        }
+      }
+      await self.clients.openWindow(target);
     }),
   );
 });
