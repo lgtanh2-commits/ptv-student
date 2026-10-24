@@ -15,6 +15,7 @@ import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -50,13 +51,13 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
     :back-to="lesson ? `/courses/${lesson.courseId}?tab=lessons` : '/schedule'"
     :back-label="t.back"
   >
-    <template v-if="lesson?.status === 'scheduled'" #actions>
-      <AppButton variant="ghost" @click="askCancel(lesson)"
-        ><AppIcon name="ban" :size="18" />{{ l.cancel }}</AppButton
+    <template v-if="lesson?.status === 'scheduled'" #more>
+      <AppMenuItem danger @click="askCancel(lesson)"
+        ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppMenuItem
       >
     </template>
     <template v-else-if="lesson?.status === 'cancelled'" #actions>
-      <AppButton variant="ghost" :loading="restoringId === lesson.id" @click="restore(lesson.id)">
+      <AppButton variant="secondary" :loading="restoringId === lesson.id" @click="restore(lesson.id)">
         <AppIcon name="restore" :size="18" />{{ l.restore }}
       </AppButton>
     </template>

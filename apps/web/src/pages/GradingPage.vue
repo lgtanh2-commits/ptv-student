@@ -90,7 +90,7 @@ const stateNote = computed(() => {
     :back-to="`/assignments/${assignmentId}`"
     :back-label="t.back"
   >
-    <template v-if="d" #actions>
+    <template v-if="d" #meta>
       <AppBadge :tone="submissionTone[d.status]">{{ submissionText[d.status] }}</AppBadge>
       <AppBadge v-if="d.isLate" tone="error">{{ t.late }}</AppBadge>
     </template>

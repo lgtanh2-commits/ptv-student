@@ -25,8 +25,10 @@ const print = () => window.print();
     back-to="/my/invoices"
     :back-label="t.myBack"
   >
-    <template v-if="invoice" #actions>
+    <template v-if="invoice" #meta>
       <AppBadge :tone="invoiceStatusTone[invoice.status]">{{ invoiceStatusText[invoice.status] }}</AppBadge>
+    </template>
+    <template v-if="invoice" #actions>
       <AppButton variant="secondary" @click="print"
         ><AppIcon name="print" :size="16" />{{ t.print }}</AppButton
       >

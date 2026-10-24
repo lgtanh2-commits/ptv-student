@@ -18,6 +18,7 @@ import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppStat from "@/ui/AppStat.vue";
@@ -68,22 +69,25 @@ async function toggleArchived(archived: boolean) {
 
 <template>
   <AppPage :title="student?.name ?? t.title" back-to="/students" :back-label="t.backToStudents">
-    <template v-if="student" #actions>
+    <template v-if="student" #meta>
       <AppBadge :tone="student.archived ? 'neutral' : accessTone[student.access]">
         {{ student.archived ? s.archived : accessText[student.access] }}
       </AppBadge>
-      <AppButton v-if="canInvite" variant="secondary" compact :loading="inviting" @click="sendInvite"
+    </template>
+    <template v-if="student && !student.archived" #more>
+      <AppMenuItem @click="askingArchive = true"
+        ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppMenuItem
+      >
+    </template>
+    <template v-if="student && (canInvite || student.archived)" #actions>
+      <AppButton v-if="canInvite" variant="secondary" :loading="inviting" @click="sendInvite"
         ><AppIcon name="send" :size="16" />{{ t.invite }}</AppButton
       >
       <AppButton
-        v-if="!student.archived"
+        v-if="student.archived"
         variant="secondary"
-        compact
         :loading="archiving"
-        @click="askingArchive = true"
-        ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
-      >
-      <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
+        @click="toggleArchived(false)"
         ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
       >
     </template>

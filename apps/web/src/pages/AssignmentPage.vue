@@ -25,6 +25,7 @@ import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -126,19 +127,23 @@ const deleteWords = computed(() => {
     :back-to="a ? `/courses/${a.courseId}?tab=homework` : '/courses'"
     :back-label="t.backToCourse"
   >
-    <template v-if="a" #actions>
+    <template v-if="a" #meta>
       <AppBadge>{{ summaryLine(a.questions.length, a.maxScore) }}</AppBadge>
       <AppBadge :tone="assignmentStatusTone[a.status]">{{ assignmentStatusText[a.status] }}</AppBadge>
-      <AppButton variant="ghost" compact @click="deleting = true"
-        ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppButton
+    </template>
+    <template v-if="a" #more>
+      <AppMenuItem danger @click="deleting = true"
+        ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppMenuItem
       >
-      <AppButton variant="secondary" compact @click="router.push(`/assignments/${a.id}/edit`)"
+    </template>
+    <template v-if="a" #actions>
+      <AppButton variant="secondary" @click="router.push(`/assignments/${a.id}/edit`)"
         ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
       >
-      <AppButton v-if="a.status === 'published'" variant="secondary" compact @click="p.close">{{
+      <AppButton v-if="a.status === 'published'" variant="secondary" @click="p.close">{{
         t.close
       }}</AppButton>
-      <AppButton v-else compact @click="p.publish"
+      <AppButton v-else @click="p.publish"
         ><AppIcon name="send" :size="16" />{{ a.status === "closed" ? t.reopen : t.publish }}</AppButton
       >
     </template>

@@ -19,6 +19,7 @@ import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppMoneyInput from "@/ui/AppMoneyInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppMultiSelect from "@/ui/AppMultiSelect.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppTabs from "@/ui/AppTabs.vue";
@@ -87,17 +88,16 @@ const statusText = {
     back-to="/courses"
     :back-label="t.backToCourses"
   >
-    <template v-if="course" #actions>
+    <template v-if="course" #meta>
       <AppBadge :tone="statusTone[course.status]">{{ statusText[course.status] }}</AppBadge>
-      <AppButton
-        v-if="!archived"
-        variant="secondary"
-        compact
-        :loading="archiving"
-        @click="askingArchive = true"
-        ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
+    </template>
+    <template v-if="course && !archived" #more>
+      <AppMenuItem @click="askingArchive = true"
+        ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppMenuItem
       >
-      <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
+    </template>
+    <template v-if="course && archived" #actions>
+      <AppButton variant="secondary" :loading="archiving" @click="toggleArchived(false)"
         ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
       >
     </template>

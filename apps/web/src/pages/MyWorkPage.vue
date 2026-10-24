@@ -80,7 +80,7 @@ const setLink = (qi: number, v: string) => {
     :back-to="w ? `/my/courses/${w.courseId}` : '/'"
     :back-label="t.workBack"
   >
-    <template v-if="w" #actions>
+    <template v-if="w" #meta>
       <span class="text-sm" :class="w.canEdit ? 'text-base-content/70' : 'text-base-content/50'">{{
         dueWords(w.dueAt)
       }}</span>

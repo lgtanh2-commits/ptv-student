@@ -221,13 +221,11 @@ const canSend = computed(
     back-to="/invoices"
     :back-label="t.back"
   >
-    <template v-if="d" #actions>
+    <template v-if="d" #meta>
       <AppBadge :tone="invoiceStatusTone[d.status]">{{ invoiceStatusText[d.status] }}</AppBadge>
-      <AppButton
-        v-if="d.status === 'sent' || d.status === 'paid'"
-        variant="secondary"
-        :loading="makingPng"
-        @click="downloadPng"
+    </template>
+    <template v-if="d && (d.status === 'sent' || d.status === 'paid')" #actions>
+      <AppButton variant="secondary" :loading="makingPng" @click="downloadPng"
         ><AppIcon name="download" :size="16" />{{ t.downloadPng }}</AppButton
       >
     </template>

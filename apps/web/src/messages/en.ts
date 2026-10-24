@@ -24,6 +24,7 @@ export const en = {
     previous: "Previous",
     next: "Next",
     pageOf: "Page {page} of {pages}",
+    moreActions: "More actions",
   },
   google: {
     unavailable: "Signing in is not available right now. Please try again later.",

@@ -92,22 +92,22 @@ const statusTone = {
 
 <template>
   <AppPage :title="t.title" :subtitle="t.subtitle">
-    <template #actions>
-      <div class="join">
-        <button type="button" class="btn join-item min-h-11" :aria-label="t.previous" @click="previous">
-          <AppIcon name="left" />
-        </button>
-        <button type="button" class="btn join-item min-h-11 min-w-44 font-medium" @click="thisWeek">
-          {{ formatWeek(monday) }}
-        </button>
-        <button type="button" class="btn join-item min-h-11" :aria-label="t.next" @click="next">
-          <AppIcon name="right" />
-        </button>
-      </div>
-      <AppButton v-if="lessons.length > 0" @click="openAdd"
-        ><AppIcon name="calendar-plus" :size="18" />{{ t.addLesson }}</AppButton
-      >
+    <template v-if="lessons.length > 0" #actions>
+      <AppButton @click="openAdd"><AppIcon name="calendar-plus" :size="18" />{{ t.addLesson }}</AppButton>
     </template>
+
+    <!-- The week: on a phone it fills the width, with the arrows at the two edges. -->
+    <div class="join w-full sm:w-auto sm:self-start">
+      <button type="button" class="btn join-item min-h-11" :aria-label="t.previous" @click="previous">
+        <AppIcon name="left" />
+      </button>
+      <button type="button" class="btn join-item min-h-11 flex-1 font-medium sm:min-w-44" @click="thisWeek">
+        {{ formatWeek(monday) }}
+      </button>
+      <button type="button" class="btn join-item min-h-11" :aria-label="t.next" @click="next">
+        <AppIcon name="right" />
+      </button>
+    </div>
 
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
     <AppLoading v-if="loading && lessons.length === 0" :label="messages.common.loading" :rows="5" />

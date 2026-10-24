@@ -47,22 +47,42 @@ describe("frontend architecture (plan 5.2)", () => {
     expect(bad).toEqual([]);
   });
 
-  it("in the buttons at the top of a page, the main button is always the last one (the far right)", () => {
-    const bad = files(path.join(root, "pages"))
+  // The buttons of the page itself: a slot named "actions" that is a direct child of the page (four spaces in).
+  // Status badges and due text go in the "meta" slot, rarer actions in the "more" slot (a "⋯" menu); neither counts here.
+  const pageActions = () =>
+    files(path.join(root, "pages"))
       .filter((f) => f.endsWith(".vue"))
       .flatMap((f) => {
         const template = readFileSync(f, "utf8").replace(/<script[\s\S]*?<\/script>/, "");
-        // The buttons of the page itself: a slot named "actions" that is a direct child of the page (four spaces in).
-        const blocks = [...template.matchAll(/\n {4}<template[^>]*#actions>([\s\S]*?)\n {4}<\/template>/g)];
-        return blocks.flatMap((m) => {
-          const controls = [...m[1]!.matchAll(/<(AppButton|RouterLink|button)\b[^>]*>/g)];
-          const isMain = (tag: string) =>
-            tag.startsWith("<AppButton") ? !/variant/.test(tag) : /btn-primary/.test(tag);
-          const last = controls.at(-1);
-          const hasMain = controls.some((c) => isMain(c[0]));
-          return hasMain && last && !isMain(last[0]) ? [`${path.relative(root, f)}: ${last[0]}`] : [];
-        });
+        return [...template.matchAll(/\n {4}<template[^>]*#actions>([\s\S]*?)\n {4}<\/template>/g)].map(
+          (m) => ({
+            file: path.relative(root, f),
+            body: m[1]!,
+            // A control with v-else takes the place of the one before it, so it is never shown with it.
+            controls: [...m[1]!.matchAll(/<(AppButton|RouterLink|button|a)\b[^>]*>/g)].map((c) => c[0]),
+          }),
+        );
       });
+
+  it("in the buttons at the top of a page, the main button is always the last one (the far right)", () => {
+    const bad = pageActions().flatMap(({ file, controls }) => {
+      const isMain = (tag: string) =>
+        tag.startsWith("<AppButton") ? !/variant/.test(tag) : /btn-primary/.test(tag);
+      const last = controls.at(-1);
+      const hasMain = controls.some(isMain);
+      return hasMain && last && !isMain(last) ? [`${file}: ${last}`] : [];
+    });
+    expect(bad).toEqual([]);
+  });
+
+  it('the top of a page shows at most 2 buttons (more go in the "⋯" menu) and no badges (they go under the title)', () => {
+    const bad = pageActions().flatMap(({ file, body, controls }) => [
+      ...(controls.filter((c) => !/\sv-else\b/.test(c)).length > 2 ? [`${file}: more than 2 buttons`] : []),
+      ...(/<AppBadge\b/.test(body) ? [`${file}: AppBadge in #actions (use #meta)`] : []),
+      ...(/<(div|span|p)\b/.test(body)
+        ? [`${file}: text or a group in #actions (use #meta, or move it into the page)`]
+        : []),
+    ]);
     expect(bad).toEqual([]);
   });
 

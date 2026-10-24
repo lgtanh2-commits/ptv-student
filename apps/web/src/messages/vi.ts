@@ -22,6 +22,7 @@ export const vi: Messages = {
     previous: "Trước",
     next: "Tiếp",
     pageOf: "Trang {page}/{pages}",
+    moreActions: "Thao tác khác",
   },
   google: {
     unavailable: "Hiện chưa thể đăng nhập. Vui lòng thử lại sau.",
