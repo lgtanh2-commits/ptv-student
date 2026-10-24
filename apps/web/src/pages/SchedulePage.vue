@@ -21,6 +21,7 @@ import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
@@ -123,61 +124,52 @@ const statusTone = {
         class="flex flex-col gap-3 rounded-box border bg-base-100 p-4 sm:flex-row"
         :class="day.isToday ? 'border-primary' : 'border-base-300'"
       >
-        <div class="w-32 shrink-0">
+        <!-- On a phone the day and its "Today" badge share one line; on a wide screen they are a column on the left. -->
+        <div class="flex shrink-0 items-center justify-between gap-2 sm:block sm:w-32">
           <p class="font-semibold">{{ formatDayShort(day.date) }}</p>
           <AppBadge v-if="day.isToday" tone="info">{{ t.today }}</AppBadge>
         </div>
         <p v-if="day.lessons.length === 0" class="text-sm text-base-content/40">{{ t.empty }}</p>
         <ul v-else class="flex min-w-0 flex-1 flex-col gap-2">
-          <li
+          <AppListRow
             v-for="lesson in day.lessons"
             :key="lesson.id"
-            class="flex flex-col gap-1 sm:flex-row sm:items-center"
+            :to="`/lessons/${lesson.id}/attendance`"
+            :struck="lesson.status === 'cancelled'"
+            plain
+            clamp
+            class="rounded-field border border-base-300 px-3 py-2"
           >
-            <RouterLink
-              :to="`/lessons/${lesson.id}/attendance`"
-              class="flex min-w-0 flex-1 flex-wrap items-center gap-3 rounded-field border border-base-300 px-3 py-2 hover:bg-base-200/60"
-            >
-              <span class="w-28 shrink-0 text-sm font-medium"
+            <template #title>{{ lesson.title || lesson.courseName }}</template>
+            <template #meta>
+              <span class="font-medium whitespace-nowrap text-base-content"
                 >{{ lesson.startTime }} - {{ lesson.endTime }}</span
               >
-              <span class="min-w-0 flex-1 basis-40">
-                <span
-                  class="block truncate font-medium"
-                  :class="{ 'line-through opacity-60': lesson.status === 'cancelled' }"
-                  >{{ lesson.title || lesson.courseName }}</span
-                >
-                <span class="block truncate text-sm text-base-content/60">{{ details(lesson) }}</span>
-              </span>
+              · {{ details(lesson) }}
+            </template>
+            <template #trailing>
               <AppBadge :tone="statusTone[lessonLabel(lesson)]">{{
                 statusText[lessonLabel(lesson)]
               }}</AppBadge>
-            </RouterLink>
-            <div class="flex shrink-0 justify-end gap-1">
-              <AppButton
-                v-if="lesson.status === 'scheduled'"
-                variant="ghost"
-                compact
-                @click="edit.open(lesson)"
+            </template>
+            <template v-if="lesson.status === 'scheduled'" #actions>
+              <AppButton variant="ghost" compact @click="edit.open(lesson)"
                 ><AppIcon name="edit" :size="16" />{{ l.edit }}</AppButton
               >
-              <AppButton
-                v-if="lesson.status === 'scheduled'"
-                variant="ghost"
-                compact
-                @click="askCancel(lesson)"
+              <AppButton variant="ghost" compact @click="askCancel(lesson)"
                 ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppButton
               >
+            </template>
+            <template v-else-if="lesson.status === 'cancelled'" #actions>
               <AppButton
-                v-if="lesson.status === 'cancelled'"
                 variant="ghost"
                 compact
                 :loading="restoringId === lesson.id"
                 @click="restore(lesson.id)"
                 ><AppIcon name="restore" :size="16" />{{ l.restore }}</AppButton
               >
-            </div>
-          </li>
+            </template>
+          </AppListRow>
         </ul>
       </section>
     </div>

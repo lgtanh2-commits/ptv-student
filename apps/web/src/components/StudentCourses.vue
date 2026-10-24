@@ -11,6 +11,7 @@ import AppButton from "@/ui/AppButton.vue";
 import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppSelect from "@/ui/AppSelect.vue";
@@ -38,24 +39,17 @@ const summary = computed(() => (result.value ? describeEnroll(result.value, r) :
     <div v-if="loading" class="p-5"><AppLoading :label="messages.common.loading" :rows="2" /></div>
     <AppEmpty v-else-if="courses.length === 0" compact :title="t.empty" />
     <ul v-else class="divide-y divide-base-300">
-      <li v-for="c in paging.shown.value" :key="c.courseId">
-        <RouterLink
-          :to="`/courses/${c.courseId}`"
-          class="flex items-center gap-3 px-5 py-3 hover:bg-base-200/60"
-        >
-          <div class="min-w-0 flex-1">
-            <p class="truncate font-medium">{{ c.courseName }}</p>
-            <p class="text-sm text-base-content/60">
-              {{
-                c.customPrice === null
-                  ? `${t.coursePrice}: ${formatVnd(c.pricePerLesson)}`
-                  : `${t.ownPrice}: ${formatVnd(c.customPrice)}`
-              }}
-            </p>
-          </div>
+      <AppListRow v-for="c in paging.shown.value" :key="c.courseId" :to="`/courses/${c.courseId}`">
+        <template #title>{{ c.courseName }}</template>
+        <template #meta>{{
+          c.customPrice === null
+            ? `${t.coursePrice}: ${formatVnd(c.pricePerLesson)}`
+            : `${t.ownPrice}: ${formatVnd(c.customPrice)}`
+        }}</template>
+        <template #trailing>
           <AppBadge :tone="statusTone[c.status]">{{ statusText[c.status] }}</AppBadge>
-        </RouterLink>
-      </li>
+        </template>
+      </AppListRow>
     </ul>
     <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
 

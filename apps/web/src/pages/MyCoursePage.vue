@@ -12,6 +12,7 @@ import AppBadge from "@/ui/AppBadge.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -51,9 +52,7 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
       <AppCard :title="t.homework" flush>
         <AppEmpty v-if="data.work.length === 0" compact :title="t.noHomework" />
         <ul v-else class="divide-y divide-base-300">
-          <li v-for="w in workPaging.shown.value" :key="w.id">
-            <WorkRow :item="w" />
-          </li>
+          <WorkRow v-for="w in workPaging.shown.value" :key="w.id" :item="w" />
         </ul>
         <AppPager v-model:page="workPaging.page.value" :pages="workPaging.pages.value" />
       </AppCard>
@@ -62,35 +61,29 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
         <AppCard :title="t.lessons" flush>
           <AppEmpty v-if="data.lessons.length === 0" compact :title="t.noLessons" />
           <ul v-else class="divide-y divide-base-300">
-            <li
-              v-for="l in lessonPaging.shown.value"
-              :key="l.id"
-              class="flex flex-wrap items-center gap-3 px-5 py-3"
-            >
-              <div class="min-w-0 flex-1 basis-40">
-                <p
-                  class="truncate font-medium"
-                  :class="{ 'line-through opacity-60': l.status === 'cancelled' }"
-                >
-                  {{ l.title || formatDayShort(l.date) }}
-                </p>
-                <p class="flex flex-wrap gap-x-3 text-sm text-base-content/60">
+            <AppListRow v-for="l in lessonPaging.shown.value" :key="l.id" :struck="l.status === 'cancelled'">
+              <template #title>{{ l.title || formatDayShort(l.date) }}</template>
+              <template #meta>
+                <!-- On a phone the date and the place are on separate lines, so every row has the same shape. -->
+                <p class="flex flex-col gap-x-3 sm:flex-row sm:flex-wrap">
                   <span>{{ formatDayShort(l.date) }}, {{ l.startTime }} - {{ l.endTime }}</span>
-                  <span v-if="l.place" class="inline-flex items-center gap-1"
-                    ><AppIcon name="place" :size="14" />{{ l.place }}</span
+                  <span v-if="l.place" class="inline-flex min-w-0 items-center gap-1"
+                    ><AppIcon name="place" :size="14" /><span class="truncate">{{ l.place }}</span></span
                   >
                   <a
                     v-if="l.onlineUrl"
                     :href="l.onlineUrl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="link link-primary inline-flex items-center gap-1"
+                    class="link link-primary inline-flex items-center gap-1 self-start"
                     ><AppIcon name="video" :size="14" />{{ t.join }}</a
                   >
                 </p>
-              </div>
-              <AppBadge :tone="statusTone[l.status]">{{ statusText[l.status] }}</AppBadge>
-            </li>
+              </template>
+              <template #trailing>
+                <AppBadge :tone="statusTone[l.status]">{{ statusText[l.status] }}</AppBadge>
+              </template>
+            </AppListRow>
           </ul>
           <AppPager v-model:page="lessonPaging.page.value" :pages="lessonPaging.pages.value" />
         </AppCard>
@@ -98,22 +91,19 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
         <AppCard :title="t.materials" flush>
           <AppEmpty v-if="data.materials.length === 0" compact :title="t.noMaterials" />
           <ul v-else class="divide-y divide-base-300">
-            <li v-for="m in materialPaging.shown.value" :key="m.id" class="flex items-center gap-3 px-5 py-3">
-              <span
-                class="grid size-10 shrink-0 place-items-center rounded-field bg-base-200 text-base-content/70"
-                ><AppIcon name="link" :size="18"
-              /></span>
-              <div class="min-w-0">
-                <a
-                  :href="m.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="link link-primary block truncate font-medium"
-                  >{{ m.title }}</a
-                >
-                <p class="truncate text-sm text-base-content/60">{{ hostOf(m.url) }}</p>
-              </div>
-            </li>
+            <AppListRow v-for="m in materialPaging.shown.value" :key="m.id" :href="m.url">
+              <template #leading>
+                <span class="grid size-10 place-items-center rounded-field bg-base-200 text-base-content/70"
+                  ><AppIcon name="link" :size="18"
+                /></span>
+              </template>
+              <template #title
+                ><span class="link link-primary">{{ m.title }}</span></template
+              >
+              <template #meta
+                ><p class="truncate">{{ hostOf(m.url) }}</p></template
+              >
+            </AppListRow>
           </ul>
           <AppPager v-model:page="materialPaging.page.value" :pages="materialPaging.pages.value" />
         </AppCard>

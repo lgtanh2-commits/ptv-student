@@ -16,6 +16,7 @@ import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -69,32 +70,32 @@ async function remove() {
       <div v-if="m.loading.value" class="p-5"><AppLoading :label="messages.common.loading" :rows="2" /></div>
       <AppEmpty v-else-if="m.items.value.length === 0" compact :title="t.empty" :text="t.emptyText" />
       <ul v-else class="divide-y divide-base-300">
-        <li v-for="l in paging.shown.value" :key="l.id" class="flex flex-wrap items-center gap-3 px-5 py-3">
-          <span
-            class="grid size-10 shrink-0 place-items-center rounded-field bg-base-200 text-base-content/70"
+        <AppListRow v-for="l in paging.shown.value" :key="l.id" :href="l.url">
+          <template #leading>
+            <span class="grid size-10 place-items-center rounded-field bg-base-200 text-base-content/70">
+              <AppIcon name="link" :size="18" />
+            </span>
+          </template>
+          <template #title
+            ><span class="link link-primary">{{ l.title }}</span></template
           >
-            <AppIcon name="link" :size="18" />
-          </span>
-          <div class="min-w-0 flex-1 basis-48">
-            <a
-              :href="l.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link link-primary block truncate font-medium"
-              >{{ l.title }}</a
+          <template #meta
+            ><p class="truncate">{{ hostOf(l.url) }}</p></template
+          >
+          <template #trailing>
+            <AppBadge :tone="l.published ? 'success' : 'neutral'">{{
+              l.published ? t.visible : t.hidden
+            }}</AppBadge>
+          </template>
+          <template #actions>
+            <AppButton variant="ghost" compact @click="m.edit(l)"
+              ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
             >
-            <p class="truncate text-sm text-base-content/60">{{ hostOf(l.url) }}</p>
-          </div>
-          <AppBadge :tone="l.published ? 'success' : 'neutral'">{{
-            l.published ? t.visible : t.hidden
-          }}</AppBadge>
-          <AppButton variant="ghost" compact @click="m.edit(l)"
-            ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
-          >
-          <AppButton variant="ghost" compact @click="asking = l"
-            ><AppIcon name="trash" :size="16" />{{ t.remove }}</AppButton
-          >
-        </li>
+            <AppButton variant="ghost" compact @click="asking = l"
+              ><AppIcon name="trash" :size="16" />{{ t.remove }}</AppButton
+            >
+          </template>
+        </AppListRow>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
     </AppCard>

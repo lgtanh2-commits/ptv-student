@@ -15,6 +15,7 @@ import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -134,17 +135,20 @@ async function savePayment() {
 
       <AppCard v-if="list.data.value.cancelled.length > 0" :title="t.cancelledTitle" flush>
         <ul class="divide-y divide-base-300">
-          <li v-for="i in cancelled.shown.value" :key="i.id">
-            <RouterLink
-              :to="`/invoices/${i.id}`"
-              class="flex items-center gap-2 px-5 py-3 text-sm hover:bg-base-200/60"
+          <AppListRow
+            v-for="i in cancelled.shown.value"
+            :key="i.id"
+            :to="`/invoices/${i.id}`"
+            class="text-sm"
+          >
+            <template #title
+              ><span class="font-normal">{{ i.studentName }} · {{ i.number }}</span></template
             >
-              <span class="min-w-0 flex-1"
-                >{{ i.studentName }} · {{ i.number }} · {{ formatVnd(i.total) }}</span
-              >
+            <template #trailing>
+              <span class="whitespace-nowrap">{{ formatVnd(i.total) }}</span>
               <AppIcon name="right" :size="16" class="text-base-content/40" />
-            </RouterLink>
-          </li>
+            </template>
+          </AppListRow>
         </ul>
         <AppPager v-model:page="cancelled.page.value" :pages="cancelled.pages.value" />
       </AppCard>

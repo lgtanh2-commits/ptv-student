@@ -153,10 +153,7 @@ function confirmImport() {
 
           <template v-if="q.kind === 'choice'">
             <div v-for="(_, oi) in q.options" :key="oi" class="flex items-end gap-2">
-              <label
-                class="mb-2 flex min-h-11 cursor-pointer items-center gap-2 text-sm"
-                :title="t.correctAnswer"
-              >
+              <label class="flex min-h-11 cursor-pointer items-center gap-2 text-sm" :title="t.correctAnswer">
                 <input
                   type="radio"
                   class="radio radio-primary"
@@ -172,11 +169,10 @@ function confirmImport() {
               <AppButton
                 v-if="q.options.length > 2"
                 variant="ghost"
-                class="mb-0.5"
-                :aria-label="t.removeAnswer"
+                icon="trash"
+                :label="t.removeAnswer"
                 @click="f.removeOption(qi, oi)"
-                ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
-              >
+              />
             </div>
             <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <AppButton
@@ -208,11 +204,10 @@ function confirmImport() {
               </div>
               <AppButton
                 variant="ghost"
-                class="mb-0.5"
-                :aria-label="t.removeAccepted"
+                icon="trash"
+                :label="t.removeAccepted"
                 @click="f.removeAccepted(qi, ai)"
-                ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
-              >
+              />
             </div>
             <AppButton
               v-if="q.accepted.length < 10"
@@ -251,12 +246,23 @@ function confirmImport() {
 
       <AppCard :title="t.links" :description="t.linksHint">
         <AppAlert v-if="err.links" kind="error">{{ err.links }}</AppAlert>
-        <div v-for="(l, li) in v.links" :key="li" class="grid items-end gap-3 md:grid-cols-[1fr_2fr_auto]">
+        <!-- On a phone the delete button sits at the right of the title field; on a wide screen at the end of the row. -->
+        <div
+          v-for="(l, li) in v.links"
+          :key="li"
+          class="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 md:grid-cols-[1fr_2fr_auto]"
+        >
           <AppInput v-model="l.title" :label="t.linkTitle" />
-          <AppInput v-model="l.url" :label="t.linkUrl" type="url" placeholder="https://" />
-          <AppButton variant="ghost" class="mb-0.5" :aria-label="t.removeLink" @click="f.removeLink(li)"
-            ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
-          >
+          <div class="col-span-2 md:col-span-1">
+            <AppInput v-model="l.url" :label="t.linkUrl" type="url" placeholder="https://" />
+          </div>
+          <AppButton
+            variant="ghost"
+            icon="trash"
+            :label="t.removeLink"
+            class="col-start-2 row-start-1 md:col-start-3"
+            @click="f.removeLink(li)"
+          />
         </div>
         <AppButton v-if="v.links.length < 10" variant="secondary" class="sm:self-start" @click="f.addLink"
           ><AppIcon name="plus" :size="18" />{{ t.addLink }}</AppButton
@@ -273,7 +279,7 @@ function confirmImport() {
       </AppCard>
 
       <AppCard :title="t.forWho">
-        <AppSegmented v-model="v.targetMode" :options="who" :label="t.forWho" />
+        <AppSegmented v-model="v.targetMode" :options="who" :label="t.forWho" stack />
         <template v-if="v.targetMode === 'selected'">
           <AppAlert v-if="err.studentIds" kind="error">{{ err.studentIds }}</AppAlert>
           <p v-if="f.students.value.length === 0" class="text-base-content/60">{{ t.noStudents }}</p>

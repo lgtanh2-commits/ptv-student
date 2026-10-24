@@ -22,6 +22,7 @@ import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -97,66 +98,62 @@ const statusTone = {
     <template v-for="group in groups" :key="group.key">
       <AppCard v-if="group.paging.total.value" :title="group.title" flush>
         <ul class="divide-y divide-base-300">
-          <li
+          <AppListRow
             v-for="l in group.paging.shown.value"
             :key="l.id"
-            class="relative flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-base-200/60"
+            :to="`/lessons/${l.id}/attendance`"
+            :struck="l.status === 'cancelled'"
           >
-            <span
-              class="grid w-14 shrink-0 place-items-center rounded-field py-1.5"
-              :class="
-                l.status === 'cancelled' ? 'bg-base-200 text-base-content/50' : 'bg-primary/10 text-primary'
-              "
-            >
-              <span class="text-xs font-medium uppercase">{{ formatWeekdayShort(l.date) }}</span>
-              <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
-            </span>
-            <div class="min-w-0 flex-1 basis-48">
-              <RouterLink
-                :to="`/lessons/${l.id}/attendance`"
-                class="block truncate font-medium after:absolute after:inset-0"
-                :class="{ 'line-through opacity-60': l.status === 'cancelled' }"
+            <template #leading>
+              <span
+                class="grid w-14 place-items-center rounded-field py-1.5"
+                :class="
+                  l.status === 'cancelled' ? 'bg-base-200 text-base-content/50' : 'bg-primary/10 text-primary'
+                "
               >
-                {{ l.title || formatDayShort(l.date) }}
-              </RouterLink>
-              <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-base-content/60">
-                <span class="inline-flex items-center gap-1"
+                <span class="text-xs font-medium uppercase">{{ formatWeekdayShort(l.date) }}</span>
+                <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
+              </span>
+            </template>
+            <template #title>{{ l.title || formatDayShort(l.date) }}</template>
+            <template #meta>
+              <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"
                   ><AppIcon name="clock" :size="14" />{{ l.startTime }} - {{ l.endTime }}</span
                 >
-                <span v-if="l.place" class="inline-flex items-center gap-1"
-                  ><AppIcon name="place" :size="14" />{{ l.place }}</span
+                <span v-if="l.place" class="inline-flex min-w-0 items-center gap-1"
+                  ><AppIcon name="place" :size="14" /><span class="truncate">{{ l.place }}</span></span
                 >
                 <a
                   v-if="l.onlineUrl"
                   :href="l.onlineUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="link link-primary relative z-10 inline-flex items-center gap-1"
+                  class="link link-primary inline-flex items-center gap-1"
                   ><AppIcon name="video" :size="14" />{{ t.join }}</a
                 >
                 <span v-if="l.seriesId" class="inline-flex items-center gap-1"
                   ><AppIcon name="repeat" :size="14" />{{ t.weeklySeries }}</span
                 >
               </p>
-            </div>
-            <AppBadge :tone="statusTone[lessonLabel(l)]">{{ statusText[lessonLabel(l)] }}</AppBadge>
-            <div class="relative z-10 flex gap-1">
-              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="edit.open(l)"
+            </template>
+            <template #trailing>
+              <AppBadge :tone="statusTone[lessonLabel(l)]">{{ statusText[lessonLabel(l)] }}</AppBadge>
+            </template>
+            <template v-if="l.status === 'scheduled'" #actions>
+              <AppButton variant="ghost" compact @click="edit.open(l)"
                 ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
               >
-              <AppButton v-if="l.status === 'scheduled'" variant="ghost" compact @click="askCancel(l)"
+              <AppButton variant="ghost" compact @click="askCancel(l)"
                 ><AppIcon name="ban" :size="16" />{{ t.cancel }}</AppButton
               >
-              <AppButton
-                v-if="l.status === 'cancelled'"
-                variant="ghost"
-                compact
-                :loading="restoringId === l.id"
-                @click="restore(l.id)"
+            </template>
+            <template v-else-if="l.status === 'cancelled'" #actions>
+              <AppButton variant="ghost" compact :loading="restoringId === l.id" @click="restore(l.id)"
                 ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
               >
-            </div>
-          </li>
+            </template>
+          </AppListRow>
         </ul>
         <AppPager v-model:page="group.paging.page.value" :pages="group.paging.pages.value" />
       </AppCard>

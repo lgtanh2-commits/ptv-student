@@ -154,6 +154,22 @@ describe("frontend architecture (plan 5.2)", () => {
     expect(bad).toEqual([]);
   });
 
+  it("a list row is an AppListRow: no wrapping row with basis-* text columns (that drops a badge onto its own line at the left)", () => {
+    const bad = screenTemplates()
+      .filter(({ template }) => /\bbasis-(\d|\[)/.test(template))
+      .map(({ file }) => file);
+    expect(bad).toEqual([]);
+  });
+
+  it("an icon-only button says what it does (label: read by screen readers, shown on hover)", () => {
+    const bad = screenTemplates().flatMap(({ file, template }) =>
+      [...template.matchAll(/<AppButton\b[^>]*>/g)]
+        .filter((m) => /\sicon=/.test(m[0]) && !/\s:?label=/.test(m[0]))
+        .map((m) => `${file}: ${m[0].replace(/\s+/g, " ")}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
   it("every table has pages (ten rows on a page), except the lines of a receipt, which is one document", () => {
     const bad = [...files(path.join(root, "pages")), ...files(path.join(root, "components"))]
       .filter((f) => f.endsWith(".vue") && !f.endsWith("InvoiceSheet.vue"))

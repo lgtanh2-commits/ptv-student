@@ -14,6 +14,7 @@ import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
@@ -94,22 +95,19 @@ const accessTone = { joined: "success", invited: "info", not_invited: "neutral" 
         {{ fill(t.total, { n: data.total }) }}
       </p>
       <ul class="divide-y divide-base-300">
-        <li v-for="s in data.students" :key="s.id">
-          <RouterLink
-            :to="`/students/${s.id}`"
-            class="flex items-center gap-4 px-5 py-3 hover:bg-base-200/60"
+        <AppListRow v-for="s in data.students" :key="s.id" :to="`/students/${s.id}`">
+          <template #leading><AppAvatar :name="s.name" /></template>
+          <template #title>{{ s.name }}</template>
+          <template #meta
+            ><p class="truncate">{{ s.email }}</p></template
           >
-            <AppAvatar :name="s.name" />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate font-medium">{{ s.name }}</span>
-              <span class="block truncate text-sm text-base-content/60">{{ s.email }}</span>
-            </span>
+          <template #trailing>
             <AppBadge :tone="s.archived ? 'neutral' : accessTone[s.access]">{{
               s.archived ? t.archived : accessText[s.access]
             }}</AppBadge>
             <AppIcon name="right" :size="18" class="text-base-content/40" />
-          </RouterLink>
-        </li>
+          </template>
+        </AppListRow>
       </ul>
       <AppPager v-model:page="page" :pages="pages" />
     </AppCard>

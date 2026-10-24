@@ -6,7 +6,8 @@ import { menuCloseKey } from "./menu";
 
 // A "⋯" button that opens a short list of rarer actions (archive, delete). The items are AppMenuItem.
 // Keyboard: Enter or Space opens it, the arrow keys move, Escape closes it and the focus goes back to the button.
-defineProps<{ label: string }>();
+// `compact`: a small ghost trigger for a list row (44px touch target on a phone).
+defineProps<{ label: string; compact?: boolean }>();
 const root = ref<HTMLElement>();
 const button = ref<HTMLButtonElement>();
 const list = ref<HTMLElement>();
@@ -31,14 +32,17 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
     <button
       ref="button"
       type="button"
-      class="btn btn-square min-h-11 border-base-300 bg-base-100 hover:bg-base-200"
+      class="btn btn-square"
+      :class="
+        compact ? 'btn-ghost btn-sm max-sm:size-11' : 'min-h-11 border-base-300 bg-base-100 hover:bg-base-200'
+      "
       :aria-label="label"
       aria-haspopup="menu"
       :aria-expanded="open"
       @click="menu.toggle()"
       @keydown="menu.onTriggerKey"
     >
-      <AppIcon name="more" />
+      <AppIcon name="more" :size="compact ? 16 : 20" />
     </button>
     <ul
       v-if="open"

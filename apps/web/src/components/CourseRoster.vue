@@ -18,7 +18,10 @@ import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppMoneyInput from "@/ui/AppMoneyInput.vue";
 import AppLink from "@/ui/AppLink.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenu from "@/ui/AppMenu.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppProgress from "@/ui/AppProgress.vue";
 
@@ -107,69 +110,55 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
       <div v-if="roster.loading.value" class="p-5"><AppLoading :label="messages.common.loading" /></div>
       <AppEmpty v-else-if="roster.students.value.length === 0" compact :title="t.empty" :text="t.emptyText" />
       <ul v-else class="divide-y divide-base-300">
-        <li
-          v-for="s in rosterPaging.shown.value"
-          :key="s.studentId"
-          class="relative flex flex-col gap-3 px-5 py-4 hover:bg-base-200/60"
-        >
-          <div class="flex flex-wrap items-center gap-3">
-            <AppAvatar :name="s.studentName" />
-            <div class="min-w-0 flex-1 basis-40">
-              <RouterLink
-                :to="`/students/${s.studentId}`"
-                class="block truncate font-medium after:absolute after:inset-0"
-                >{{ s.studentName }}</RouterLink
-              >
-              <p class="text-sm text-base-content/60">
-                {{
-                  s.customPrice === null
-                    ? `${t.coursePrice}: ${formatVnd(pricePerLesson)}`
-                    : `${t.ownPrice}: ${formatVnd(s.customPrice)}`
-                }}
-              </p>
-            </div>
+        <AppListRow v-for="s in rosterPaging.shown.value" :key="s.studentId" :to="`/students/${s.studentId}`">
+          <template #leading><AppAvatar :name="s.studentName" /></template>
+          <template #title>{{ s.studentName }}</template>
+          <template #meta>
+            <p>
+              {{
+                s.customPrice === null
+                  ? `${t.coursePrice}: ${formatVnd(pricePerLesson)}`
+                  : `${t.ownPrice}: ${formatVnd(s.customPrice)}`
+              }}
+            </p>
+            <AppBadge v-if="s.studentArchived" class="mt-1">{{ t.archivedStudent }}</AppBadge>
+          </template>
+          <template #trailing>
             <AppBadge :tone="statusTone[s.status]">{{ statusText[s.status] }}</AppBadge>
-            <AppBadge v-if="s.studentArchived">{{ t.archivedStudent }}</AppBadge>
-            <div class="relative z-10 flex flex-wrap gap-1">
-              <AppButton variant="ghost" compact @click="startEdit(s.studentId, s.customPrice)">{{
-                t.changePrice
-              }}</AppButton>
-              <template v-if="s.status === 'active'">
+          </template>
+          <template #actions>
+            <AppButton variant="ghost" compact @click="startEdit(s.studentId, s.customPrice)">{{
+              t.changePrice
+            }}</AppButton>
+            <!-- Finishing and removing are rarer: they share a "⋯" menu, so the row keeps two controls. -->
+            <AppMenu v-if="s.status === 'active'" compact :label="fill(t.moreFor, { name: s.studentName })">
+              <AppMenuItem @click="setStatus(s.studentId, 'completed', s.customPrice)">{{
+                t.finish
+              }}</AppMenuItem>
+              <AppMenuItem danger @click="removing = s">{{ t.remove }}</AppMenuItem>
+            </AppMenu>
+            <AppButton
+              v-else
+              variant="ghost"
+              compact
+              :loading="busyId === s.studentId"
+              @click="setStatus(s.studentId, 'active', s.customPrice)"
+              >{{ t.addBack }}</AppButton
+            >
+          </template>
+          <template v-if="editing === s.studentId" #below>
+            <div class="flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3">
+              <AppMoneyInput v-model="priceText" :label="t.price" :hint="t.useCoursePrice" />
+              <AppFormActions class="max-sm:w-full">
                 <AppButton
-                  variant="ghost"
-                  compact
                   :loading="busyId === s.studentId"
-                  @click="setStatus(s.studentId, 'completed', s.customPrice)"
-                  >{{ t.finish }}</AppButton
+                  @click="savePrice(s.studentId, s.status === 'pending' ? 'active' : s.status)"
+                  >{{ t.savePrice }}</AppButton
                 >
-                <AppButton variant="ghost" compact :loading="busyId === s.studentId" @click="removing = s">{{
-                  t.remove
-                }}</AppButton>
-              </template>
-              <AppButton
-                v-else
-                variant="ghost"
-                compact
-                :loading="busyId === s.studentId"
-                @click="setStatus(s.studentId, 'active', s.customPrice)"
-                >{{ t.addBack }}</AppButton
-              >
+              </AppFormActions>
             </div>
-          </div>
-          <div
-            v-if="editing === s.studentId"
-            class="relative z-10 flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
-          >
-            <AppMoneyInput v-model="priceText" :label="t.price" :hint="t.useCoursePrice" />
-            <AppFormActions class="max-sm:w-full">
-              <AppButton
-                :loading="busyId === s.studentId"
-                @click="savePrice(s.studentId, s.status === 'pending' ? 'active' : s.status)"
-                >{{ t.savePrice }}</AppButton
-              >
-            </AppFormActions>
-          </div>
-        </li>
+          </template>
+        </AppListRow>
       </ul>
       <AppPager v-model:page="rosterPaging.page.value" :pages="rosterPaging.pages.value" />
     </AppCard>

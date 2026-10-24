@@ -102,8 +102,8 @@ async function toggleArchived(archived: boolean) {
             <AppAvatar :name="student.name" size="lg" />
             <div class="min-w-0">
               <p class="truncate text-lg font-semibold">{{ student.name }}</p>
-              <p class="flex items-center gap-1 truncate text-sm text-base-content/60">
-                <AppIcon name="mail" :size="14" />{{ student.email }}
+              <p class="flex items-center gap-1 text-sm text-base-content/60">
+                <AppIcon name="mail" :size="14" /><span class="min-w-0 truncate">{{ student.email }}</span>
               </p>
             </div>
           </div>

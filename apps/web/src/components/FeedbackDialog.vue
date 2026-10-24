@@ -38,7 +38,7 @@ const hint = computed(() => fill(t.messageHint, { n: form.values.message.length 
     <AppAlert v-if="form.formError.value" kind="error">{{ form.formError.value }}</AppAlert>
     <div class="fieldset gap-1 py-0">
       <span class="fieldset-legend">{{ t.kindLabel }}</span>
-      <AppSegmented v-model="form.values.kind" :options="options" :label="t.kindLabel" />
+      <AppSegmented v-model="form.values.kind" :options="options" :label="t.kindLabel" block />
     </div>
     <AppTextarea
       v-model="form.values.message"

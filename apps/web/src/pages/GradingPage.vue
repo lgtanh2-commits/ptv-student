@@ -16,6 +16,7 @@ import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
@@ -193,14 +194,12 @@ const stateNote = computed(() => {
         <AppCard :title="t.history" flush>
           <AppEmpty v-if="d.history.length === 0" compact :title="t.noHistory" />
           <ul v-else class="divide-y divide-base-300">
-            <li
-              v-for="(h, i) in historyPaging.shown.value"
-              :key="i"
-              class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
-            >
-              <span>{{ historyText(h) }}</span>
-              <span class="text-base-content/60">{{ formatWhen(h.at) }}</span>
-            </li>
+            <AppListRow v-for="(h, i) in historyPaging.shown.value" :key="i" wrap class="text-sm">
+              <template #title
+                ><span class="font-normal">{{ historyText(h) }}</span></template
+              >
+              <template #meta>{{ formatWhen(h.at) }}</template>
+            </AppListRow>
           </ul>
           <AppPager v-model:page="historyPaging.page.value" :pages="historyPaging.pages.value" />
         </AppCard>

@@ -6,7 +6,7 @@ withDefaults(defineProps<{ tone?: "neutral" | "success" | "warning" | "error" | 
 
 <template>
   <span
-    class="badge badge-soft whitespace-nowrap"
+    class="badge badge-soft max-w-full whitespace-nowrap"
     :class="{
       'badge-success': tone === 'success',
       'badge-warning': tone === 'warning',
@@ -14,6 +14,7 @@ withDefaults(defineProps<{ tone?: "neutral" | "success" | "warning" | "error" | 
       'badge-info': tone === 'info',
     }"
   >
-    <slot />
+    <!-- A long label is cut with "…" when its row gives it less room (AppListRow keeps it under about half the row). -->
+    <span class="truncate"><slot /></span>
   </span>
 </template>

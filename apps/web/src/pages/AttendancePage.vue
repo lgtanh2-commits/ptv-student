@@ -15,6 +15,7 @@ import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppModal from "@/ui/AppModal.vue";
@@ -114,27 +115,28 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
           :text="t.noStudentsText"
         />
         <ul v-else class="divide-y divide-base-300">
-          <li
-            v-for="s in paging.shown.value"
-            :key="s.studentId"
-            class="flex flex-wrap items-center gap-3 px-5 py-3"
-          >
-            <AppAvatar :name="s.name" />
-            <div class="min-w-0 flex-1 basis-40">
-              <p class="truncate font-medium">{{ s.name }}</p>
-              <p class="flex flex-wrap gap-2 text-xs text-base-content/60">
+          <AppListRow v-for="s in paging.shown.value" :key="s.studentId">
+            <template #leading><AppAvatar :name="s.name" /></template>
+            <template #title>{{ s.name }}</template>
+            <template v-if="s.joinedAfter || !s.inCourse" #meta>
+              <p class="flex flex-wrap gap-x-2 text-xs">
                 <span v-if="s.joinedAfter">{{ t.joinedAfter }}</span>
                 <span v-if="!s.inCourse">{{ t.left }}</span>
-                <AppBadge v-if="!s.saved" tone="warning">{{ t.unsaved }}</AppBadge>
               </p>
-            </div>
-            <AppSegmented
-              v-model="a.choice.value[s.studentId]!"
-              :options="options"
-              :label="s.name"
-              :class="{ 'pointer-events-none opacity-60': !a.canSave.value }"
-            />
-          </li>
+            </template>
+            <template v-if="!s.saved" #trailing>
+              <AppBadge tone="warning">{{ t.unsaved }}</AppBadge>
+            </template>
+            <template #actions>
+              <AppSegmented
+                v-model="a.choice.value[s.studentId]!"
+                :options="options"
+                :label="s.name"
+                block
+                :class="{ 'pointer-events-none opacity-60': !a.canSave.value }"
+              />
+            </template>
+          </AppListRow>
         </ul>
         <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
       </AppCard>

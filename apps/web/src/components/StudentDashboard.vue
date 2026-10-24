@@ -15,6 +15,7 @@ import AppEmpty from "@/ui/AppEmpty.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon, { type IconName } from "@/ui/AppIcon.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -85,7 +86,7 @@ function jump(id: string) {
             <AppCard :title="t.todoTitle" flush>
               <AppEmpty v-if="groups.todo.length === 0" compact :title="t.todoNone" />
               <ul v-else class="divide-y divide-base-300">
-                <li v-for="w in todoPaging.shown.value" :key="w.id"><WorkRow :item="w" show-course /></li>
+                <WorkRow v-for="w in todoPaging.shown.value" :key="w.id" :item="w" show-course />
               </ul>
               <AppPager v-model:page="todoPaging.page.value" :pages="todoPaging.pages.value" />
             </AppCard>
@@ -95,7 +96,7 @@ function jump(id: string) {
             <AppCard :title="t.againTitle" flush>
               <AppEmpty v-if="groups.again.length === 0" compact :title="t.againNone" />
               <ul v-else class="divide-y divide-base-300">
-                <li v-for="w in againPaging.shown.value" :key="w.id"><WorkRow :item="w" show-course /></li>
+                <WorkRow v-for="w in againPaging.shown.value" :key="w.id" :item="w" show-course />
               </ul>
               <AppPager v-model:page="againPaging.page.value" :pages="againPaging.pages.value" />
             </AppCard>
@@ -105,7 +106,7 @@ function jump(id: string) {
             <AppCard :title="t.doneTitle" flush>
               <AppEmpty v-if="groups.done.length === 0" compact :title="t.doneNone" />
               <ul v-else class="divide-y divide-base-300">
-                <li v-for="w in donePaging.shown.value" :key="w.id"><WorkRow :item="w" show-course /></li>
+                <WorkRow v-for="w in donePaging.shown.value" :key="w.id" :item="w" show-course />
               </ul>
               <AppPager v-model:page="donePaging.page.value" :pages="donePaging.pages.value" />
             </AppCard>
@@ -122,23 +123,22 @@ function jump(id: string) {
               </template>
               <AppEmpty v-if="unpaid.length === 0" compact :title="t.receiptsNone" />
               <ul v-else class="divide-y divide-base-300">
-                <li v-for="i in receiptPaging.shown.value" :key="i.id">
-                  <RouterLink
-                    :to="`/my/invoices/${i.id}`"
-                    class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 hover:bg-base-200/60"
-                  >
-                    <span class="min-w-0">
-                      <span class="block font-medium">{{ periodLabel(i.period) }}</span>
-                      <span class="block truncate text-sm text-base-content/60">{{ i.number }}</span>
-                    </span>
-                    <span class="flex items-center gap-2">
-                      <span class="font-semibold">{{ formatVnd(i.total) }}</span>
+                <AppListRow v-for="i in receiptPaging.shown.value" :key="i.id" :to="`/my/invoices/${i.id}`">
+                  <template #title>{{ periodLabel(i.period) }}</template>
+                  <template #meta>
+                    <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span class="min-w-0 truncate">{{ i.number }}</span>
                       <AppBadge :tone="invoiceStatusTone[i.status]">{{
                         invoiceStatusText[i.status]
                       }}</AppBadge>
-                    </span>
-                  </RouterLink>
-                </li>
+                    </p>
+                  </template>
+                  <template #trailing>
+                    <span class="font-semibold whitespace-nowrap text-base-content">{{
+                      formatVnd(i.total)
+                    }}</span>
+                  </template>
+                </AppListRow>
               </ul>
               <AppPager v-model:page="receiptPaging.page.value" :pages="receiptPaging.pages.value" />
             </AppCard>
@@ -153,39 +153,36 @@ function jump(id: string) {
               </template>
               <AppEmpty v-if="lessons.length === 0" compact :title="t.lessonsNone" />
               <ul v-else class="divide-y divide-base-300">
-                <li
+                <AppListRow
                   v-for="l in lessonPaging.shown.value"
                   :key="l.id"
-                  class="flex items-center hover:bg-base-200/60"
+                  :to="`/my/courses/${l.courseId}`"
+                  clamp
                 >
-                  <RouterLink
-                    :to="`/my/courses/${l.courseId}`"
-                    class="flex min-w-0 flex-1 items-center gap-3 px-5 py-3"
-                  >
+                  <template #leading>
                     <span
-                      class="grid w-14 shrink-0 place-items-center rounded-field bg-primary/10 py-1.5 text-primary"
+                      class="grid w-14 place-items-center rounded-field bg-primary/10 py-1.5 text-primary"
                     >
                       <span class="text-xs font-medium uppercase">{{ formatWeekdayShort(l.date) }}</span>
                       <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
                     </span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block truncate font-medium">{{ l.title || l.courseName }}</span>
-                      <span class="block truncate text-sm text-base-content/60">
-                        {{ l.startTime }} - {{ l.endTime
-                        }}<template v-if="l.title"> · {{ l.courseName }}</template
-                        ><template v-if="l.place"> · {{ l.place }}</template>
-                      </span>
-                    </span>
-                  </RouterLink>
-                  <a
-                    v-if="l.onlineUrl"
-                    :href="l.onlineUrl"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-ghost btn-sm mr-3 shrink-0 max-sm:min-h-11"
-                    ><AppIcon name="video" :size="16" />{{ t.join }}</a
+                  </template>
+                  <template #title>{{ l.title || l.courseName }}</template>
+                  <template #meta
+                    >{{ l.startTime }} - {{ l.endTime
+                    }}<template v-if="l.title"> · {{ l.courseName }}</template
+                    ><template v-if="l.place"> · {{ l.place }}</template></template
                   >
-                </li>
+                  <template v-if="l.onlineUrl" #actions>
+                    <a
+                      :href="l.onlineUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-ghost btn-sm max-sm:min-h-11"
+                      ><AppIcon name="video" :size="16" />{{ t.join }}</a
+                    >
+                  </template>
+                </AppListRow>
               </ul>
               <AppPager v-model:page="lessonPaging.page.value" :pages="lessonPaging.pages.value" />
             </AppCard>
