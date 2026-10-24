@@ -56,8 +56,8 @@ describe("telling students about new homework", () => {
       expect(n).toHaveLength(1);
       expect(n[0]).toMatchObject({
         kind: "homework_new",
-        title: "New homework: Unit 1 test",
-        body: "English A1",
+        title: "You have a new assignment!",
+        body: "You have a new assignment from English A1.",
         link: `/my/work/${id}`,
         read: false,
       });
@@ -112,8 +112,8 @@ describe("the other events", () => {
     expect(n).toHaveLength(1);
     expect(n[0]).toMatchObject({
       kind: "work_handed_in",
-      title: "Hoa handed in work",
-      body: "Unit 1 test · English A1",
+      title: "Hoa handed in Unit 1 test",
+      body: "Please check Hoa's work.",
       link: `/assignments/${id}/students/${hoa.studentId}`,
     });
     expect(await kinds(nam)).toEqual(["homework_new"]); // not told about Hoa
@@ -132,11 +132,13 @@ describe("the other events", () => {
     });
     expect(again.status).toBe(200);
     expect((await mine(hoa)).items.find((i) => i.kind === "homework_returned")).toMatchObject({
-      title: "Your work was scored: Unit 1 test",
+      title: "Unit 1 test has been marked",
+      body: "Your results are ready. Tap to view.",
       link: `/my/work/${id}`,
     });
     expect((await mine(nam)).items.find((i) => i.kind === "homework_again")).toMatchObject({
-      title: "Please change your work: Unit 1 test",
+      title: "Please revise Unit 1 test",
+      body: "Your teacher has asked you to redo this assignment. Tap to view.",
     });
     expect(await kinds(hoa)).not.toContain("homework_again");
     expect(await kinds(nam)).not.toContain("homework_returned");
@@ -173,7 +175,8 @@ describe("the other events", () => {
     expect(n).toHaveLength(1);
     expect(n[0]).toMatchObject({
       kind: "receipt_sent",
-      title: "New fee receipt: 01/2020",
+      title: "You have a new fee receipt!",
+      body: "Your teacher has sent you a new fee receipt. Tap to view.",
       link: `/my/invoices/${inv.id}`,
     });
   });
@@ -261,8 +264,8 @@ describe("the hourly job: reminders and cleaning", () => {
     await dueIn(10, id);
     await runNotificationJobs(env);
     expect((await mine(nam)).items.find((i) => i.kind === "homework_due")).toMatchObject({
-      title: "Due soon: Unit 1 test",
-      body: "English A1",
+      title: "Unit 1 test is due soon",
+      body: "Your assignment is due in 24 hours. Try to finish it early!",
       link: `/my/work/${id}`,
     });
     expect(await kinds(hoa)).not.toContain("homework_due");
@@ -285,7 +288,7 @@ describe("the hourly job: reminders and cleaning", () => {
     await dueIn(-2, past);
     await runNotificationJobs(env);
     const titles = (await mine(hoa)).items.filter((i) => i.kind === "homework_due").map((i) => i.title);
-    expect(titles).toEqual(["Due soon: Unit 1 test"]);
+    expect(titles).toEqual(["Unit 1 test is due soon"]);
   });
 
   it("does not remind about work that is closed, in a course that is archived, or for other students", async () => {
@@ -376,8 +379,8 @@ describe("reminding about work that is overdue", () => {
     const items = await overdue(nam);
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({
-      title: "Overdue: Unit 1 test. Please finish it soon.",
-      body: "English A1",
+      title: "Unit 1 test is overdue!",
+      body: "Your assignment is past its due date. Please hand it in as soon as you can!",
       link: `/my/work/${id}`,
     });
     expect(await overdue(hoa)).toEqual([]);
@@ -400,9 +403,10 @@ describe("reminding about work that is overdue", () => {
     await setSql("UPDATE assignments SET allow_late = 0 WHERE id = ?", id);
     await dueAgo(30, id);
     await runNotificationJobs(env);
-    expect((await overdue(nam))[0]!.title).toBe(
-      "Overdue and closed: Unit 1 test. Ask your teacher to open it again.",
-    );
+    expect((await overdue(nam))[0]).toMatchObject({
+      title: "Unit 1 test is overdue!",
+      body: "Your assignment is past its due date and can no longer be handed in. Please contact your teacher for help!",
+    });
   });
 
   it("in Vietnamese, uses the owner's words", async () => {
@@ -411,15 +415,17 @@ describe("reminding about work that is overdue", () => {
     await setSql("UPDATE assignments SET allow_late = 1 WHERE id = ?", id);
     await dueAgo(30, id);
     await runNotificationJobs(env);
-    expect((await overdue(nam))[0]!.title).toBe(
-      "Bài Unit 1 test đã quá hạn, hãy nhanh chóng hoàn thiện nhé.",
-    );
+    expect((await overdue(nam))[0]).toMatchObject({
+      title: "Bài Unit 1 test đã quá hạn!",
+      body: "Bài tập của bạn đã quá hạn. Hãy nhanh chóng nộp bài nhé!",
+    });
     await setSql("DELETE FROM notifications");
     await setSql("UPDATE assignments SET allow_late = 0 WHERE id = ?", id);
     await runNotificationJobs(env);
-    expect((await overdue(nam))[0]!.title).toBe(
-      "Bài Unit 1 test đã quá hạn và đã khoá nộp. Liên hệ với giáo viên để được mở nộp bài",
-    );
+    expect((await overdue(nam))[0]).toMatchObject({
+      title: "Bài Unit 1 test đã quá hạn!",
+      body: "Bài tập của bạn đã quá hạn và không thể nộp. Liên hệ với giáo viên để được hỗ trợ nhé!",
+    });
   });
 
   it("says nothing about work that went overdue more than a day ago, or has no deadline", async () => {

@@ -27,6 +27,8 @@ const PLACEHOLDER = /\{[^{}]*\}/g;
 class Refused extends Error {}
 
 /**
+ * (Notifications made before 2026-10-24 only: from then on a title is a whole table text such as "{title} is due
+ * soon", and these four are only kept in the table for the old ones; remove them after 2027-01-23.)
  * Notification titles are stored as one of these texts followed by the homework title (SQL `||`), so the exact
  * text never matches. For each of them the table also gets "<text>{title}"; these entries are made here, never
  * read from the file (a row cannot set one), and the title is put back as it is.

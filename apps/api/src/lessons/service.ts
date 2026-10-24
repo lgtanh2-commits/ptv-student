@@ -196,14 +196,14 @@ async function targetsOf(ctx: Ctx, tenantId: string, lesson: LessonRow, scope: "
 }
 
 /** Tells enrolled students with an account that a lesson's time changed. Best-effort; see `tell`. */
-const tellLessonChanged = (ctx: Ctx, lesson: LessonRow, body: UpdateLessonBody) =>
+const tellLessonChanged = (ctx: Ctx, lesson: LessonRow) =>
   tell(
     ctx,
     notifyLessonChangedStatement(ctx.env.DB, {
       tenantId: lesson.tenant_id,
       courseId: lesson.course_id,
-      title: "Your class time changed",
-      body: `${lesson.course_name} · now ${body.date} ${body.startTime}`,
+      title: "Your lesson has been changed",
+      body: "Your lesson has been updated. Tap to view.",
       link: `/my/courses/${lesson.course_id}`,
       dedupe: `lesson-changed:${lesson.id}:${lesson.version + 1}`,
     }),
@@ -260,7 +260,7 @@ async function shiftLessons(
     ipHash: ctx.ipHash,
     meta: { count: res.meta.changes, scope: body.scope },
   });
-  await tellLessonChanged(ctx, lesson, body);
+  await tellLessonChanged(ctx, lesson);
   return infos(
     await lessonsByIds(
       db,
@@ -357,7 +357,7 @@ async function reshapeLessons(
     ipHash: ctx.ipHash,
     meta: { count: insRes.meta.changes, scope: "following", repeat },
   });
-  await tellLessonChanged(ctx, lesson, body);
+  await tellLessonChanged(ctx, lesson);
   return infos(
     await lessonsByIds(
       db,

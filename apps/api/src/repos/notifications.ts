@@ -46,7 +46,7 @@ export const notifyStudentStatement = (
     )
     .bind(o.kind, o.title, o.body, o.link, nowIso(), o.dedupe, o.tenantId, o.studentId);
 
-/** A notification for a student about one piece of work: the title is `prefix` and the title of the work. */
+/** A notification for a student about one piece of work: `{title}` in the title is put as the title of the work. */
 export const notifyWorkStatement = (
   db: D1Database,
   o: {
@@ -54,21 +54,22 @@ export const notifyWorkStatement = (
     assignmentId: string;
     studentId: string;
     kind: Kind;
-    prefix: string;
+    title: string;
+    body: string;
     dedupe: string | null;
   },
 ): D1PreparedStatement =>
   db
     .prepare(
       `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at, dedupe_key)
-       SELECT ${NEW_ID}, s.tenant_id, s.user_id, ?1, ?2 || a.title, c.name, '/my/work/' || a.id, ?3, ?4
+       SELECT ${NEW_ID}, s.tenant_id, s.user_id, ?1, replace(?2, '{title}', a.title), ?3, '/my/work/' || a.id, ?4, ?5
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND a.deleted_at IS NULL
-         JOIN students s ON s.tenant_id = a.tenant_id AND s.id = ?5 AND s.user_id IS NOT NULL
-       WHERE a.tenant_id = ?6 AND a.id = ?7
+         JOIN students s ON s.tenant_id = a.tenant_id AND s.id = ?6 AND s.user_id IS NOT NULL
+       WHERE a.tenant_id = ?7 AND a.id = ?8
        ON CONFLICT DO NOTHING
        RETURNING user_id, kind, title, body, link`,
     )
-    .bind(o.kind, o.prefix, nowIso(), o.dedupe, o.studentId, o.tenantId, o.assignmentId);
+    .bind(o.kind, o.title, o.body, nowIso(), o.dedupe, o.studentId, o.tenantId, o.assignmentId);
 
 /** The teacher is told that a student handed in work. */
 export const notifyHandInStatement = (
@@ -78,7 +79,7 @@ export const notifyHandInStatement = (
   db
     .prepare(
       `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at)
-       SELECT ${NEW_ID}, m.tenant_id, m.user_id, 'work_handed_in', s.name || ' handed in work', a.title || ' · ' || c.name,
+       SELECT ${NEW_ID}, m.tenant_id, m.user_id, 'work_handed_in', s.name || ' handed in ' || a.title, 'Please check ' || s.name || '''s work.',
          '/assignments/' || a.id || '/students/' || s.id, ?1
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND a.deleted_at IS NULL
          JOIN students s ON s.tenant_id = a.tenant_id AND s.id = ?2
@@ -100,7 +101,8 @@ export const notifyPublishedStatement = (
   db
     .prepare(
       `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at, dedupe_key)
-       SELECT ${NEW_ID}, a.tenant_id, s.user_id, 'homework_new', 'New homework: ' || a.title, c.name, '/my/work/' || a.id, ?1,
+       SELECT ${NEW_ID}, a.tenant_id, s.user_id, 'homework_new', 'You have a new assignment!',
+         'You have a new assignment from ' || c.name || '.', '/my/work/' || a.id, ?1,
          'new:' || a.id
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND a.deleted_at IS NULL
          JOIN enrollments e ON e.tenant_id = a.tenant_id AND e.course_id = a.course_id AND e.status = 'active'
@@ -124,7 +126,8 @@ export const notifyDueSoonStatement = (
   db
     .prepare(
       `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at, dedupe_key)
-       SELECT ${NEW_ID}, a.tenant_id, s.user_id, 'homework_due', 'Due soon: ' || a.title, c.name, '/my/work/' || a.id, ?1,
+       SELECT ${NEW_ID}, a.tenant_id, s.user_id, 'homework_due', a.title || ' is due soon',
+         'Your assignment is due in 24 hours. Try to finish it early!', '/my/work/' || a.id, ?1,
          'due:' || a.id
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND c.status != 'archived' AND a.deleted_at IS NULL
          JOIN enrollments e ON e.tenant_id = a.tenant_id AND e.course_id = a.course_id AND e.status = 'active'
@@ -152,9 +155,9 @@ export const notifyOverdueStatement = (
     .prepare(
       `INSERT INTO notifications (id, tenant_id, user_id, kind, title, body, link, created_at, dedupe_key)
        SELECT ${NEW_ID}, a.tenant_id, s.user_id, 'homework_overdue',
-         CASE WHEN a.allow_late = 1 THEN 'Overdue: ' || a.title || '. Please finish it soon.'
-           ELSE 'Overdue and closed: ' || a.title || '. Ask your teacher to open it again.' END,
-         c.name, '/my/work/' || a.id, ?1, 'overdue:' || a.id
+         a.title || ' is overdue!',
+         CASE WHEN a.allow_late = 1 THEN 'Your assignment is past its due date. Please hand it in as soon as you can!'
+           ELSE 'Your assignment is past its due date and can no longer be handed in. Please contact your teacher for help!' END, '/my/work/' || a.id, ?1, 'overdue:' || a.id
        FROM assignments a JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id AND c.status != 'archived' AND a.deleted_at IS NULL
          JOIN enrollments e ON e.tenant_id = a.tenant_id AND e.course_id = a.course_id AND e.status = 'active'
          JOIN students s ON s.id = e.student_id AND s.tenant_id = a.tenant_id AND s.user_id IS NOT NULL AND s.status != 'archived'
