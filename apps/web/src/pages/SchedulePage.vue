@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import LessonFields from "@/components/LessonFields.vue";
-import { formatDayShort, formatWeek, startOfWeek, today } from "@/features/format";
+import {
+  formatDayShort,
+  formatTimeRange,
+  formatWeek,
+  formatWeekdayShort,
+  startOfWeek,
+  today,
+} from "@/features/format";
 import { lessonLabel } from "@/features/lessons/status";
 import {
   LESSON_LENGTHS,
@@ -30,6 +37,32 @@ import AppSelect from "@/ui/AppSelect.vue";
 const t = messages.schedule;
 const l = messages.lessons;
 const { monday, days, lessons, loading, error, next, previous, thisWeek, goToWeekOf, load } = useSchedule();
+
+// On a phone a run of days with no lesson is one muted line ("T2 – T6: chưa có buổi học"), so the lessons are not
+// pushed below the fold. Today is always shown as its own day. Key: the first day of a run; value: its label.
+const emptyRuns = computed(() => {
+  const runs = new Map<string, string>();
+  let run: string[] = [];
+  const close = () => {
+    const [first, last] = [run[0], run.at(-1)];
+    if (first && last)
+      runs.set(
+        first,
+        first === last
+          ? formatWeekdayShort(first)
+          : `${formatWeekdayShort(first)} – ${formatWeekdayShort(last)}`,
+      );
+    run = [];
+  };
+  for (const day of days.value) {
+    if (day.lessons.length === 0 && !day.isToday) run.push(day.date);
+    else close();
+  }
+  close();
+  return runs;
+});
+const hiddenOnPhone = (day: { lessons: unknown[]; isToday: boolean }) =>
+  day.lessons.length === 0 && !day.isToday;
 
 const edit = useEditLesson({ updated: (n) => (n === 1 ? l.updatedOne : fill(l.updated, { n })) }, load);
 const cancelledText = (n: number) => (n === 1 ? l.cancelled : fill(l.cancelledMany, { n }));
@@ -118,60 +151,66 @@ const statusTone = {
       </AppEmpty>
     </AppCard>
     <div v-else class="flex flex-col gap-3">
-      <section
-        v-for="day in days"
-        :key="day.date"
-        class="flex flex-col gap-3 rounded-box border bg-base-100 p-4 sm:flex-row"
-        :class="day.isToday ? 'border-primary' : 'border-base-300'"
-      >
-        <!-- On a phone the day and its "Today" badge share one line; on a wide screen they are a column on the left. -->
-        <div class="flex shrink-0 items-center justify-between gap-2 sm:block sm:w-32">
-          <p class="font-semibold">{{ formatDayShort(day.date) }}</p>
-          <AppBadge v-if="day.isToday" tone="info">{{ t.today }}</AppBadge>
-        </div>
-        <p v-if="day.lessons.length === 0" class="text-sm text-base-content/40">{{ t.empty }}</p>
-        <ul v-else class="flex min-w-0 flex-1 flex-col gap-2">
-          <AppListRow
-            v-for="lesson in day.lessons"
-            :key="lesson.id"
-            :to="`/lessons/${lesson.id}/attendance`"
-            :struck="lesson.status === 'cancelled'"
-            plain
-            clamp
-            class="rounded-field border border-base-300 px-3 py-2"
-          >
-            <template #title>{{ lesson.title || lesson.courseName }}</template>
-            <template #meta>
-              <span class="font-medium whitespace-nowrap text-base-content"
-                >{{ lesson.startTime }} - {{ lesson.endTime }}</span
-              >
-              · {{ details(lesson) }}
-            </template>
-            <template #trailing>
-              <AppBadge :tone="statusTone[lessonLabel(lesson)]">{{
-                statusText[lessonLabel(lesson)]
-              }}</AppBadge>
-            </template>
-            <template v-if="lesson.status === 'scheduled'" #actions>
-              <AppButton variant="ghost" compact @click="edit.open(lesson)"
-                ><AppIcon name="edit" :size="16" />{{ l.edit }}</AppButton
-              >
-              <AppButton variant="ghost" compact @click="askCancel(lesson)"
-                ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppButton
-              >
-            </template>
-            <template v-else-if="lesson.status === 'cancelled'" #actions>
-              <AppButton
-                variant="ghost"
-                compact
-                :loading="restoringId === lesson.id"
-                @click="restore(lesson.id)"
-                ><AppIcon name="restore" :size="16" />{{ l.restore }}</AppButton
-              >
-            </template>
-          </AppListRow>
-        </ul>
-      </section>
+      <template v-for="day in days" :key="day.date">
+        <p v-if="emptyRuns.has(day.date)" class="px-1 text-sm text-base-content/60 sm:hidden">
+          {{ fill(t.emptyRun, { days: emptyRuns.get(day.date)! }) }}
+        </p>
+        <section
+          class="flex flex-col gap-3 rounded-box border bg-base-100 p-5 sm:flex-row"
+          :class="[
+            day.isToday ? 'border-primary' : 'border-base-300',
+            { 'max-sm:hidden': hiddenOnPhone(day) },
+          ]"
+        >
+          <!-- On a phone the day and its "Today" badge share one line; on a wide screen they are a column on the left. -->
+          <div class="flex shrink-0 items-center justify-between gap-2 sm:block sm:w-32">
+            <p class="font-semibold">{{ formatDayShort(day.date) }}</p>
+            <AppBadge v-if="day.isToday" tone="info">{{ t.today }}</AppBadge>
+          </div>
+          <p v-if="day.lessons.length === 0" class="text-sm text-base-content/40">{{ t.empty }}</p>
+          <ul v-else class="flex min-w-0 flex-1 flex-col gap-2">
+            <AppListRow
+              v-for="lesson in day.lessons"
+              :key="lesson.id"
+              :to="`/lessons/${lesson.id}/attendance`"
+              :struck="lesson.status === 'cancelled'"
+              plain
+              clamp
+              class="rounded-field border border-base-300 px-3 py-2"
+            >
+              <template #title>{{ lesson.title || lesson.courseName }}</template>
+              <template #meta>
+                <span class="font-medium text-base-content">{{
+                  formatTimeRange(lesson.startTime, lesson.endTime)
+                }}</span>
+                · {{ details(lesson) }}
+              </template>
+              <template #trailing>
+                <AppBadge :tone="statusTone[lessonLabel(lesson)]">{{
+                  statusText[lessonLabel(lesson)]
+                }}</AppBadge>
+              </template>
+              <template v-if="lesson.status === 'scheduled'" #actions>
+                <AppButton variant="ghost" compact @click="edit.open(lesson)"
+                  ><AppIcon name="edit" :size="16" />{{ l.edit }}</AppButton
+                >
+                <AppButton variant="ghost" compact @click="askCancel(lesson)"
+                  ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppButton
+                >
+              </template>
+              <template v-else-if="lesson.status === 'cancelled'" #actions>
+                <AppButton
+                  variant="ghost"
+                  compact
+                  :loading="restoringId === lesson.id"
+                  @click="restore(lesson.id)"
+                  ><AppIcon name="restore" :size="16" />{{ l.restore }}</AppButton
+                >
+              </template>
+            </AppListRow>
+          </ul>
+        </section>
+      </template>
     </div>
 
     <AppModal

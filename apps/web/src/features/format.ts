@@ -87,6 +87,11 @@ export function formatWeekdayShort(date: string): string {
     .replace(/ /g, NBSP);
 }
 
+/** "18:30 - 20:00", never broken across lines. */
+export function formatTimeRange(start: string, end: string): string {
+  return `${start}${NBSP}-${NBSP}${end}`;
+}
+
 /** "Monday 5 October 2026" */
 export function formatDayLong(date: string): string {
   return unbreakable(

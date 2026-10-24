@@ -94,7 +94,7 @@ export const vi: Messages = {
     title: "Tham gia lớp học",
     intro: "Giáo viên đã gửi lời mời tham gia lớp học cho bạn.",
     googleHint:
-      "Đăng nhập bằng tài khoản Google có cùng địa chỉ email mà giáo viên đã dùng để thêm bạn vào lớp vào lớp.",
+      "Đăng nhập bằng tài khoản Google có cùng địa chỉ email mà giáo viên đã dùng để thêm bạn vào lớp.",
     orEmail: "Hoặc tiếp tục bằng email nhận lời mời:",
     submit: "Tham gia",
     expired: "Lời mời này đã hết hiệu lực. Vui lòng nhờ giáo viên gửi lời mời mới.",
@@ -489,6 +489,7 @@ export const vi: Messages = {
     next: "Tuần sau",
     thisWeek: "Tuần này",
     empty: "Chưa có buổi học",
+    emptyRun: "{days}: chưa có buổi học",
     noneWeek: "Tuần này không có buổi học",
     noneWeekText: "Thêm buổi học để xem lịch của bạn tại đây.",
     goCourses: "Đến danh sách khóa học",

@@ -197,6 +197,18 @@ describe("frontend architecture (plan 5.2)", () => {
     expect(bad).toEqual([]);
   });
 
+  it("buttons in an alert go in its #actions slot (a row of their own under the text, at the right)", () => {
+    const bad = [...files(path.join(root, "pages")), ...files(path.join(root, "components"))]
+      .filter((f) => f.endsWith(".vue"))
+      .flatMap((f) =>
+        [...readFileSync(f, "utf8").matchAll(/<AppAlert\b[^>]*>([\s\S]*?)<\/AppAlert>/g)]
+          .map((m) => m[1]!.replace(/<template #actions>[\s\S]*?<\/template>/g, ""))
+          .filter((body) => /<(AppButton|button)\b|class="btn\b/.test(body))
+          .map(() => path.relative(root, f)),
+      );
+    expect(bad).toEqual([]);
+  });
+
   it("no screen uses an inline style (the page security policy blocks them): use classes", () => {
     const bad = files(root)
       .filter((f) => f.endsWith(".vue"))

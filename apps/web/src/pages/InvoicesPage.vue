@@ -107,12 +107,10 @@ async function savePayment() {
       />
 
       <AppAlert v-if="list.data.value.missing > 0" kind="info">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <span>{{
-            list.data.value.missing === 1 ? t.missingOne : fill(t.missing, { n: list.data.value.missing })
-          }}</span>
+        {{ list.data.value.missing === 1 ? t.missingOne : fill(t.missing, { n: list.data.value.missing }) }}
+        <template #actions>
           <AppButton compact :loading="list.busy.value" @click="list.generate">{{ t.create }}</AppButton>
-        </div>
+        </template>
       </AppAlert>
 
       <div

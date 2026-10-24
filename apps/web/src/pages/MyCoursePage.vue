@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 import WorkRow from "@/components/WorkRow.vue";
-import { formatDayShort, hostOf } from "@/features/format";
+import { formatDayShort, formatTimeRange, hostOf } from "@/features/format";
 import { useMyCourse } from "@/features/my/useMy";
 import { usePaging } from "@/features/paging";
 import { fill } from "@/features/text";
@@ -66,7 +66,7 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
               <template #meta>
                 <!-- On a phone the date and the place are on separate lines, so every row has the same shape. -->
                 <p class="flex flex-col gap-x-3 sm:flex-row sm:flex-wrap">
-                  <span>{{ formatDayShort(l.date) }}, {{ l.startTime }} - {{ l.endTime }}</span>
+                  <span>{{ formatDayShort(l.date) }}, {{ formatTimeRange(l.startTime, l.endTime) }}</span>
                   <span v-if="l.place" class="inline-flex min-w-0 items-center gap-1"
                     ><AppIcon name="place" :size="14" /><span class="truncate">{{ l.place }}</span></span
                   >

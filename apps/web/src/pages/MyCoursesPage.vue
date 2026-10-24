@@ -28,21 +28,30 @@ const { courses, loading, error } = useMyCourses();
         :to="`/my/courses/${c.id}`"
         class="group flex flex-col gap-4 rounded-box border border-base-300 bg-base-100 p-5 transition hover:border-primary/50 hover:shadow-sm"
       >
-        <div class="flex items-start justify-between gap-3">
-          <span class="grid size-11 place-items-center rounded-field bg-primary/10 text-primary"
-            ><AppIcon name="book" :size="22"
-          /></span>
-          <AppBadge v-if="c.openWork > 0" tone="warning">{{ fill(t.openWork, { n: c.openWork }) }}</AppBadge>
-        </div>
-        <div class="flex-1">
-          <h2 class="font-semibold group-hover:text-primary">{{ c.name }}</h2>
-          <p class="mt-1 line-clamp-2 text-sm text-base-content/60">
+        <!-- On a phone the icon is small and sits before the title, the badge on the right of that line. -->
+        <div class="flex flex-1 flex-col gap-1">
+          <div class="flex items-center gap-3 sm:flex-wrap sm:items-start sm:justify-between sm:gap-y-4">
+            <span
+              class="grid size-9 shrink-0 place-items-center rounded-field bg-primary/10 text-primary sm:size-11 [&>svg]:size-4.5 sm:[&>svg]:size-5.5"
+              ><AppIcon name="book" :size="22"
+            /></span>
+            <h2 class="min-w-0 flex-1 font-semibold group-hover:text-primary sm:order-last sm:basis-full">
+              {{ c.name }}
+            </h2>
+            <AppBadge v-if="c.openWork > 0" class="shrink-0" tone="warning">{{
+              fill(t.openWork, { n: c.openWork })
+            }}</AppBadge>
+          </div>
+          <p class="line-clamp-2 text-sm text-base-content/60">
             {{ c.description || fill(t.teacher, { name: c.teacherName }) }}
           </p>
         </div>
         <p class="text-sm text-base-content/70">
           <template v-if="c.nextLesson"
-            >{{ t.next }}: {{ formatDayShort(c.nextLesson.date) }}, {{ c.nextLesson.startTime }}</template
+            >{{ t.next }}:
+            <span class="whitespace-nowrap"
+              >{{ formatDayShort(c.nextLesson.date) }}, {{ c.nextLesson.startTime }}</span
+            ></template
           >
           <template v-else>{{ t.noNext }}</template>
         </p>

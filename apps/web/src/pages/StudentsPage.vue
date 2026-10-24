@@ -64,7 +64,10 @@ const accessTone = { joined: "success", invited: "info", not_invited: "neutral" 
     <AppAlert v-if="notice" kind="info">{{ fill(t.addedButNotEnrolled, { reason: notice }) }}</AppAlert>
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
 
-    <div class="flex flex-wrap items-end justify-between gap-3">
+    <!-- On a phone search and status share one row. -->
+    <div
+      class="grid grid-cols-[minmax(0,1fr)_10.5rem] items-end gap-3 sm:flex sm:flex-wrap sm:justify-between"
+    >
       <div class="w-full sm:max-w-xs">
         <AppInput v-model="search" :label="t.search" type="text" :placeholder="t.searchHint" />
       </div>

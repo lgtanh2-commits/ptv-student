@@ -317,7 +317,9 @@ const canSend = computed(
                       </div>
                       <div class="sm:col-span-4">
                         <p class="text-sm font-medium">{{ t.lineAmount }}</p>
-                        <p class="min-h-11 content-center font-semibold">{{ formatVnd(amounts[i] ?? 0) }}</p>
+                        <p class="min-h-11 content-center font-semibold whitespace-nowrap">
+                          {{ formatVnd(amounts[i] ?? 0) }}
+                        </p>
                       </div>
                     </template>
                     <template v-else-if="r.kind === 'other'">
@@ -331,8 +333,9 @@ const canSend = computed(
                   </template>
                 </li>
               </ul>
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex flex-wrap gap-2">
+              <!-- On a phone the adders are full-width rows and the total is a line of its own at the right. -->
+              <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <AppButton variant="secondary" compact @click="inv.addRow"
                     ><AppIcon name="plus" :size="16" />{{ t.addLine }}</AppButton
                   >
@@ -344,7 +347,9 @@ const canSend = computed(
                     ><AppIcon name="plus" :size="16" />{{ t.addDiscount }}</AppButton
                   >
                 </div>
-                <p class="text-lg font-semibold">{{ t.total }}: {{ formatVnd(inv.total.value) }}</p>
+                <p class="text-right text-lg font-semibold">
+                  {{ t.total }}: <span class="whitespace-nowrap">{{ formatVnd(inv.total.value) }}</span>
+                </p>
               </div>
               <p v-if="!inv.linesValid.value" class="text-sm text-warning">{{ t.fixLines }}</p>
               <AppTextarea v-model="inv.note.value" :label="t.noteLabel" :rows="3" />

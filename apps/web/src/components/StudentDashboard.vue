@@ -4,7 +4,7 @@ import PushHint from "@/components/PushHint.vue";
 import WorkRow from "@/components/WorkRow.vue";
 import { invoiceStatusText, invoiceStatusTone } from "@/components/invoiceLabels";
 import { useSession } from "@/features/auth/session";
-import { formatVnd, formatWeekdayShort } from "@/features/format";
+import { formatTimeRange, formatVnd, formatWeekdayShort } from "@/features/format";
 import { periodLabel } from "@/features/invoices/period";
 import { useMyHome } from "@/features/my/useMy";
 import { usePaging } from "@/features/paging";
@@ -158,7 +158,7 @@ function jump(id: string) {
                   </template>
                   <template #title>{{ l.title || l.courseName }}</template>
                   <template #meta
-                    >{{ l.startTime }} - {{ l.endTime
+                    >{{ formatTimeRange(l.startTime, l.endTime)
                     }}<template v-if="l.title"> · {{ l.courseName }}</template
                     ><template v-if="l.place"> · {{ l.place }}</template></template
                   >

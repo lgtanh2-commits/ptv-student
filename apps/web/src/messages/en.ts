@@ -457,6 +457,7 @@ export const en = {
     next: "Next week",
     thisWeek: "This week",
     empty: "No lessons",
+    emptyRun: "{days}: no lessons",
     noneWeek: "No lessons this week",
     noneWeekText: "Add a lesson to fill your week.",
     goCourses: "Go to courses",

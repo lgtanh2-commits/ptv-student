@@ -10,7 +10,7 @@ import {
   useLessonRestore,
 } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
-import { formatDayShort, formatWeekdayShort } from "@/features/format";
+import { formatDayShort, formatTimeRange, formatWeekdayShort } from "@/features/format";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -119,7 +119,7 @@ const statusTone = {
             <template #meta>
               <p class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
                 <span class="inline-flex items-center gap-1 whitespace-nowrap"
-                  ><AppIcon name="clock" :size="14" />{{ l.startTime }} - {{ l.endTime }}</span
+                  ><AppIcon name="clock" :size="14" />{{ formatTimeRange(l.startTime, l.endTime) }}</span
                 >
                 <span v-if="l.place" class="inline-flex min-w-0 items-center gap-1"
                   ><AppIcon name="place" :size="14" /><span class="truncate">{{ l.place }}</span></span

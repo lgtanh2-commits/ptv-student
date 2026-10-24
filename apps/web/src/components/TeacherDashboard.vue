@@ -4,7 +4,14 @@ import { computed } from "vue";
 import InvitePanel from "@/components/InvitePanel.vue";
 import { useSession } from "@/features/auth/session";
 import { useDashboard } from "@/features/dashboard/useDashboard";
-import { formatDayLong, formatVnd, formatWeekdayShort, formatWhen, today } from "@/features/format";
+import {
+  formatDayLong,
+  formatTimeRange,
+  formatVnd,
+  formatWeekdayShort,
+  formatWhen,
+  today,
+} from "@/features/format";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -184,7 +191,7 @@ const statusText = {
               </span>
             </template>
             <template #title>{{ l.title || l.courseName }}</template>
-            <template #meta>{{ l.startTime }} - {{ l.endTime }} · {{ l.courseName }}</template>
+            <template #meta>{{ formatTimeRange(l.startTime, l.endTime) }} · {{ l.courseName }}</template>
             <template #trailing>
               <AppBadge :tone="statusTone[lessonLabel(l)]">{{ statusText[lessonLabel(l)] }}</AppBadge>
             </template>

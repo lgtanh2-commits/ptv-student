@@ -56,7 +56,10 @@ const steps = computed(() => ({ input: 1, preview: 2, done: 3 })[imp.step.value]
 
 <template>
   <AppPage :title="t.title" back-to="/students" :back-label="messages.common.back">
-    <ul class="steps w-full" :aria-label="t.stepsLabel">
+    <ul
+      class="steps w-full text-sm [&_.step]:content-start [&_.step]:text-balance"
+      :aria-label="t.stepsLabel"
+    >
       <li class="step" :class="{ 'step-primary': steps >= 1 }">{{ t.step1 }}</li>
       <li class="step" :class="{ 'step-primary': steps >= 2 }">{{ t.step2 }}</li>
       <li class="step" :class="{ 'step-primary': steps >= 3 }">{{ t.step3 }}</li>

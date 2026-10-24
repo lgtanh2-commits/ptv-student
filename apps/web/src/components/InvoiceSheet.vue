@@ -31,7 +31,7 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
 </script>
 
 <template>
-  <article class="print-area @container rounded-box border border-base-300 bg-base-100 p-6 md:p-10">
+  <article class="print-area @container rounded-box border border-base-300 bg-base-100 p-5 md:p-10">
     <header class="flex flex-wrap items-start justify-between gap-4 border-b border-base-300 pb-6">
       <div>
         <h2 class="text-2xl font-semibold tracking-tight">
@@ -39,7 +39,8 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
         </h2>
         <p class="text-base-content/60">{{ t.receipt }}</p>
       </div>
-      <div class="text-right">
+      <!-- Under the title (a narrow receipt) the number block starts at the left; beside it, at the right. -->
+      <div class="@md:text-right">
         <p class="text-sm text-base-content/60">{{ t.receiptNo }}</p>
         <p class="text-lg font-semibold">{{ data.number ?? t.draftNumber }}</p>
         <AppBadge v-if="data.status === 'paid'" tone="success" class="mt-1">{{ t.stampPaid }}</AppBadge>
@@ -129,7 +130,7 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
 
     <section v-if="data.note" class="mt-6">
       <h3 class="text-sm text-base-content/60">{{ t.noteTitle }}</h3>
-      <p class="whitespace-pre-wrap break-words text-lg">{{ data.note }}</p>
+      <p class="whitespace-pre-wrap break-words">{{ data.note }}</p>
     </section>
 
     <section
@@ -150,7 +151,12 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
         <path :d="qr.path" class="fill-black" />
       </svg>
       <p v-if="pay.bankName" class="mt-3 text-lg font-semibold">{{ pay.bankName }}</p>
-      <p v-if="pay.bankAccount" class="text-2xl font-bold tracking-widest">{{ pay.bankAccount }}</p>
+      <p
+        v-if="pay.bankAccount"
+        class="text-center text-xl font-bold tracking-wider break-all sm:text-2xl sm:tracking-widest"
+      >
+        {{ pay.bankAccount }}
+      </p>
       <p v-if="pay.bankHolder" class="uppercase text-base-content/70">{{ pay.bankHolder }}</p>
       <p v-if="pay.paymentNote" class="mt-2 whitespace-pre-wrap break-words text-center text-sm">
         {{ pay.paymentNote }}
@@ -165,7 +171,10 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
 
     <section v-if="showPay" class="mt-6 rounded-field bg-base-200 p-4 print:bg-transparent print:p-0">
       <h3 class="mb-2 font-semibold">{{ t.howToPay }}</h3>
-      <dl class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
+      <!-- On a phone each pair is one row: the label on the left, the value on the right. -->
+      <dl
+        class="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 max-sm:[&>div]:flex max-sm:[&>div]:justify-between max-sm:[&>div]:gap-3 max-sm:[&_dd]:min-w-0 max-sm:[&_dd]:text-right max-sm:[&_dd]:break-words"
+      >
         <div v-if="pay.payeeName">
           <dt class="text-base-content/60">{{ t.payTo }}</dt>
           <dd class="font-medium">{{ pay.payeeName }}</dd>

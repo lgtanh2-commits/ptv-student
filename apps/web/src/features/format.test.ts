@@ -7,6 +7,7 @@ import {
   formatLocalDay,
   formatVnd,
   formatWeek,
+  formatTimeRange,
   formatWeekdayShort,
   formatWhen,
 } from "./format";
@@ -55,5 +56,11 @@ describe("format", () => {
     const label = periodLabel("2026-10");
     expect(label[0]).toBe(label[0]!.toLocaleUpperCase());
     expect(label[0]).not.toBe(label[0]!.toLocaleLowerCase());
+  });
+});
+
+describe("formatTimeRange", () => {
+  it("never breaks inside the range", () => {
+    expect(formatTimeRange("18:30", "20:00")).toBe("18:30\u00a0-\u00a020:00");
   });
 });

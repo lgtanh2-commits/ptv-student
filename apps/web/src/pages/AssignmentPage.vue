@@ -156,11 +156,15 @@ const deleteWords = computed(() => {
         <p v-if="a.instructions" class="whitespace-pre-wrap break-words">{{ a.instructions }}</p>
         <ol class="flex flex-col gap-2 text-sm">
           <li v-for="(q, i) in a.questions" :key="q.id" class="rounded-field bg-base-200 px-3 py-2">
-            <span class="flex flex-wrap items-center justify-between gap-2">
-              <span class="font-medium">{{ i + 1 }}. {{ q.text }}</span>
-              <span class="flex items-center gap-2 text-base-content/60">
-                {{ kindText[q.kind] }} ·
-                {{ q.points === 1 ? t.pointsOne : fill(t.pointsTotal, { n: q.points }) }}
+            <!-- On a phone the question has its own line and the meta line (which breaks only between its items)
+                 is under it; on a wide screen the meta is on the right. -->
+            <span class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+              <span class="min-w-0 font-medium">{{ i + 1 }}. {{ q.text }}</span>
+              <span class="flex flex-wrap items-center gap-x-2 gap-y-1 text-base-content/60 sm:shrink-0">
+                <span class="whitespace-nowrap"
+                  >{{ kindText[q.kind] }} ·
+                  {{ q.points === 1 ? t.pointsOne : fill(t.pointsTotal, { n: q.points }) }}</span
+                >
                 <AppBadge
                   :tone="
                     (q.kind === 'choice' && q.correct !== null) || (q.kind === 'short' && q.accepted.length)
@@ -191,7 +195,7 @@ const deleteWords = computed(() => {
               v-if="q.kind === 'short' && q.accepted.length && a.status !== 'draft'"
               variant="ghost"
               compact
-              class="mt-1"
+              class="mt-1 ms-auto flex w-fit"
               @click="acceptFor = q.id"
               >{{ t.acceptButton }}</AppButton
             >
@@ -199,15 +203,11 @@ const deleteWords = computed(() => {
         </ol>
         <ul v-if="a.links.length" class="flex flex-col gap-1">
           <li v-for="l in a.links" :key="l.url">
-            <a
-              :href="l.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link link-primary inline-flex items-center gap-1"
+            <!-- The title wraps as text; the host stays whole after it. -->
+            <a :href="l.url" target="_blank" rel="noopener noreferrer" class="link link-primary"
+              ><AppIcon name="link" :size="14" class="me-1 inline align-[-2px]" />{{ l.title }}</a
             >
-              <AppIcon name="link" :size="14" />{{ l.title }}
-              <span class="text-xs text-base-content/60">({{ hostOf(l.url) }})</span>
-            </a>
+            <span class="ms-1 text-xs whitespace-nowrap text-base-content/60">({{ hostOf(l.url) }})</span>
           </li>
         </ul>
         <p class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-base-content/70">

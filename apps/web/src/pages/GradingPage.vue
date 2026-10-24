@@ -115,15 +115,15 @@ const stateNote = computed(() => {
               </p>
               <p class="mt-1 font-medium">{{ q.text }}</p>
             </div>
-            <div class="flex items-end gap-2">
-              <div class="w-28">
-                <AppInput
-                  v-model="g.points[q.id]!"
-                  :label="fill(t.pointsOf, { max: q.points })"
-                  inputmode="decimal"
-                  :disabled="g.isAuto(q.id)"
-                />
-              </div>
+            <!-- On a phone the score is a row of its own under the question: label left, box right. -->
+            <div class="w-full sm:w-28">
+              <AppInput
+                v-model="g.points[q.id]!"
+                :label="fill(t.pointsOf, { max: q.points })"
+                inputmode="decimal"
+                :disabled="g.isAuto(q.id)"
+                inline
+              />
             </div>
           </div>
 
@@ -208,8 +208,15 @@ const stateNote = computed(() => {
       <div class="flex min-w-0 flex-col gap-6">
         <AppCard class="lg:sticky lg:top-6" :title="t.totalTitle" :description="stateNote">
           <AppAlert v-if="g.error.value" kind="error">{{ g.error.value }}</AppAlert>
-          <p class="text-3xl font-semibold text-primary">
-            {{ scoreText(g.complete.value ? g.total.value : null, d.assignment.maxScore) }}
+          <p
+            class="text-3xl font-semibold"
+            :class="g.complete.value ? 'text-primary' : 'text-base-content/40'"
+          >
+            {{
+              g.complete.value
+                ? scoreText(g.total.value, d.assignment.maxScore)
+                : `– / ${d.assignment.maxScore}`
+            }}
           </p>
           <p v-if="!g.complete.value" class="text-sm text-base-content/60">{{ t.pointsMissing }}</p>
           <AppTextarea v-model="g.feedback.value" :label="t.feedback" :rows="5" :hint="t.feedbackHint" />

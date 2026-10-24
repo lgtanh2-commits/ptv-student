@@ -16,7 +16,9 @@ defineProps<{ icon?: IconName; title: string; text?: string; compact?: boolean }
     >
       <AppIcon :name="icon" :size="28" />
     </span>
-    <h3 :class="compact ? 'text-sm font-medium' : 'text-lg font-semibold'">{{ title }}</h3>
+    <h3 :class="compact ? 'text-sm font-medium text-base-content/70' : 'text-lg font-semibold'">
+      {{ title }}
+    </h3>
     <p v-if="text" class="max-w-sm text-base-content/60" :class="{ 'text-sm': compact }">{{ text }}</p>
     <div
       v-if="$slots.default"

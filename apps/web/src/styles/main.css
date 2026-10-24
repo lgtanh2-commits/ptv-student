@@ -6,6 +6,10 @@
  * the whole app, change the two themes below. To change how one piece looks, change src/ui.
  * Pages and features only use the semantic color names (primary, base-100, base-content, error...),
  * never a color value.
+ *
+ * Spacing scale (keep text edges in line from card to card): page gutter 16px (px-4, 32px from md); card inner
+ * padding 20px (p-5 / px-5) everywhere, including the receipt, the sign-in card and result cards; a panel nested in a
+ * card 12px (p-3); 24px between cards (gap-6); 12px between tiles (gap-3).
  */
 @plugin "daisyui" {
   themes: false;

@@ -102,9 +102,7 @@ function confirmImport() {
           <AppButton variant="secondary" compact :disabled="f.wordsOnly.value" @click="openImport">
             <AppIcon name="upload" :size="16" />{{ t.importOpen }}
           </AppButton>
-          <span class="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">{{
-            fill(t.totalPoints, { n: f.total.value })
-          }}</span>
+          <AppBadge tone="info">{{ fill(t.totalPoints, { n: f.total.value }) }}</AppBadge>
         </template>
         <AppAlert v-if="err.questions" kind="error">{{ err.questions }}</AppAlert>
         <AppAlert v-if="f.wordsOnly.value" kind="warning">{{ t.lockedNote }}</AppAlert>
@@ -312,7 +310,10 @@ function confirmImport() {
     </form>
 
     <AppModal v-model="importing" :title="t.importTitle" :close-label="messages.common.close">
-      <ul class="steps w-full" :aria-label="t.importStepsLabel">
+      <ul
+        class="steps w-full text-sm [&_.step]:content-start [&_.step]:text-balance"
+        :aria-label="t.importStepsLabel"
+      >
         <li class="step step-primary">{{ t.importStep1 }}</li>
         <li class="step" :class="{ 'step-primary': imp.step.value === 'preview' }">{{ t.importStep2 }}</li>
       </ul>

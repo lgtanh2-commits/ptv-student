@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { usePush } from "@/features/push/usePush";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppButton from "@/ui/AppButton.vue";
-import AppLink from "@/ui/AppLink.vue";
 
 const t = messages.push;
 const push = usePush();
+const router = useRouter();
 const show = computed(
   () => !push.hintDismissed.value && (push.state.value === "off" || push.state.value === "install"),
 );
@@ -15,10 +16,10 @@ const show = computed(
 
 <template>
   <AppAlert v-if="show" kind="info">
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <span>{{ t.hint }}</span>
-      <AppLink to="/settings">{{ t.hintAction }}</AppLink>
+    {{ t.hint }}
+    <template #actions>
       <AppButton variant="ghost" compact @click="push.dismissHint">{{ t.hintLater }}</AppButton>
-    </div>
+      <AppButton compact @click="router.push('/settings')">{{ t.hintAction }}</AppButton>
+    </template>
   </AppAlert>
 </template>

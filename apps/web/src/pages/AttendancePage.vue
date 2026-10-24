@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { formatDayLong } from "@/features/format";
+import { formatDayLong, formatTimeRange } from "@/features/format";
 import { useAttendance } from "@/features/lessons/useAttendance";
 import { useLessonCancel, useLessonRestore } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
@@ -49,7 +49,11 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
 <template>
   <AppPage
     :title="title"
-    :subtitle="lesson ? `${formatDayLong(lesson.date)} · ${lesson.startTime} - ${lesson.endTime}` : undefined"
+    :subtitle="
+      lesson
+        ? `${formatDayLong(lesson.date)} · ${formatTimeRange(lesson.startTime, lesson.endTime)}`
+        : undefined
+    "
     :back-to="lesson ? `/courses/${lesson.courseId}?tab=lessons` : '/schedule'"
     :back-label="t.back"
   >
@@ -73,7 +77,7 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
       <AppAlert v-else kind="info">{{ t.hint }}</AppAlert>
 
       <AppCard v-if="lesson.title || lesson.place || lesson.onlineUrl">
-        <dl class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+        <dl class="grid grid-cols-2 gap-x-8 gap-y-3">
           <!-- The course is written here only when the title above is something else, so nothing is said twice. -->
           <div v-if="lesson.title" class="min-w-0">
             <dt class="text-sm text-base-content/60">{{ t.course }}</dt>
@@ -83,7 +87,7 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
             <dt class="text-sm text-base-content/60">{{ t.place }}</dt>
             <dd class="break-words font-medium">{{ lesson.place }}</dd>
           </div>
-          <div v-if="lesson.onlineUrl" class="min-w-0 sm:col-span-2">
+          <div v-if="lesson.onlineUrl" class="col-span-2 min-w-0">
             <dt class="text-sm text-base-content/60">{{ t.onlineLink }}</dt>
             <dd>
               <a
