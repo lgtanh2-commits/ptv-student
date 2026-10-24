@@ -100,8 +100,8 @@ make a second bot with @BotFather instead (free, one more `/newbot`) and give it
    ```
 4. Linking has no button in the app now (the card was removed on 2026-10-24); the routes still work, but a linked chat gets nothing.
 
-Local development needs the same three settings in `apps/api/.dev.vars` (already gitignored) to try the feature;
-without them it is simply off, same as in production.
+Locally, put `TELEGRAM_BOT_TOKEN` and `FEEDBACK_TELEGRAM_CHAT_ID` in `apps/api/.dev.vars` (already gitignored) to try
+feedback reaching the owner; without them the owner is simply not told, same as in production.
 
 ## Push notifications (optional)
 
