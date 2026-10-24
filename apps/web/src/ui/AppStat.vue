@@ -31,7 +31,7 @@ defineProps<{
       <p class="text-xl font-semibold leading-tight whitespace-nowrap tabular-nums sm:text-2xl">
         {{ value }}
       </p>
-      <p class="line-clamp-2 text-sm leading-snug text-pretty text-base-content/60">{{ label }}</p>
+      <p class="line-clamp-2 text-sm leading-snug text-balance text-base-content/60">{{ label }}</p>
     </div>
   </div>
 </template>

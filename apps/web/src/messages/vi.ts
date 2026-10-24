@@ -168,7 +168,7 @@ export const vi: Messages = {
     install:
       'Trên iPhone/iPad: trong Safari bấm nút Chia sẻ, chọn "Thêm vào MH chính", rồi mở Tutorio từ biểu tượng mới và bật thông báo tại đây.',
     unsupported: "Trình duyệt này chưa hỗ trợ thông báo.",
-    hint: "Bật thông báo để không bỏ lỡ bài tập về nhà.",
+    hint: "Bật thông báo để không bỏ lỡ bài\u00a0tập về\u00a0nhà.",
     hintAction: "Bật ngay",
     hintLater: "Để sau",
   },
@@ -807,7 +807,7 @@ export const vi: Messages = {
     tileLessons: "Buổi học sắp tới",
     tileTodo: "Cần làm",
     tileAgain: "Cần làm lại",
-    tileDone: "Đã chấm điểm",
+    tileDone: "Đã chấm\u00a0điểm",
     tileReceipts: "Phiếu thu chưa thanh toán",
     lessonsTitle: "Buổi học sắp tới",
     lessonsNone: "Chưa có buổi học nào được lên lịch.",
