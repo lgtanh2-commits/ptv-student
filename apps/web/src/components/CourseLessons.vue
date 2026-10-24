@@ -10,7 +10,7 @@ import {
   useLessonRestore,
 } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
-import { formatDayShort } from "@/features/format";
+import { formatDayShort, formatWeekdayShort } from "@/features/format";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -107,7 +107,7 @@ const statusTone = {
                 l.status === 'cancelled' ? 'bg-base-200 text-base-content/50' : 'bg-primary/10 text-primary'
               "
             >
-              <span class="text-xs font-medium uppercase">{{ formatDayShort(l.date).split(" ")[0] }}</span>
+              <span class="text-xs font-medium uppercase">{{ formatWeekdayShort(l.date) }}</span>
               <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
             </span>
             <div class="min-w-0 flex-1 basis-48">

@@ -4,7 +4,7 @@ import PushHint from "@/components/PushHint.vue";
 import WorkRow from "@/components/WorkRow.vue";
 import { invoiceStatusText, invoiceStatusTone } from "@/components/invoiceLabels";
 import { useSession } from "@/features/auth/session";
-import { formatDayShort, formatVnd } from "@/features/format";
+import { formatVnd, formatWeekdayShort } from "@/features/format";
 import { periodLabel } from "@/features/invoices/period";
 import { useMyHome } from "@/features/my/useMy";
 import { usePaging } from "@/features/paging";
@@ -174,9 +174,7 @@ function jump(id: string) {
                     <span
                       class="grid w-14 shrink-0 place-items-center rounded-field bg-primary/10 py-1.5 text-primary"
                     >
-                      <span class="text-xs font-medium uppercase">{{
-                        formatDayShort(l.date).split(" ")[0]
-                      }}</span>
+                      <span class="text-xs font-medium uppercase">{{ formatWeekdayShort(l.date) }}</span>
                       <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
                     </span>
                     <span class="min-w-0 flex-1">

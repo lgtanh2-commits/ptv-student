@@ -166,7 +166,7 @@ describe("months", () => {
     expect(shiftPeriod("2026-09", 14)).toBe("2027-11");
   });
   it("writes a month in words", () => {
-    expect(periodLabel("2026-09")).toBe("tháng 9 năm 2026");
+    expect(periodLabel("2026-09")).toBe("Tháng\u00a09\u00a0năm\u00a02026");
   });
 });
 
