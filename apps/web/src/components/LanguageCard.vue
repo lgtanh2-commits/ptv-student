@@ -6,6 +6,7 @@ import { useLanguageSetting } from "@/features/i18n/useLanguageSetting";
 import { useToast } from "@/features/toast/useToast";
 import { messages } from "@/messages";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
@@ -46,9 +47,9 @@ const nameOf = (lang: Language) => t[lang];
         <AppBadge v-if="lang === setting.current" tone="success">{{ t.inUse }}</AppBadge>
       </label>
     </fieldset>
-    <div>
+    <AppFormActions>
       <AppButton :disabled="!setting.changed.value" @click="asking = true">{{ t.save }}</AppButton>
-    </div>
+    </AppFormActions>
 
     <AppConfirm
       v-model="asking"

@@ -12,7 +12,7 @@ defineProps<{ title: string; subtitle?: string }>();
         <h1 class="text-2xl font-semibold tracking-tight md:text-3xl">{{ title }}</h1>
         <p v-if="subtitle" class="mt-2 text-base-content/60">{{ subtitle }}</p>
       </div>
-      <div class="rounded-box border border-base-300 bg-base-100 p-6 shadow-sm md:p-8">
+      <div class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm md:p-8">
         <div class="flex flex-col gap-5"><slot /></div>
       </div>
       <div class="mt-4 text-center text-sm text-base-content/60"><slot name="below" /></div>

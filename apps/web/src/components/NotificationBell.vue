@@ -80,7 +80,7 @@ watch(
       id="notification-panel"
       role="dialog"
       :aria-label="t.title"
-      class="absolute right-0 top-full z-40 mt-2 flex max-h-[32rem] w-96 max-w-[calc(100vw-1.5rem)] flex-col rounded-box border border-base-300 bg-base-100 shadow-lg"
+      class="absolute right-0 top-full z-40 mt-2 flex max-h-[min(32rem,calc(100dvh-5rem))] w-96 max-w-[calc(100vw-2rem)] flex-col rounded-box border border-base-300 bg-base-100 shadow-lg max-sm:fixed max-sm:inset-x-4 max-sm:top-15 max-sm:mt-0 max-sm:w-auto"
     >
       <div class="flex items-center justify-between gap-2 border-b border-base-300 px-4 py-3">
         <h2 class="font-semibold">{{ t.title }}</h2>
@@ -113,7 +113,7 @@ watch(
             />
             <span class="min-w-0 flex-1">
               <span class="block text-sm" :class="i.read ? '' : 'font-semibold'">{{ i.title }}</span>
-              <span v-if="i.body" class="block truncate text-xs text-base-content/60">{{ i.body }}</span>
+              <span v-if="i.body" class="line-clamp-2 text-xs text-base-content/60">{{ i.body }}</span>
               <span class="block text-xs text-base-content/50">{{ formatWhen(i.at) }}</span>
             </span>
           </button>

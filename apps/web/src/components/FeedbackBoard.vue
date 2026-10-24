@@ -45,10 +45,10 @@ function meta(card: FeedbackCard): string {
 <template>
   <AppLoading v-if="loading && !board" :label="t.loading" />
   <AppAlert v-else-if="error" kind="error">
-    <p>{{ error }}</p>
-    <AppButton class="mt-2" variant="secondary" compact @click="reload">{{
-      messages.common.tryAgain
-    }}</AppButton>
+    {{ error }}
+    <template #actions>
+      <AppButton variant="secondary" compact @click="reload">{{ messages.common.tryAgain }}</AppButton>
+    </template>
   </AppAlert>
   <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-3" role="group" :aria-label="t.board">
     <section
@@ -59,9 +59,7 @@ function meta(card: FeedbackCard): string {
     >
       <h2 :id="`feedback-${col.key}`" class="flex items-center gap-2 px-1 text-sm font-semibold uppercase">
         <AppBadge :tone="col.tone">{{ col.name }}</AppBadge>
-        <span class="rounded-full bg-base-100 px-2 py-0.5 text-xs font-medium tabular-nums">{{
-          col.cards.length
-        }}</span>
+        <AppBadge class="tabular-nums">{{ col.cards.length }}</AppBadge>
       </h2>
       <ul v-if="col.cards.length" class="flex flex-col gap-2">
         <li
@@ -73,7 +71,7 @@ function meta(card: FeedbackCard): string {
           <p class="mt-1 text-xs text-base-content/70">{{ meta(card) }}</p>
         </li>
       </ul>
-      <AppEmpty v-else icon="message" :title="col.empty" />
+      <AppEmpty v-else compact :title="col.empty" />
     </section>
   </div>
 </template>

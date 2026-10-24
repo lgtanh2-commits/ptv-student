@@ -7,9 +7,11 @@ import { dueWords, scoreText } from "@/features/homework/dates";
 import { useMyWork } from "@/features/my/useMy";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
+import AppActionBar from "@/ui/AppActionBar.vue";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -80,7 +82,7 @@ const setLink = (qi: number, v: string) => {
     :back-to="w ? `/my/courses/${w.courseId}` : '/'"
     :back-label="t.workBack"
   >
-    <template v-if="w" #actions>
+    <template v-if="w" #meta>
       <span class="text-sm" :class="w.canEdit ? 'text-base-content/70' : 'text-base-content/50'">{{
         dueWords(w.dueAt)
       }}</span>
@@ -100,19 +102,23 @@ const setLink = (qi: number, v: string) => {
       <!-- The confirmation: shown as soon as the work is handed in, and every time the student comes back -->
       <section
         v-if="handedIn && w.results"
-        class="flex flex-col gap-3 rounded-box border p-6"
+        class="flex flex-col gap-3 rounded-box border p-5"
         :class="m.justHandedIn.value ? 'border-success bg-success/10' : 'border-base-300 bg-base-100'"
         role="status"
         aria-live="polite"
       >
-        <div class="flex items-start gap-4">
-          <span class="grid size-12 shrink-0 place-items-center rounded-full bg-success text-success-content"
+        <!-- On a phone the icon is small and sits beside the heading, so the text below has the card's full width. -->
+        <div
+          class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 sm:items-start sm:gap-x-4"
+        >
+          <span
+            class="grid size-8 shrink-0 place-items-center rounded-full bg-success text-success-content sm:row-span-2 sm:size-12 [&>svg]:size-4.5 sm:[&>svg]:size-6.5"
             ><AppIcon name="check" :size="26"
           /></span>
-          <div class="flex flex-col gap-1">
-            <h2 class="text-xl font-semibold">
-              {{ w.status === "returned" ? t.totalScore : t.submittedTitle }}
-            </h2>
+          <h2 class="text-xl font-semibold">
+            {{ w.status === "returned" ? t.totalScore : t.submittedTitle }}
+          </h2>
+          <div class="col-span-2 flex flex-col gap-1 sm:col-span-1 sm:col-start-2">
             <p v-if="w.status === 'returned'" class="text-3xl font-semibold text-primary">
               {{ scoreText(w.score, w.maxScore) }}
             </p>
@@ -140,26 +146,22 @@ const setLink = (qi: number, v: string) => {
               <p class="text-sm text-base-content/60">{{ t.teacherWords }}</p>
               <p class="whitespace-pre-wrap break-words">{{ w.feedback }}</p>
             </div>
-            <div class="mt-2">
-              <AppButton variant="secondary" compact @click="router.push('/')">{{ t.backHome }}</AppButton>
-            </div>
           </div>
         </div>
+        <AppFormActions>
+          <AppButton variant="secondary" @click="router.push('/')">{{ t.backHome }}</AppButton>
+        </AppFormActions>
       </section>
 
       <AppCard v-if="w.instructions || w.links.length || w.dueAt" :title="t.instructions">
         <p v-if="w.instructions" class="whitespace-pre-wrap break-words">{{ w.instructions }}</p>
         <ul v-if="w.links.length" class="flex flex-col gap-1">
           <li v-for="l in w.links" :key="l.url">
-            <a
-              :href="l.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link link-primary inline-flex items-center gap-1"
+            <!-- The title wraps as text; the host stays whole after it. -->
+            <a :href="l.url" target="_blank" rel="noopener noreferrer" class="link link-primary"
+              ><AppIcon name="link" :size="14" class="me-1 inline align-[-2px]" />{{ l.title }}</a
             >
-              <AppIcon name="link" :size="14" />{{ l.title }}
-              <span class="text-xs text-base-content/60">({{ hostOf(l.url) }})</span>
-            </a>
+            <span class="ms-1 text-xs whitespace-nowrap text-base-content/60">({{ hostOf(l.url) }})</span>
           </li>
         </ul>
         <p v-if="w.dueAt" class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-base-content/70">
@@ -287,21 +289,19 @@ const setLink = (qi: number, v: string) => {
         </div>
       </AppCard>
 
-      <div
-        v-if="w.canEdit"
-        class="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-base-300 bg-base-100/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-box md:border"
-      >
-        <p
-          class="text-sm"
-          :class="m.saveState.value === 'error' ? 'text-error' : 'text-base-content/60'"
-          aria-live="polite"
-        >
-          {{ saveText }}
-        </p>
+      <AppActionBar v-if="w.canEdit">
+        <template #status>
+          <p
+            :class="m.saveState.value === 'error' ? 'text-error' : 'text-base-content/60'"
+            aria-live="polite"
+          >
+            {{ saveText }}
+          </p>
+        </template>
         <AppButton :loading="m.submitting.value" @click="confirming = true"
           ><AppIcon name="send" :size="18" />{{ t.handIn }}</AppButton
         >
-      </div>
+      </AppActionBar>
     </template>
 
     <AppModal v-model="confirming" :title="t.handInTitle" :close-label="messages.common.close">

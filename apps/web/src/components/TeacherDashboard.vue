@@ -4,7 +4,14 @@ import { computed } from "vue";
 import InvitePanel from "@/components/InvitePanel.vue";
 import { useSession } from "@/features/auth/session";
 import { useDashboard } from "@/features/dashboard/useDashboard";
-import { formatDayLong, formatDayShort, formatVnd, today } from "@/features/format";
+import {
+  formatDayLong,
+  formatTimeRange,
+  formatVnd,
+  formatWeekdayShort,
+  formatWhen,
+  today,
+} from "@/features/format";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
@@ -14,9 +21,10 @@ import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPage from "@/ui/AppPage.vue";
-import AppStat from "@/ui/AppStat.vue";
+import AppStatGroup from "@/ui/AppStatGroup.vue";
 import { useRouter } from "vue-router";
 
 const t = messages.dashboard;
@@ -55,7 +63,7 @@ const steps = computed(() => [
 const receiptLines = computed(() => {
   const r = receipts.value;
   if (!r) return [];
-  const lines: { text: string; to: string }[] = [];
+  const lines: { text: string; to: string; amount?: string }[] = [];
   if (r.toCharge > 0)
     lines.push({
       text: r.toCharge === 1 ? t.receiptsToChargeOne : fill(t.receiptsToCharge, { n: r.toCharge }),
@@ -66,16 +74,13 @@ const receiptLines = computed(() => {
       text: r.drafts === 1 ? t.receiptsDraftsOne : fill(t.receiptsDrafts, { n: r.drafts }),
       to: "/invoices",
     });
-  if (r.unpaid > 0) {
-    const amount = formatVnd(r.unpaidAmount);
+  if (r.unpaid > 0)
     lines.push({
-      text:
-        r.unpaid === 1
-          ? fill(t.receiptsUnpaidOne, { amount })
-          : fill(t.receiptsUnpaid, { n: r.unpaid, amount }),
+      text: r.unpaid === 1 ? t.receiptsUnpaidOne : fill(t.receiptsUnpaid, { n: r.unpaid }),
       to: "/invoices",
+      // The amount sits at the right of the line, never split from its unit.
+      amount: formatVnd(r.unpaidAmount),
     });
-  }
   return lines;
 });
 const showStart = computed(() => !loading.value && steps.value.some((s) => !s.done));
@@ -99,11 +104,13 @@ const statusText = {
     <AppAlert v-if="!session.me?.user.emailVerified" kind="warning">{{ messages.home.unconfirmed }}</AppAlert>
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-      <AppStat :value="courses.length" :label="t.courses" icon="book" />
-      <AppStat :value="studentTotal" :label="t.students" icon="users" tone="secondary" />
-      <AppStat :value="week.length" :label="t.lessonsWeek" icon="calendar" tone="accent" />
-    </div>
+    <AppStatGroup
+      :items="[
+        { value: courses.length, label: t.courses, icon: 'book' },
+        { value: studentTotal, label: t.students, icon: 'users', tone: 'secondary' },
+        { value: week.length, label: t.lessonsWeek, icon: 'calendar', tone: 'accent' },
+      ]"
+    />
 
     <AppCard v-if="showStart" :title="t.startTitle" :description="t.startText">
       <ol class="grid gap-3 md:grid-cols-3">
@@ -135,34 +142,36 @@ const statusText = {
 
     <AppCard v-if="!loading && receiptLines.length" :title="t.receiptsTitle" flush>
       <ul class="divide-y divide-base-300">
-        <li v-for="l in receiptLines" :key="l.text">
-          <RouterLink :to="l.to" class="flex items-center gap-3 px-5 py-3 hover:bg-base-200/60">
-            <AppIcon name="invoice" :size="18" />
-            <span class="flex-1">{{ l.text }}</span>
-            <AppIcon name="right" :size="16" />
-          </RouterLink>
-        </li>
+        <AppListRow v-for="l in receiptLines" :key="l.text" :to="l.to" wrap>
+          <template #leading><AppIcon name="invoice" :size="18" /></template>
+          <template #title
+            ><span class="font-normal">{{ l.text }}</span></template
+          >
+          <template #trailing>
+            <span v-if="l.amount" class="font-semibold whitespace-nowrap">{{ l.amount }}</span>
+            <AppIcon name="right" :size="16" class="text-base-content/40" />
+          </template>
+        </AppListRow>
       </ul>
     </AppCard>
 
     <AppCard v-if="!loading && queue.length" :title="messages.queue.title" flush>
       <ul class="divide-y divide-base-300">
-        <li v-for="q in queue.slice(0, 6)" :key="`${q.assignmentId}-${q.studentId}`">
-          <RouterLink
-            :to="`/assignments/${q.assignmentId}/students/${q.studentId}`"
-            class="flex flex-wrap items-center gap-3 px-5 py-3 hover:bg-base-200/60"
-          >
-            <AppAvatar :name="q.studentName" size="sm" />
-            <span class="min-w-0 flex-1 basis-48">
-              <span class="block truncate font-medium">{{ q.studentName }}</span>
-              <span class="block truncate text-sm text-base-content/60"
-                >{{ q.assignmentTitle }} · {{ q.courseName }}</span
-              >
-            </span>
-            <AppBadge v-if="q.isLate" tone="error">{{ messages.queue.late }}</AppBadge>
-            <AppBadge tone="warning">{{ messages.queue.open }}</AppBadge>
-          </RouterLink>
-        </li>
+        <AppListRow
+          v-for="q in queue.slice(0, 6)"
+          :key="`${q.assignmentId}-${q.studentId}`"
+          :to="`/assignments/${q.assignmentId}/students/${q.studentId}`"
+        >
+          <template #leading><AppAvatar :name="q.studentName" size="sm" /></template>
+          <template #title>{{ q.studentName }}</template>
+          <template #meta>
+            <p class="truncate">{{ q.assignmentTitle }} · {{ q.courseName }}</p>
+            <p>{{ fill(messages.queue.handed, { when: formatWhen(q.submittedAt) }) }}</p>
+          </template>
+          <template v-if="q.isLate" #trailing>
+            <AppBadge tone="error">{{ messages.queue.late }}</AppBadge>
+          </template>
+        </AppListRow>
       </ul>
     </AppCard>
 
@@ -172,33 +181,21 @@ const statusText = {
           <AppButton variant="ghost" compact @click="router.push('/schedule')">{{ t.seeSchedule }}</AppButton>
         </template>
         <div v-if="loading" class="p-5"><AppLoading :label="messages.common.loading" /></div>
-        <AppEmpty
-          v-else-if="upcoming.length === 0"
-          icon="calendar"
-          :title="t.weekEmpty"
-          :text="t.weekEmptyText"
-        />
+        <AppEmpty v-else-if="upcoming.length === 0" compact :title="t.weekEmpty" :text="t.weekEmptyText" />
         <ul v-else class="divide-y divide-base-300">
-          <li v-for="l in upcoming" :key="l.id">
-            <RouterLink
-              :to="`/lessons/${l.id}/attendance`"
-              class="flex items-center gap-4 px-5 py-3 hover:bg-base-200/60"
-            >
-              <span
-                class="grid w-14 shrink-0 place-items-center rounded-field bg-primary/10 py-1.5 text-primary"
-              >
-                <span class="text-xs font-medium uppercase">{{ formatDayShort(l.date).split(" ")[0] }}</span>
+          <AppListRow v-for="l in upcoming" :key="l.id" :to="`/lessons/${l.id}/attendance`" clamp>
+            <template #leading>
+              <span class="grid w-14 place-items-center rounded-field bg-primary/10 py-1.5 text-primary">
+                <span class="text-xs font-medium uppercase">{{ formatWeekdayShort(l.date) }}</span>
                 <span class="text-lg font-semibold leading-tight">{{ l.date.slice(8) }}</span>
               </span>
-              <span class="min-w-0 flex-1">
-                <span class="block truncate font-medium">{{ l.title || l.courseName }}</span>
-                <span class="block truncate text-sm text-base-content/60">
-                  {{ l.startTime }} - {{ l.endTime }} · {{ l.courseName }}
-                </span>
-              </span>
+            </template>
+            <template #title>{{ l.title || l.courseName }}</template>
+            <template #meta>{{ formatTimeRange(l.startTime, l.endTime) }} · {{ l.courseName }}</template>
+            <template #trailing>
               <AppBadge :tone="statusTone[lessonLabel(l)]">{{ statusText[lessonLabel(l)] }}</AppBadge>
-            </RouterLink>
-          </li>
+            </template>
+          </AppListRow>
         </ul>
       </AppCard>
       <div class="min-w-0 lg:col-span-2"><InvitePanel /></div>

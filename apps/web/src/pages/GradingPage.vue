@@ -9,11 +9,14 @@ import { fill } from "@/features/text";
 import { usePaging } from "@/features/paging";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
+import AppEmpty from "@/ui/AppEmpty.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
@@ -90,7 +93,7 @@ const stateNote = computed(() => {
     :back-to="`/assignments/${assignmentId}`"
     :back-label="t.back"
   >
-    <template v-if="d" #actions>
+    <template v-if="d" #meta>
       <AppBadge :tone="submissionTone[d.status]">{{ submissionText[d.status] }}</AppBadge>
       <AppBadge v-if="d.isLate" tone="error">{{ t.late }}</AppBadge>
     </template>
@@ -112,15 +115,15 @@ const stateNote = computed(() => {
               </p>
               <p class="mt-1 font-medium">{{ q.text }}</p>
             </div>
-            <div class="flex items-end gap-2">
-              <div class="w-28">
-                <AppInput
-                  v-model="g.points[q.id]!"
-                  :label="fill(t.pointsOf, { max: q.points })"
-                  inputmode="decimal"
-                  :disabled="g.isAuto(q.id)"
-                />
-              </div>
+            <!-- On a phone the score is a row of its own under the question: label left, box right. -->
+            <div class="w-full sm:w-28">
+              <AppInput
+                v-model="g.points[q.id]!"
+                :label="fill(t.pointsOf, { max: q.points })"
+                inputmode="decimal"
+                :disabled="g.isAuto(q.id)"
+                inline
+              />
             </div>
           </div>
 
@@ -189,16 +192,14 @@ const stateNote = computed(() => {
         </AppCard>
 
         <AppCard :title="t.history" flush>
-          <p v-if="d.history.length === 0" class="p-5 text-sm text-base-content/60">{{ t.noHistory }}</p>
+          <AppEmpty v-if="d.history.length === 0" compact :title="t.noHistory" />
           <ul v-else class="divide-y divide-base-300">
-            <li
-              v-for="(h, i) in historyPaging.shown.value"
-              :key="i"
-              class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm"
-            >
-              <span>{{ historyText(h) }}</span>
-              <span class="text-base-content/60">{{ formatWhen(h.at) }}</span>
-            </li>
+            <AppListRow v-for="(h, i) in historyPaging.shown.value" :key="i" wrap class="text-sm">
+              <template #title
+                ><span class="font-normal">{{ historyText(h) }}</span></template
+              >
+              <template #meta>{{ formatWhen(h.at) }}</template>
+            </AppListRow>
           </ul>
           <AppPager v-model:page="historyPaging.page.value" :pages="historyPaging.pages.value" />
         </AppCard>
@@ -207,24 +208,33 @@ const stateNote = computed(() => {
       <div class="flex min-w-0 flex-col gap-6">
         <AppCard class="lg:sticky lg:top-6" :title="t.totalTitle" :description="stateNote">
           <AppAlert v-if="g.error.value" kind="error">{{ g.error.value }}</AppAlert>
-          <p class="text-3xl font-semibold text-primary">
-            {{ scoreText(g.complete.value ? g.total.value : null, d.assignment.maxScore) }}
+          <p
+            class="text-3xl font-semibold"
+            :class="g.complete.value ? 'text-primary' : 'text-base-content/40'"
+          >
+            {{
+              g.complete.value
+                ? scoreText(g.total.value, d.assignment.maxScore)
+                : `– / ${d.assignment.maxScore}`
+            }}
           </p>
           <p v-if="!g.complete.value" class="text-sm text-base-content/60">{{ t.pointsMissing }}</p>
           <AppTextarea v-model="g.feedback.value" :label="t.feedback" :rows="5" :hint="t.feedbackHint" />
           <p v-if="g.dirty.value" class="text-sm text-warning">{{ t.unsaved }}</p>
-          <div class="flex flex-wrap gap-2">
+          <AppFormActions stack>
+            <AppButton variant="secondary" :disabled="!canReturn || g.busy.value" @click="g.giveBack"
+              ><AppIcon name="send" :size="16" />{{ t.giveBack }}</AppButton
+            >
             <AppButton
               :loading="g.busy.value"
               :disabled="!g.dirty.value || !g.complete.value"
               @click="g.save"
               >{{ t.save }}</AppButton
             >
-            <AppButton variant="secondary" :disabled="!canReturn || g.busy.value" @click="g.giveBack"
-              ><AppIcon name="send" :size="16" />{{ t.giveBack }}</AppButton
-            >
-          </div>
-          <AppButton variant="ghost" compact @click="asking = true">{{ t.askAgain }}</AppButton>
+          </AppFormActions>
+          <AppButton variant="ghost" compact class="self-end" @click="asking = true">{{
+            t.askAgain
+          }}</AppButton>
         </AppCard>
       </div>
     </div>

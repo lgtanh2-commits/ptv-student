@@ -12,16 +12,17 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppDataList from "@/ui/AppDataList.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppSelect from "@/ui/AppSelect.vue";
-import AppStat from "@/ui/AppStat.vue";
-import AppTable from "@/ui/AppTable.vue";
+import AppStatGroup from "@/ui/AppStatGroup.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.invoices;
@@ -63,36 +64,53 @@ async function savePayment() {
     <AppAlert v-if="list.error.value" kind="error">{{ list.error.value }}</AppAlert>
     <AppAlert v-if="list.paymentEmpty.value" kind="info">{{ t.paymentMissing }}</AppAlert>
 
+    <!-- On a phone the arrows sit at the two edges and "this month" goes under them, at the right. -->
     <div class="flex flex-wrap items-center gap-2">
-      <button type="button" class="btn btn-square btn-ghost" :aria-label="t.previous" @click="list.move(-1)">
-        <AppIcon name="left" />
-      </button>
-      <h2 class="min-w-40 text-center text-lg font-semibold" aria-live="polite">
-        {{ periodLabel(list.period.value) }}
-      </h2>
-      <button type="button" class="btn btn-square btn-ghost" :aria-label="t.next" @click="list.move(1)">
-        <AppIcon name="right" />
-      </button>
-      <AppButton v-if="!list.isNow.value" variant="ghost" compact @click="list.goToNow">{{
-        t.thisMonth
-      }}</AppButton>
+      <div class="flex w-full items-center gap-2 sm:w-auto">
+        <button
+          type="button"
+          class="btn btn-square btn-ghost"
+          :aria-label="t.previous"
+          @click="list.move(-1)"
+        >
+          <AppIcon name="left" />
+        </button>
+        <h2
+          class="min-w-0 flex-1 text-center text-lg font-semibold whitespace-nowrap sm:min-w-40 sm:flex-none"
+          aria-live="polite"
+        >
+          {{ periodLabel(list.period.value) }}
+        </h2>
+        <button type="button" class="btn btn-square btn-ghost" :aria-label="t.next" @click="list.move(1)">
+          <AppIcon name="right" />
+        </button>
+      </div>
+      <AppButton
+        v-if="!list.isNow.value"
+        variant="ghost"
+        compact
+        class="ms-auto sm:ms-0"
+        @click="list.goToNow"
+        >{{ t.thisMonth }}</AppButton
+      >
     </div>
 
     <AppLoading v-if="list.loading.value && !list.data.value" :label="messages.common.loading" />
     <template v-else-if="list.data.value">
-      <div class="grid gap-4 sm:grid-cols-3">
-        <AppStat :value="formatVnd(list.sums.value.billed)" :label="t.billed" icon="invoice" />
-        <AppStat :value="formatVnd(list.sums.value.paid)" :label="t.paid" icon="done" tone="secondary" />
-        <AppStat :value="formatVnd(list.sums.value.waiting)" :label="t.waiting" icon="clock" tone="accent" />
-      </div>
+      <AppStatGroup
+        kind="money"
+        :items="[
+          { value: formatVnd(list.sums.value.billed), label: t.billed, icon: 'invoice' },
+          { value: formatVnd(list.sums.value.paid), label: t.paid, icon: 'done', tone: 'secondary' },
+          { value: formatVnd(list.sums.value.waiting), label: t.waiting, icon: 'clock', tone: 'accent' },
+        ]"
+      />
 
       <AppAlert v-if="list.data.value.missing > 0" kind="info">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <span>{{
-            list.data.value.missing === 1 ? t.missingOne : fill(t.missing, { n: list.data.value.missing })
-          }}</span>
+        {{ list.data.value.missing === 1 ? t.missingOne : fill(t.missing, { n: list.data.value.missing }) }}
+        <template #actions>
           <AppButton compact :loading="list.busy.value" @click="list.generate">{{ t.create }}</AppButton>
-        </div>
+        </template>
       </AppAlert>
 
       <div
@@ -102,49 +120,66 @@ async function savePayment() {
         <AppEmpty icon="invoice" :title="t.none" :text="t.noneText" />
       </div>
       <AppCard v-else flush>
-        <AppTable>
-          <thead>
-            <tr>
-              <th>{{ t.student }}</th>
-              <th>{{ t.number }}</th>
-              <th class="text-right">{{ t.total }}</th>
-              <th>{{ t.status }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="i in received.shown.value"
-              :key="i.id"
-              class="cursor-pointer hover:bg-base-200/60"
-              @click="router.push(`/invoices/${i.id}`)"
-            >
-              <td class="font-medium">
-                <RouterLink :to="`/invoices/${i.id}`" @click.stop>{{ i.studentName }}</RouterLink>
-              </td>
-              <td class="whitespace-nowrap">{{ i.number ?? t.draftNumber }}</td>
-              <td class="whitespace-nowrap text-right">{{ formatVnd(i.total) }}</td>
-              <td>
+        <AppDataList>
+          <template #list>
+            <AppListRow v-for="i in received.shown.value" :key="i.id" :to="`/invoices/${i.id}`">
+              <template #title>{{ i.studentName }}</template>
+              <template #trailing>
                 <AppBadge :tone="invoiceStatusTone[i.status]">{{ invoiceStatusText[i.status] }}</AppBadge>
-              </td>
-            </tr>
-          </tbody>
-        </AppTable>
+              </template>
+              <template #meta>
+                <span class="whitespace-nowrap">{{ i.number ?? t.draftNumber }}</span> ·
+                <span class="font-medium whitespace-nowrap text-base-content">{{ formatVnd(i.total) }}</span>
+              </template>
+            </AppListRow>
+          </template>
+          <template #table>
+            <thead>
+              <tr>
+                <th>{{ t.student }}</th>
+                <th>{{ t.number }}</th>
+                <th class="text-right">{{ t.total }}</th>
+                <th>{{ t.status }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="i in received.shown.value"
+                :key="i.id"
+                class="cursor-pointer hover:bg-base-200/60"
+                @click="router.push(`/invoices/${i.id}`)"
+              >
+                <td class="font-medium">
+                  <RouterLink :to="`/invoices/${i.id}`" @click.stop>{{ i.studentName }}</RouterLink>
+                </td>
+                <td class="whitespace-nowrap">{{ i.number ?? t.draftNumber }}</td>
+                <td class="whitespace-nowrap text-right">{{ formatVnd(i.total) }}</td>
+                <td>
+                  <AppBadge :tone="invoiceStatusTone[i.status]">{{ invoiceStatusText[i.status] }}</AppBadge>
+                </td>
+              </tr>
+            </tbody>
+          </template>
+        </AppDataList>
         <AppPager v-model:page="received.page.value" :pages="received.pages.value" />
       </AppCard>
 
       <AppCard v-if="list.data.value.cancelled.length > 0" :title="t.cancelledTitle" flush>
         <ul class="divide-y divide-base-300">
-          <li v-for="i in cancelled.shown.value" :key="i.id">
-            <RouterLink
-              :to="`/invoices/${i.id}`"
-              class="flex items-center gap-2 px-5 py-3 text-sm hover:bg-base-200/60"
+          <AppListRow
+            v-for="i in cancelled.shown.value"
+            :key="i.id"
+            :to="`/invoices/${i.id}`"
+            class="text-sm"
+          >
+            <template #title
+              ><span class="font-normal">{{ i.studentName }} · {{ i.number }}</span></template
             >
-              <span class="min-w-0 flex-1"
-                >{{ i.studentName }} · {{ i.number }} · {{ formatVnd(i.total) }}</span
-              >
+            <template #trailing>
+              <span class="whitespace-nowrap">{{ formatVnd(i.total) }}</span>
               <AppIcon name="right" :size="16" class="text-base-content/40" />
-            </RouterLink>
-          </li>
+            </template>
+          </AppListRow>
         </ul>
         <AppPager v-model:page="cancelled.page.value" :pages="cancelled.pages.value" />
       </AppCard>

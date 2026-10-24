@@ -21,14 +21,16 @@ import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppDataList from "@/ui/AppDataList.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
-import AppTable from "@/ui/AppTable.vue";
 
 const t = messages.homework;
 const route = useRoute();
@@ -126,19 +128,23 @@ const deleteWords = computed(() => {
     :back-to="a ? `/courses/${a.courseId}?tab=homework` : '/courses'"
     :back-label="t.backToCourse"
   >
-    <template v-if="a" #actions>
+    <template v-if="a" #meta>
       <AppBadge>{{ summaryLine(a.questions.length, a.maxScore) }}</AppBadge>
       <AppBadge :tone="assignmentStatusTone[a.status]">{{ assignmentStatusText[a.status] }}</AppBadge>
-      <AppButton variant="ghost" compact @click="deleting = true"
-        ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppButton
+    </template>
+    <template v-if="a" #more>
+      <AppMenuItem danger @click="deleting = true"
+        ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppMenuItem
       >
-      <AppButton variant="secondary" compact @click="router.push(`/assignments/${a.id}/edit`)"
+    </template>
+    <template v-if="a" #actions>
+      <AppButton variant="secondary" @click="router.push(`/assignments/${a.id}/edit`)"
         ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
       >
-      <AppButton v-if="a.status === 'published'" variant="secondary" compact @click="p.close">{{
+      <AppButton v-if="a.status === 'published'" variant="secondary" @click="p.close">{{
         t.close
       }}</AppButton>
-      <AppButton v-else compact @click="p.publish"
+      <AppButton v-else @click="p.publish"
         ><AppIcon name="send" :size="16" />{{ a.status === "closed" ? t.reopen : t.publish }}</AppButton
       >
     </template>
@@ -150,11 +156,15 @@ const deleteWords = computed(() => {
         <p v-if="a.instructions" class="whitespace-pre-wrap break-words">{{ a.instructions }}</p>
         <ol class="flex flex-col gap-2 text-sm">
           <li v-for="(q, i) in a.questions" :key="q.id" class="rounded-field bg-base-200 px-3 py-2">
-            <span class="flex flex-wrap items-center justify-between gap-2">
-              <span class="font-medium">{{ i + 1 }}. {{ q.text }}</span>
-              <span class="flex items-center gap-2 text-base-content/60">
-                {{ kindText[q.kind] }} ·
-                {{ q.points === 1 ? t.pointsOne : fill(t.pointsTotal, { n: q.points }) }}
+            <!-- On a phone the question has its own line and the meta line (which breaks only between its items)
+                 is under it; on a wide screen the meta is on the right. -->
+            <span class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+              <span class="min-w-0 font-medium">{{ i + 1 }}. {{ q.text }}</span>
+              <span class="flex flex-wrap items-center gap-x-2 gap-y-1 text-base-content/60 sm:shrink-0">
+                <span class="whitespace-nowrap"
+                  >{{ kindText[q.kind] }} ·
+                  {{ q.points === 1 ? t.pointsOne : fill(t.pointsTotal, { n: q.points }) }}</span
+                >
                 <AppBadge
                   :tone="
                     (q.kind === 'choice' && q.correct !== null) || (q.kind === 'short' && q.accepted.length)
@@ -185,7 +195,7 @@ const deleteWords = computed(() => {
               v-if="q.kind === 'short' && q.accepted.length && a.status !== 'draft'"
               variant="ghost"
               compact
-              class="mt-1"
+              class="mt-1 ms-auto flex w-fit"
               @click="acceptFor = q.id"
               >{{ t.acceptButton }}</AppButton
             >
@@ -193,15 +203,11 @@ const deleteWords = computed(() => {
         </ol>
         <ul v-if="a.links.length" class="flex flex-col gap-1">
           <li v-for="l in a.links" :key="l.url">
-            <a
-              :href="l.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="link link-primary inline-flex items-center gap-1"
+            <!-- The title wraps as text; the host stays whole after it. -->
+            <a :href="l.url" target="_blank" rel="noopener noreferrer" class="link link-primary"
+              ><AppIcon name="link" :size="14" class="me-1 inline align-[-2px]" />{{ l.title }}</a
             >
-              <AppIcon name="link" :size="14" />{{ l.title }}
-              <span class="text-xs text-base-content/60">({{ hostOf(l.url) }})</span>
-            </a>
+            <span class="ms-1 text-xs whitespace-nowrap text-base-content/60">({{ hostOf(l.url) }})</span>
           </li>
         </ul>
         <p class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-base-content/70">
@@ -216,60 +222,87 @@ const deleteWords = computed(() => {
       </AppCard>
 
       <AppCard :title="t.answers" flush>
-        <AppEmpty v-if="p.rows.value.length === 0" icon="users" :title="t.noStudents" />
-        <AppTable v-else>
-          <thead>
-            <tr>
-              <th>{{ t.student }}</th>
-              <th>{{ t.state }}</th>
-              <th>{{ t.score }}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            <tr
+        <AppEmpty v-if="p.rows.value.length === 0" compact :title="t.noStudents" />
+        <AppDataList v-else>
+          <template #list>
+            <AppListRow
               v-for="r in rowsPaging.shown.value"
               :key="r.studentId"
-              :class="{ 'cursor-pointer hover:bg-base-200/60': r.status !== 'not_started' }"
-              @click="r.status !== 'not_started' && router.push(workOf(r.studentId))"
+              :to="r.status !== 'not_started' ? workOf(r.studentId) : undefined"
             >
-              <td>
-                <span class="flex items-center gap-3">
-                  <AppAvatar :name="r.studentName" size="sm" />
-                  <RouterLink
-                    v-if="r.status !== 'not_started'"
-                    :to="workOf(r.studentId)"
-                    class="font-medium whitespace-nowrap"
-                    @click.stop
-                    >{{ r.studentName }}</RouterLink
-                  >
-                  <span v-else class="font-medium whitespace-nowrap">{{ r.studentName }}</span>
-                </span>
-              </td>
-              <td>
-                <span class="flex flex-wrap items-center gap-2">
-                  <AppBadge :tone="submissionTone[r.status]">{{ submissionText[r.status] }}</AppBadge>
+              <template #leading><AppAvatar :name="r.studentName" size="sm" /></template>
+              <template #title>{{ r.studentName }}</template>
+              <template #trailing>
+                <AppBadge :tone="submissionTone[r.status]">{{ submissionText[r.status] }}</AppBadge>
+              </template>
+              <template #meta>
+                <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="whitespace-nowrap">{{ t.score }} {{ scoreText(r.score, a.maxScore) }}</span>
                   <AppBadge v-if="r.isLate" tone="error">{{ t.late }}</AppBadge>
-                  <span v-if="r.extensionUntil" class="text-xs text-base-content/60">{{
+                  <span v-if="r.extensionUntil">{{
                     fill(t.extendUntil, { when: formatWhen(r.extensionUntil) })
                   }}</span>
                 </span>
-              </td>
-              <td>{{ scoreText(r.score, a.maxScore) }}</td>
-              <td class="text-right">
-                <div class="flex justify-end gap-1">
-                  <AppButton
-                    v-if="a.status !== 'draft'"
-                    variant="ghost"
-                    compact
-                    @click.stop="extendFor = r.studentId"
-                    >{{ t.extend }}</AppButton
-                  >
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </AppTable>
+              </template>
+              <template v-if="a.status !== 'draft'" #actions>
+                <AppButton variant="ghost" compact @click="extendFor = r.studentId">{{ t.extend }}</AppButton>
+              </template>
+            </AppListRow>
+          </template>
+          <template #table>
+            <thead>
+              <tr>
+                <th>{{ t.student }}</th>
+                <th>{{ t.state }}</th>
+                <th>{{ t.score }}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="r in rowsPaging.shown.value"
+                :key="r.studentId"
+                :class="{ 'cursor-pointer hover:bg-base-200/60': r.status !== 'not_started' }"
+                @click="r.status !== 'not_started' && router.push(workOf(r.studentId))"
+              >
+                <td>
+                  <span class="flex items-center gap-3">
+                    <AppAvatar :name="r.studentName" size="sm" />
+                    <RouterLink
+                      v-if="r.status !== 'not_started'"
+                      :to="workOf(r.studentId)"
+                      class="font-medium whitespace-nowrap"
+                      @click.stop
+                      >{{ r.studentName }}</RouterLink
+                    >
+                    <span v-else class="font-medium whitespace-nowrap">{{ r.studentName }}</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="flex flex-wrap items-center gap-2">
+                    <AppBadge :tone="submissionTone[r.status]">{{ submissionText[r.status] }}</AppBadge>
+                    <AppBadge v-if="r.isLate" tone="error">{{ t.late }}</AppBadge>
+                    <span v-if="r.extensionUntil" class="text-xs text-base-content/60">{{
+                      fill(t.extendUntil, { when: formatWhen(r.extensionUntil) })
+                    }}</span>
+                  </span>
+                </td>
+                <td>{{ scoreText(r.score, a.maxScore) }}</td>
+                <td class="text-right">
+                  <div class="flex justify-end gap-1">
+                    <AppButton
+                      v-if="a.status !== 'draft'"
+                      variant="ghost"
+                      compact
+                      @click.stop="extendFor = r.studentId"
+                      >{{ t.extend }}</AppButton
+                    >
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </template>
+        </AppDataList>
         <AppPager v-model:page="rowsPaging.page.value" :pages="rowsPaging.pages.value" />
       </AppCard>
     </template>

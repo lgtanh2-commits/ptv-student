@@ -10,6 +10,7 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
@@ -32,23 +33,20 @@ const paging = usePaging(invoices);
       }}</AppAlert>
       <AppCard flush>
         <ul class="divide-y divide-base-300">
-          <li v-for="i in paging.shown.value" :key="i.id">
-            <RouterLink
-              :to="`/my/invoices/${i.id}`"
-              class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 hover:bg-base-200/60"
-            >
-              <div>
-                <p class="font-medium">{{ periodLabel(i.period) }}</p>
-                <p class="text-sm text-base-content/60">
-                  {{ i.number }} · {{ fill(t.from2, { name: i.teacherName }) }}
-                </p>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="font-semibold">{{ formatVnd(i.total) }}</span>
+          <AppListRow v-for="i in paging.shown.value" :key="i.id" :to="`/my/invoices/${i.id}`">
+            <template #title>{{ periodLabel(i.period) }}</template>
+            <template #meta>
+              <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span class="min-w-0 truncate"
+                  >{{ i.number }} · {{ fill(t.from2, { name: i.teacherName }) }}</span
+                >
                 <AppBadge :tone="invoiceStatusTone[i.status]">{{ invoiceStatusText[i.status] }}</AppBadge>
-              </div>
-            </RouterLink>
-          </li>
+              </p>
+            </template>
+            <template #trailing>
+              <span class="font-semibold whitespace-nowrap">{{ formatVnd(i.total) }}</span>
+            </template>
+          </AppListRow>
         </ul>
         <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
       </AppCard>

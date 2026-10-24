@@ -8,6 +8,7 @@ import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppLoading from "@/ui/AppLoading.vue";
@@ -53,14 +54,14 @@ const options = computed(() =>
           @all="n.picker.tickAll"
           @none="n.picker.untick"
         />
-        <div class="flex justify-end">
+        <AppFormActions>
           <AppButton
             :loading="n.busy.value"
             :disabled="n.picker.chosen.value.length === 0"
             @click="n.create"
             >{{ t.createDraft }}</AppButton
           >
-        </div>
+        </AppFormActions>
       </AppCard>
     </template>
   </AppPage>

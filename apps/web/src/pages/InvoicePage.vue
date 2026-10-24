@@ -13,6 +13,7 @@ import { useInvoice, useLessonPicker } from "@/features/invoices/useInvoices";
 import { useToast } from "@/features/toast/useToast";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
@@ -221,13 +222,11 @@ const canSend = computed(
     back-to="/invoices"
     :back-label="t.back"
   >
-    <template v-if="d" #actions>
+    <template v-if="d" #meta>
       <AppBadge :tone="invoiceStatusTone[d.status]">{{ invoiceStatusText[d.status] }}</AppBadge>
-      <AppButton
-        v-if="d.status === 'sent' || d.status === 'paid'"
-        variant="secondary"
-        :loading="makingPng"
-        @click="downloadPng"
+    </template>
+    <template v-if="d && (d.status === 'sent' || d.status === 'paid')" #actions>
+      <AppButton variant="secondary" :loading="makingPng" @click="downloadPng"
         ><AppIcon name="download" :size="16" />{{ t.downloadPng }}</AppButton
       >
     </template>
@@ -282,9 +281,12 @@ const canSend = computed(
                           {{ formatVnd(amounts[i] ?? 0) }}
                         </p>
                       </div>
-                      <AppButton variant="ghost" :aria-label="t.removeLine" @click="inv.removeRow(r.key)"
-                        ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
-                      >
+                      <AppButton
+                        variant="ghost"
+                        icon="trash"
+                        :label="t.removeLine"
+                        @click="inv.removeRow(r.key)"
+                      />
                     </div>
                   </template>
                   <template v-else>
@@ -299,9 +301,12 @@ const canSend = computed(
                           @update:model-value="inv.choose(r, $event)"
                         />
                       </div>
-                      <AppButton variant="ghost" :aria-label="t.removeLine" @click="inv.removeRow(r.key)"
-                        ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
-                      >
+                      <AppButton
+                        variant="ghost"
+                        icon="trash"
+                        :label="t.removeLine"
+                        @click="inv.removeRow(r.key)"
+                      />
                     </div>
                     <template v-if="r.kind === 'course'">
                       <div class="sm:col-span-3">
@@ -312,7 +317,9 @@ const canSend = computed(
                       </div>
                       <div class="sm:col-span-4">
                         <p class="text-sm font-medium">{{ t.lineAmount }}</p>
-                        <p class="min-h-11 content-center font-semibold">{{ formatVnd(amounts[i] ?? 0) }}</p>
+                        <p class="min-h-11 content-center font-semibold whitespace-nowrap">
+                          {{ formatVnd(amounts[i] ?? 0) }}
+                        </p>
                       </div>
                     </template>
                     <template v-else-if="r.kind === 'other'">
@@ -326,8 +333,9 @@ const canSend = computed(
                   </template>
                 </li>
               </ul>
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex flex-wrap gap-2">
+              <!-- On a phone the adders are full-width rows and the total is a line of its own at the right. -->
+              <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <AppButton variant="secondary" compact @click="inv.addRow"
                     ><AppIcon name="plus" :size="16" />{{ t.addLine }}</AppButton
                   >
@@ -339,7 +347,9 @@ const canSend = computed(
                     ><AppIcon name="plus" :size="16" />{{ t.addDiscount }}</AppButton
                   >
                 </div>
-                <p class="text-lg font-semibold">{{ t.total }}: {{ formatVnd(inv.total.value) }}</p>
+                <p class="text-right text-lg font-semibold">
+                  {{ t.total }}: <span class="whitespace-nowrap">{{ formatVnd(inv.total.value) }}</span>
+                </p>
               </div>
               <p v-if="!inv.linesValid.value" class="text-sm text-warning">{{ t.fixLines }}</p>
               <AppTextarea v-model="inv.note.value" :label="t.noteLabel" :rows="3" />
@@ -379,22 +389,22 @@ const canSend = computed(
                 ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppButton
               >
             </template>
-            <template v-else-if="d.status === 'sent'">
+            <AppFormActions v-else-if="d.status === 'sent'" stack>
+              <AppButton variant="ghost" compact :disabled="inv.busy.value" @click="asking = 'cancel'">{{
+                t.cancel
+              }}</AppButton>
               <AppButton :loading="inv.busy.value" @click="inv.markPaid"
                 ><AppIcon name="done" :size="16" />{{ t.markPaid }}</AppButton
               >
+            </AppFormActions>
+            <AppFormActions v-else-if="d.status === 'paid'" stack>
               <AppButton variant="ghost" compact :disabled="inv.busy.value" @click="asking = 'cancel'">{{
                 t.cancel
               }}</AppButton>
-            </template>
-            <template v-else-if="d.status === 'paid'">
               <AppButton variant="secondary" :loading="inv.busy.value" @click="inv.markUnpaid">{{
                 t.markUnpaid
               }}</AppButton>
-              <AppButton variant="ghost" compact :disabled="inv.busy.value" @click="asking = 'cancel'">{{
-                t.cancel
-              }}</AppButton>
-            </template>
+            </AppFormActions>
           </AppCard>
         </div>
       </div>

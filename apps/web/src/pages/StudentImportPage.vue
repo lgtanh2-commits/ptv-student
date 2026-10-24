@@ -9,11 +9,13 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppDataList from "@/ui/AppDataList.vue";
 import AppIcon from "@/ui/AppIcon.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
-import AppTable from "@/ui/AppTable.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.importStudents;
@@ -54,7 +56,10 @@ const steps = computed(() => ({ input: 1, preview: 2, done: 3 })[imp.step.value]
 
 <template>
   <AppPage :title="t.title" back-to="/students" :back-label="messages.common.back">
-    <ul class="steps w-full" :aria-label="t.stepsLabel">
+    <ul
+      class="steps w-full text-sm [&_.step]:content-start [&_.step]:text-balance"
+      :aria-label="t.stepsLabel"
+    >
       <li class="step" :class="{ 'step-primary': steps >= 1 }">{{ t.step1 }}</li>
       <li class="step" :class="{ 'step-primary': steps >= 2 }">{{ t.step2 }}</li>
       <li class="step" :class="{ 'step-primary': steps >= 3 }">{{ t.step3 }}</li>
@@ -67,11 +72,9 @@ const steps = computed(() => ({ input: 1, preview: 2, done: 3 })[imp.step.value]
         <li>{{ t.howTo2 }}</li>
         <li>{{ t.howTo3 }}</li>
       </ol>
-      <div>
-        <AppButton variant="secondary" @click="downloadSampleStudents"
-          ><AppIcon name="download" :size="18" />{{ t.sample }}</AppButton
-        >
-      </div>
+      <AppButton variant="secondary" class="sm:self-start" @click="downloadSampleStudents"
+        ><AppIcon name="download" :size="18" />{{ t.sample }}</AppButton
+      >
       <AppAlert v-if="problemText" kind="error">{{ problemText }}</AppAlert>
       <AppAlert v-if="imp.error.value" kind="error">{{ imp.error.value }}</AppAlert>
       <div class="fieldset">
@@ -85,11 +88,11 @@ const steps = computed(() => ({ input: 1, preview: 2, done: 3 })[imp.step.value]
         />
       </div>
       <AppTextarea v-model="imp.text.value" :label="t.paste" :hint="t.pasteHint" :rows="6" />
-      <div>
+      <AppFormActions>
         <AppButton :loading="imp.busy.value" @click="imp.check"
           ><AppIcon name="check" :size="18" />{{ t.check }}</AppButton
         >
-      </div>
+      </AppFormActions>
     </AppCard>
 
     <AppCard
@@ -99,45 +102,66 @@ const steps = computed(() => ({ input: 1, preview: 2, done: 3 })[imp.step.value]
       flush
     >
       <AppAlert v-if="imp.error.value" kind="error" class="m-5">{{ imp.error.value }}</AppAlert>
-      <AppTable>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>{{ t.colName }}</th>
-            <th>{{ t.colEmail }}</th>
-            <th>{{ t.colResult }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in paging.shown.value" :key="r.row">
-            <td class="text-base-content/60">{{ r.row }}</td>
-            <td>{{ imp.rows.value[r.row - 1]?.name || "-" }}</td>
-            <td>{{ imp.rows.value[r.row - 1]?.email || "-" }}</td>
-            <td>
+      <AppDataList>
+        <template #list>
+          <AppListRow v-for="r in paging.shown.value" :key="r.row">
+            <template #leading
+              ><span class="inline-block w-6 text-sm text-base-content/60 tabular-nums">{{
+                r.row
+              }}</span></template
+            >
+            <template #title>{{ imp.rows.value[r.row - 1]?.name || "-" }}</template>
+            <template #trailing>
               <AppBadge :tone="resultTone[r.result]">{{ resultText[r.result] }}</AppBadge>
-              <span v-if="r.message && r.result === 'invalid'" class="ml-2 text-sm text-base-content/60">{{
-                r.message
-              }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </AppTable>
+            </template>
+            <template #meta>
+              <span class="block truncate">{{ imp.rows.value[r.row - 1]?.email || "-" }}</span>
+              <span v-if="r.message && r.result === 'invalid'" class="block">{{ r.message }}</span>
+            </template>
+          </AppListRow>
+        </template>
+        <template #table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{{ t.colName }}</th>
+              <th>{{ t.colEmail }}</th>
+              <th>{{ t.colResult }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in paging.shown.value" :key="r.row">
+              <td class="text-base-content/60">{{ r.row }}</td>
+              <td>{{ imp.rows.value[r.row - 1]?.name || "-" }}</td>
+              <td>{{ imp.rows.value[r.row - 1]?.email || "-" }}</td>
+              <td>
+                <AppBadge :tone="resultTone[r.result]">{{ resultText[r.result] }}</AppBadge>
+                <span v-if="r.message && r.result === 'invalid'" class="ml-2 text-sm text-base-content/60">{{
+                  r.message
+                }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </template>
+      </AppDataList>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
-      <div class="flex flex-wrap items-center gap-3 border-t border-base-300 p-5">
-        <p v-if="okCount === 0" class="flex-1 text-base-content/70">{{ t.nothingNew }}</p>
-        <AppButton v-if="okCount > 0" :loading="imp.busy.value" @click="imp.confirm">{{
-          fill(t.confirm, { n: okCount })
-        }}</AppButton>
-        <AppButton variant="secondary" @click="imp.reset">{{ t.back }}</AppButton>
+      <div class="flex flex-col gap-3 border-t border-base-300 p-5">
+        <p v-if="okCount === 0" class="text-base-content/70">{{ t.nothingNew }}</p>
+        <AppFormActions>
+          <AppButton variant="secondary" @click="imp.reset">{{ t.back }}</AppButton>
+          <AppButton v-if="okCount > 0" :loading="imp.busy.value" @click="imp.confirm">{{
+            fill(t.confirm, { n: okCount })
+          }}</AppButton>
+        </AppFormActions>
       </div>
     </AppCard>
 
     <AppCard v-else :title="t.doneTitle">
       <AppAlert kind="success">{{ fill(t.doneBody, { n: imp.result.value?.created ?? 0 }) }}</AppAlert>
-      <div class="flex flex-wrap gap-3">
-        <AppButton @click="router.push('/students')">{{ t.goToStudents }}</AppButton>
+      <AppFormActions>
         <AppButton variant="secondary" @click="imp.reset">{{ t.another }}</AppButton>
-      </div>
+        <AppButton @click="router.push('/students')">{{ t.goToStudents }}</AppButton>
+      </AppFormActions>
     </AppCard>
   </AppPage>
 </template>

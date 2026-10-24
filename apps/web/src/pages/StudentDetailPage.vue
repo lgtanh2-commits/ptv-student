@@ -12,15 +12,17 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
 import AppLoading from "@/ui/AppLoading.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
-import AppStat from "@/ui/AppStat.vue";
+import AppStatGroup from "@/ui/AppStatGroup.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.studentDetail;
@@ -68,22 +70,25 @@ async function toggleArchived(archived: boolean) {
 
 <template>
   <AppPage :title="student?.name ?? t.title" back-to="/students" :back-label="t.backToStudents">
-    <template v-if="student" #actions>
+    <template v-if="student" #meta>
       <AppBadge :tone="student.archived ? 'neutral' : accessTone[student.access]">
         {{ student.archived ? s.archived : accessText[student.access] }}
       </AppBadge>
-      <AppButton v-if="canInvite" variant="secondary" compact :loading="inviting" @click="sendInvite"
+    </template>
+    <template v-if="student && !student.archived" #more>
+      <AppMenuItem danger @click="askingArchive = true"
+        ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppMenuItem
+      >
+    </template>
+    <template v-if="student && (canInvite || student.archived)" #actions>
+      <AppButton v-if="canInvite" variant="secondary" :loading="inviting" @click="sendInvite"
         ><AppIcon name="send" :size="16" />{{ t.invite }}</AppButton
       >
       <AppButton
-        v-if="!student.archived"
+        v-if="student.archived"
         variant="secondary"
-        compact
         :loading="archiving"
-        @click="askingArchive = true"
-        ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppButton
-      >
-      <AppButton v-else variant="secondary" compact :loading="archiving" @click="toggleArchived(false)"
+        @click="toggleArchived(false)"
         ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
       >
     </template>
@@ -91,14 +96,14 @@ async function toggleArchived(archived: boolean) {
     <AppLoading v-if="loading" :label="messages.common.loading" />
     <AppAlert v-else-if="notFound" kind="error">{{ t.notFound }}</AppAlert>
     <div v-else-if="student" class="grid gap-6 lg:grid-cols-5">
-      <div class="flex flex-col gap-6 lg:col-span-3">
+      <div class="flex min-w-0 flex-col gap-6 lg:col-span-3">
         <AppCard :title="t.profile">
           <div class="flex items-center gap-4">
             <AppAvatar :name="student.name" size="lg" />
             <div class="min-w-0">
               <p class="truncate text-lg font-semibold">{{ student.name }}</p>
-              <p class="flex items-center gap-1 truncate text-sm text-base-content/60">
-                <AppIcon name="mail" :size="14" />{{ student.email }}
+              <p class="flex items-center gap-1 text-sm text-base-content/60">
+                <AppIcon name="mail" :size="14" /><span class="min-w-0 truncate">{{ student.email }}</span>
               </p>
             </div>
           </div>
@@ -117,14 +122,14 @@ async function toggleArchived(archived: boolean) {
               :hint="t.noteHint"
               :error="form.errors.value.teacherNote"
             />
-            <div>
+            <AppFormActions>
               <AppButton type="submit" :loading="form.submitting.value">{{ t.save }}</AppButton>
-            </div>
+            </AppFormActions>
           </form>
         </AppCard>
       </div>
 
-      <div class="flex flex-col gap-6 lg:col-span-2">
+      <div class="flex min-w-0 flex-col gap-6 lg:col-span-2">
         <StudentCourses :key="student.id" :student-id="student.id" :archived="student.archived" />
         <AppCard :title="a.title" flush>
           <div v-if="attendance.loading.value" class="p-5">
@@ -132,19 +137,17 @@ async function toggleArchived(archived: boolean) {
           </div>
           <AppEmpty
             v-else-if="!attendance.info.value || attendance.info.value.total === 0"
-            icon="attendance"
+            compact
             :title="a.empty"
           />
           <template v-else>
-            <div class="grid grid-cols-2 gap-3 p-5">
-              <AppStat
-                :value="attendance.info.value.attended"
-                :label="a.attended"
-                icon="done"
-                tone="secondary"
-              />
-              <AppStat :value="attendance.info.value.absent" :label="a.absent" icon="ban" tone="accent" />
-            </div>
+            <AppStatGroup
+              class="p-5"
+              :items="[
+                { value: attendance.info.value.attended, label: a.attended, icon: 'done', tone: 'secondary' },
+                { value: attendance.info.value.absent, label: a.absent, icon: 'ban', tone: 'accent' },
+              ]"
+            />
             <ul class="divide-y divide-base-300 border-t border-base-300">
               <li
                 v-for="r in attendance.info.value.recent"

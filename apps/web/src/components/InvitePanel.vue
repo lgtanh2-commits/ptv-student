@@ -12,6 +12,7 @@ import AppCard from "@/ui/AppCard.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppPager from "@/ui/AppPager.vue";
 
 const t = messages.invites;
@@ -50,33 +51,37 @@ const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as co
       <AppAlert v-if="justSent" kind="success">{{ t.sent }}</AppAlert>
       <AppInput v-model="form.values.name" :label="t.name" :error="form.errors.value.name" />
       <AppInput v-model="form.values.email" :label="t.email" type="email" :error="form.errors.value.email" />
-      <AppButton type="submit" :loading="form.submitting.value">{{ t.submit }}</AppButton>
+      <AppButton type="submit" :loading="form.submitting.value" block>{{ t.submit }}</AppButton>
     </form>
 
     <div v-if="invites.length > 0 || actionError" class="flex flex-col gap-3 border-t border-base-300 pt-4">
       <h3 class="text-sm font-semibold">{{ t.listTitle }}</h3>
       <AppAlert v-if="actionError" kind="error">{{ actionError }}</AppAlert>
       <ul class="flex flex-col gap-3">
-        <li
+        <AppListRow
           v-for="invite in paging.shown.value"
           :key="invite.studentId"
-          class="flex flex-wrap items-center gap-x-3 gap-y-1"
+          plain
+          actions-below
+          class="text-sm"
         >
-          <AppAvatar :name="invite.name" size="sm" />
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium">{{ invite.name }}</p>
-            <p class="truncate text-xs text-base-content/60">{{ invite.email }}</p>
-          </div>
-          <AppBadge :tone="stateTone[invite.state]">{{ stateText[invite.state] }}</AppBadge>
-          <div class="flex basis-full gap-1 ps-8">
+          <template #leading><AppAvatar :name="invite.name" size="sm" /></template>
+          <template #title>{{ invite.name }}</template>
+          <template #meta
+            ><p class="truncate text-xs">{{ invite.email }}</p></template
+          >
+          <template #trailing>
+            <AppBadge :tone="stateTone[invite.state]">{{ stateText[invite.state] }}</AppBadge>
+          </template>
+          <template #actions>
             <AppButton variant="ghost" compact @click="resend(invite.studentId)"
               ><AppIcon name="send" :size="16" />{{ t.resend }}</AppButton
             >
             <AppButton v-if="invite.state !== 'revoked'" variant="ghost" compact @click="asking = invite"
               ><AppIcon name="close" :size="16" />{{ t.cancel }}</AppButton
             >
-          </div>
-        </li>
+          </template>
+        </AppListRow>
       </ul>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" plain />
     </div>
