@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import AppIcon from "./AppIcon.vue";
 // A short message in a coloured box: 1 to 3 lines of text. The icon lines up with the first line, and a long word
-// (an address, an email) wraps instead of overflowing. Buttons go in `#actions`: a row of their own under the text,
-// at the right, main button last. Never put buttons inside the text.
+// (an address, an email) wraps instead of overflowing. Buttons go in `#actions`, main button last: on a phone a row
+// of their own under the text, at the right; on a wide screen on the same line as the text, at the right. Never put
+// buttons inside the text.
 withDefaults(defineProps<{ kind?: "error" | "success" | "info" | "warning" }>(), { kind: "info" });
 </script>
 
@@ -25,9 +26,9 @@ withDefaults(defineProps<{ kind?: "error" | "success" | "info" | "warning" }>(),
       :size="18"
       class="mt-px"
     />
-    <div class="w-full min-w-0 text-sm text-pretty break-words">
-      <slot />
-      <div v-if="$slots.actions" class="mt-2 flex flex-wrap items-center justify-end gap-2">
+    <div class="flex w-full min-w-0 flex-col gap-2 text-sm sm:flex-row sm:items-center sm:gap-4">
+      <div class="min-w-0 flex-1 text-pretty break-words"><slot /></div>
+      <div v-if="$slots.actions" class="flex flex-wrap items-center justify-end gap-2 sm:shrink-0">
         <slot name="actions" />
       </div>
     </div>
