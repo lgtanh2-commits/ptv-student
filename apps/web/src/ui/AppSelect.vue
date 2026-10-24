@@ -16,14 +16,15 @@ const id = useId();
 </script>
 
 <template>
-  <div class="fieldset gap-1 py-0">
+  <!-- min-w-0: a long option name never makes the field (and the page) wider than its column. -->
+  <div class="fieldset min-w-0 gap-1 py-0">
     <label :for="id" class="fieldset-legend">{{ label }}</label>
     <select
       :id="id"
       v-model="model"
       :disabled="disabled"
       :aria-invalid="error ? true : undefined"
-      class="select min-h-11 w-full"
+      class="select min-h-11 w-full min-w-0"
       :class="{ 'select-error': error }"
     >
       <option v-if="!required" value="">{{ placeholder ?? "" }}</option>

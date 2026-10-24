@@ -96,7 +96,7 @@ async function toggleArchived(archived: boolean) {
     <AppLoading v-if="loading" :label="messages.common.loading" />
     <AppAlert v-else-if="notFound" kind="error">{{ t.notFound }}</AppAlert>
     <div v-else-if="student" class="grid gap-6 lg:grid-cols-5">
-      <div class="flex flex-col gap-6 lg:col-span-3">
+      <div class="flex min-w-0 flex-col gap-6 lg:col-span-3">
         <AppCard :title="t.profile">
           <div class="flex items-center gap-4">
             <AppAvatar :name="student.name" size="lg" />
@@ -129,7 +129,7 @@ async function toggleArchived(archived: boolean) {
         </AppCard>
       </div>
 
-      <div class="flex flex-col gap-6 lg:col-span-2">
+      <div class="flex min-w-0 flex-col gap-6 lg:col-span-2">
         <StudentCourses :key="student.id" :student-id="student.id" :archived="student.archived" />
         <AppCard :title="a.title" flush>
           <div v-if="attendance.loading.value" class="p-5">
