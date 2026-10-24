@@ -92,7 +92,7 @@ const statusText = {
       <AppBadge :tone="statusTone[course.status]">{{ statusText[course.status] }}</AppBadge>
     </template>
     <template v-if="course && !archived" #more>
-      <AppMenuItem @click="askingArchive = true"
+      <AppMenuItem danger @click="askingArchive = true"
         ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppMenuItem
       >
     </template>

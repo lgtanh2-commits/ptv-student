@@ -20,9 +20,9 @@ watch(
     <input id="app-menu" ref="toggle" type="checkbox" class="drawer-toggle" />
     <div class="drawer-content flex min-w-0 flex-col">
       <!-- The top bar: on a small screen it holds the menu button and the name; everywhere it holds the actions on the right.
-           On a small screen the padding is small, so the icons of the 48px buttons line up with the 16px page gutter. -->
+           The padding puts the icons (inside 40px buttons) on the page gutter: 16px on a phone, 32px from md up. -->
       <header
-        class="sticky top-0 z-20 flex min-h-14 items-center gap-2 border-b border-base-300 bg-base-100/90 px-1 py-1 lg:px-3 backdrop-blur"
+        class="sticky top-0 z-20 flex min-h-14 items-center gap-2 border-b border-base-300 bg-base-100/90 px-1.5 py-1 md:px-5.5 backdrop-blur"
       >
         <label for="app-menu" class="btn btn-square btn-ghost lg:hidden" :aria-label="menuLabel"
           ><AppIcon name="menu"

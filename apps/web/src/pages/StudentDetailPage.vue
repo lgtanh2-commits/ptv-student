@@ -75,7 +75,7 @@ async function toggleArchived(archived: boolean) {
       </AppBadge>
     </template>
     <template v-if="student && !student.archived" #more>
-      <AppMenuItem @click="askingArchive = true"
+      <AppMenuItem danger @click="askingArchive = true"
         ><AppIcon name="archive" :size="16" />{{ t.archive }}</AppMenuItem
       >
     </template>
