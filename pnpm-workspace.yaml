@@ -11,8 +11,9 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - daisyui@5.7.42
 
-# Patched versions of packages that only the build and test tools use (pnpm audit --audit-level high in CI).
+# Patched versions forced everywhere they appear, mostly inside build and test tools (pnpm audit --audit-level high in CI).
 overrides:
   sharp: ">=0.35.5"
-  undici: ">=7.29.1 <8"
+  undici: ">=7.30.1 <8"
   source-map-js: ">=1.2.2"
+  zod: ">=4.6.6 <5"
