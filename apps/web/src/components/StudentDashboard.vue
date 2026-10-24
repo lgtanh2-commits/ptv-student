@@ -11,6 +11,7 @@ import { usePaging } from "@/features/paging";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
+import AppEmpty from "@/ui/AppEmpty.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon, { type IconName } from "@/ui/AppIcon.vue";
@@ -82,9 +83,7 @@ function jump(id: string) {
         <div class="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
           <section id="home-todo" class="order-1 scroll-mt-6">
             <AppCard :title="t.todoTitle" flush>
-              <p v-if="groups.todo.length === 0" class="px-5 py-6 text-sm text-base-content/60">
-                {{ t.todoNone }}
-              </p>
+              <AppEmpty v-if="groups.todo.length === 0" compact :title="t.todoNone" />
               <ul v-else class="divide-y divide-base-300">
                 <li v-for="w in todoPaging.shown.value" :key="w.id"><WorkRow :item="w" show-course /></li>
               </ul>
@@ -94,9 +93,7 @@ function jump(id: string) {
 
           <section id="home-again" class="order-2 scroll-mt-6">
             <AppCard :title="t.againTitle" flush>
-              <p v-if="groups.again.length === 0" class="px-5 py-6 text-sm text-base-content/60">
-                {{ t.againNone }}
-              </p>
+              <AppEmpty v-if="groups.again.length === 0" compact :title="t.againNone" />
               <ul v-else class="divide-y divide-base-300">
                 <li v-for="w in againPaging.shown.value" :key="w.id"><WorkRow :item="w" show-course /></li>
               </ul>
@@ -106,9 +103,7 @@ function jump(id: string) {
 
           <section id="home-done" class="order-5 scroll-mt-6">
             <AppCard :title="t.doneTitle" flush>
-              <p v-if="groups.done.length === 0" class="px-5 py-6 text-sm text-base-content/60">
-                {{ t.doneNone }}
-              </p>
+              <AppEmpty v-if="groups.done.length === 0" compact :title="t.doneNone" />
               <ul v-else class="divide-y divide-base-300">
                 <li v-for="w in donePaging.shown.value" :key="w.id"><WorkRow :item="w" show-course /></li>
               </ul>
@@ -125,9 +120,7 @@ function jump(id: string) {
                   t.receiptsAll
                 }}</RouterLink>
               </template>
-              <p v-if="unpaid.length === 0" class="px-5 py-6 text-sm text-base-content/60">
-                {{ t.receiptsNone }}
-              </p>
+              <AppEmpty v-if="unpaid.length === 0" compact :title="t.receiptsNone" />
               <ul v-else class="divide-y divide-base-300">
                 <li v-for="i in receiptPaging.shown.value" :key="i.id">
                   <RouterLink
@@ -158,9 +151,7 @@ function jump(id: string) {
                   t.coursesTitle
                 }}</RouterLink>
               </template>
-              <p v-if="lessons.length === 0" class="px-5 py-6 text-sm text-base-content/60">
-                {{ t.lessonsNone }}
-              </p>
+              <AppEmpty v-if="lessons.length === 0" compact :title="t.lessonsNone" />
               <ul v-else class="divide-y divide-base-300">
                 <li
                   v-for="l in lessonPaging.shown.value"
@@ -191,7 +182,7 @@ function jump(id: string) {
                     :href="l.onlineUrl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="btn btn-ghost btn-sm mr-3 shrink-0"
+                    class="btn btn-ghost btn-sm mr-3 shrink-0 max-sm:min-h-11"
                     ><AppIcon name="video" :size="16" />{{ t.join }}</a
                   >
                 </li>

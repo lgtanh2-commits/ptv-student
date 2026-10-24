@@ -7,7 +7,7 @@ withDefaults(
     variant?: "primary" | "secondary" | "danger" | "ghost" | "link";
     disabled?: boolean;
     loading?: boolean;
-    /** A smaller button for use inside lists and tables. */
+    /** A smaller button for use inside lists and tables. On a phone it keeps a 44px touch height. */
     compact?: boolean;
     /** Fill the width of its container. */
     block?: boolean;
@@ -28,7 +28,7 @@ withDefaults(
       'btn-error': variant === 'danger',
       'btn-ghost': variant === 'ghost',
       'btn-link': variant === 'link',
-      'btn-sm': compact,
+      'btn-sm max-sm:min-h-11': compact,
       'min-h-11': !compact /* 44px: easy to touch */,
       'w-full': block,
     }"

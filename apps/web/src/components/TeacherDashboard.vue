@@ -174,12 +174,7 @@ const statusText = {
           <AppButton variant="ghost" compact @click="router.push('/schedule')">{{ t.seeSchedule }}</AppButton>
         </template>
         <div v-if="loading" class="p-5"><AppLoading :label="messages.common.loading" /></div>
-        <AppEmpty
-          v-else-if="upcoming.length === 0"
-          icon="calendar"
-          :title="t.weekEmpty"
-          :text="t.weekEmptyText"
-        />
+        <AppEmpty v-else-if="upcoming.length === 0" compact :title="t.weekEmpty" :text="t.weekEmptyText" />
         <ul v-else class="divide-y divide-base-300">
           <li v-for="l in upcoming" :key="l.id">
             <RouterLink

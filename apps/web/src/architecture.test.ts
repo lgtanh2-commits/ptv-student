@@ -86,6 +86,49 @@ describe("frontend architecture (plan 5.2)", () => {
     expect(bad).toEqual([]);
   });
 
+  const screenTemplates = () =>
+    [...files(path.join(root, "pages")), ...files(path.join(root, "components"))]
+      .filter((f) => f.endsWith(".vue"))
+      .map((f) => ({
+        file: path.relative(root, f),
+        template: readFileSync(f, "utf8").replace(/<script[\s\S]*?<\/script>/, ""),
+      }));
+
+  it("a form's submit button sits in AppFormActions (full width on a phone), a dialog footer, or is full width itself", () => {
+    const bad = screenTemplates().flatMap(({ file, template }) =>
+      [
+        ...template
+          .replace(/<AppFormActions\b[\s\S]*?<\/AppFormActions>/g, "")
+          .replace(/<template #actions>[\s\S]*?<\/template>/g, "")
+          .matchAll(/<AppButton\b[^>]*\stype="submit"[^>]*>/g),
+      ]
+        .filter((m) => !/\sblock\b/.test(m[0]))
+        .map((m) => `${file}: ${m[0].replace(/\s+/g, " ")}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it("in AppFormActions the main button is the last one in the markup (on top on a phone, far right on a wide screen)", () => {
+    const bad = screenTemplates().flatMap(({ file, template }) =>
+      [...template.matchAll(/<AppFormActions\b[^>]*>([\s\S]*?)<\/AppFormActions>/g)].flatMap((m) => {
+        const buttons = [...m[1]!.matchAll(/<AppButton\b[^>]*>/g)].map((b) => b[0]);
+        const isMain = (tag: string) => !/\svariant=/.test(tag) || /variant="danger"/.test(tag);
+        const last = buttons.at(-1);
+        return buttons.some(isMain) && last && !isMain(last) ? [`${file}: ${last.replace(/\s+/g, " ")}`] : [];
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it("a regular button is never alone in a bare <div> (that strands it on the left at its natural width on a phone)", () => {
+    const bad = screenTemplates().flatMap(({ file, template }) =>
+      [...template.matchAll(/<div>\s*(<AppButton\b[^>]*>)[\s\S]*?<\/AppButton\s*>\s*<\/div>/g)]
+        .filter((m) => !/\scompact\b/.test(m[1]!))
+        .map((m) => `${file}: ${m[1]!.replace(/\s+/g, " ")}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
   it("every table has pages (ten rows on a page), except the lines of a receipt, which is one document", () => {
     const bad = [...files(path.join(root, "pages")), ...files(path.join(root, "components"))]
       .filter((f) => f.endsWith(".vue") && !f.endsWith("InvoiceSheet.vue"))

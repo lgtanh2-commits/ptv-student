@@ -49,7 +49,7 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
       >
 
       <AppCard :title="t.homework" flush>
-        <AppEmpty v-if="data.work.length === 0" icon="attendance" :title="t.noHomework" />
+        <AppEmpty v-if="data.work.length === 0" compact :title="t.noHomework" />
         <ul v-else class="divide-y divide-base-300">
           <li v-for="w in workPaging.shown.value" :key="w.id">
             <WorkRow :item="w" />
@@ -60,7 +60,7 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
 
       <div class="grid gap-6 lg:grid-cols-2">
         <AppCard :title="t.lessons" flush>
-          <AppEmpty v-if="data.lessons.length === 0" icon="calendar" :title="t.noLessons" />
+          <AppEmpty v-if="data.lessons.length === 0" compact :title="t.noLessons" />
           <ul v-else class="divide-y divide-base-300">
             <li
               v-for="l in lessonPaging.shown.value"
@@ -96,7 +96,7 @@ const statusTone = { scheduled: "info", held: "success", cancelled: "neutral" } 
         </AppCard>
 
         <AppCard :title="t.materials" flush>
-          <AppEmpty v-if="data.materials.length === 0" icon="link" :title="t.noMaterials" />
+          <AppEmpty v-if="data.materials.length === 0" compact :title="t.noMaterials" />
           <ul v-else class="divide-y divide-base-300">
             <li v-for="m in materialPaging.shown.value" :key="m.id" class="flex items-center gap-3 px-5 py-3">
               <span

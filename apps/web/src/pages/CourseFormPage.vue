@@ -12,6 +12,7 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
@@ -154,11 +155,11 @@ const statusText = {
             <div class="md:col-span-2">
               <AppCheckbox v-model="form.values.active" :label="t.active" />
             </div>
-            <div class="md:col-span-2">
+            <AppFormActions class="md:col-span-2">
               <AppButton type="submit" :loading="form.submitting.value" :disabled="archived">{{
                 t.save
               }}</AppButton>
-            </div>
+            </AppFormActions>
           </form>
         </AppCard>
       </template>

@@ -10,6 +10,7 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -140,11 +141,11 @@ const setLink = (qi: number, v: string) => {
               <p class="text-sm text-base-content/60">{{ t.teacherWords }}</p>
               <p class="whitespace-pre-wrap break-words">{{ w.feedback }}</p>
             </div>
-            <div class="mt-2">
-              <AppButton variant="secondary" compact @click="router.push('/')">{{ t.backHome }}</AppButton>
-            </div>
           </div>
         </div>
+        <AppFormActions>
+          <AppButton variant="secondary" @click="router.push('/')">{{ t.backHome }}</AppButton>
+        </AppFormActions>
       </section>
 
       <AppCard v-if="w.instructions || w.links.length || w.dueAt" :title="t.instructions">

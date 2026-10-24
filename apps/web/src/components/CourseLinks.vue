@@ -9,6 +9,7 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
@@ -55,18 +56,18 @@ async function remove() {
           :error="m.form.errors.value.url"
         />
         <div class="md:col-span-2"><AppCheckbox v-model="m.form.values.published" :label="t.shared" /></div>
-        <div class="md:col-span-2">
+        <AppFormActions class="md:col-span-2">
           <AppButton type="submit" :loading="m.form.submitting.value"
             ><AppIcon name="plus" :size="18" />{{ t.add }}</AppButton
           >
-        </div>
+        </AppFormActions>
       </form>
     </AppCard>
 
     <AppCard :title="t.title" flush>
       <AppAlert v-if="m.error.value" kind="error" class="m-5">{{ m.error.value }}</AppAlert>
       <div v-if="m.loading.value" class="p-5"><AppLoading :label="messages.common.loading" :rows="2" /></div>
-      <AppEmpty v-else-if="m.items.value.length === 0" icon="link" :title="t.empty" :text="t.emptyText" />
+      <AppEmpty v-else-if="m.items.value.length === 0" compact :title="t.empty" :text="t.emptyText" />
       <ul v-else class="divide-y divide-base-300">
         <li v-for="l in paging.shown.value" :key="l.id" class="flex flex-wrap items-center gap-3 px-5 py-3">
           <span

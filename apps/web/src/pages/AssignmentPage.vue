@@ -221,7 +221,7 @@ const deleteWords = computed(() => {
       </AppCard>
 
       <AppCard :title="t.answers" flush>
-        <AppEmpty v-if="p.rows.value.length === 0" icon="users" :title="t.noStudents" />
+        <AppEmpty v-if="p.rows.value.length === 0" compact :title="t.noStudents" />
         <AppTable v-else>
           <thead>
             <tr>

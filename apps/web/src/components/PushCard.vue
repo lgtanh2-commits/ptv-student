@@ -4,6 +4,7 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 
@@ -20,11 +21,11 @@ const push = usePush();
         <AppBadge tone="success">{{ t.onTitle }}</AppBadge>
         <p class="text-base-content/70">{{ t.text }}</p>
       </div>
-      <div>
-        <AppButton variant="secondary" compact :loading="push.busy.value" @click="push.disable">{{
+      <AppFormActions>
+        <AppButton variant="secondary" :loading="push.busy.value" @click="push.disable">{{
           t.disableButton
         }}</AppButton>
-      </div>
+      </AppFormActions>
     </template>
 
     <template v-else>
@@ -33,11 +34,11 @@ const push = usePush();
       <AppAlert v-else-if="push.state.value === 'blocked'" kind="warning">{{ t.blocked }}</AppAlert>
       <p v-else-if="push.state.value === 'unsupported'" class="text-base-content/60">{{ t.unsupported }}</p>
       <template v-else>
-        <div>
+        <AppFormActions>
           <AppButton :loading="push.busy.value" @click="push.enable"
             ><AppIcon name="bell" :size="16" />{{ t.enableButton }}</AppButton
           >
-        </div>
+        </AppFormActions>
       </template>
     </template>
   </AppCard>

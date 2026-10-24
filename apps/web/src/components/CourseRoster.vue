@@ -10,6 +10,7 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
@@ -104,12 +105,7 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
       </div>
       <AppAlert v-if="roster.error.value" kind="error" class="m-5">{{ roster.error.value }}</AppAlert>
       <div v-if="roster.loading.value" class="p-5"><AppLoading :label="messages.common.loading" /></div>
-      <AppEmpty
-        v-else-if="roster.students.value.length === 0"
-        icon="users"
-        :title="t.empty"
-        :text="t.emptyText"
-      />
+      <AppEmpty v-else-if="roster.students.value.length === 0" compact :title="t.empty" :text="t.emptyText" />
       <ul v-else class="divide-y divide-base-300">
         <li
           v-for="s in rosterPaging.shown.value"
@@ -165,11 +161,13 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
             class="relative z-10 flex flex-wrap items-end gap-2 rounded-field bg-base-200 p-3"
           >
             <AppMoneyInput v-model="priceText" :label="t.price" :hint="t.useCoursePrice" />
-            <AppButton
-              :loading="busyId === s.studentId"
-              @click="savePrice(s.studentId, s.status === 'pending' ? 'active' : s.status)"
-              >{{ t.savePrice }}</AppButton
-            >
+            <AppFormActions class="max-sm:w-full">
+              <AppButton
+                :loading="busyId === s.studentId"
+                @click="savePrice(s.studentId, s.status === 'pending' ? 'active' : s.status)"
+                >{{ t.savePrice }}</AppButton
+              >
+            </AppFormActions>
           </div>
         </li>
       </ul>
@@ -208,12 +206,12 @@ async function savePrice(id: string, status: "active" | "completed" | "dropped")
         </ul>
         <AppPager v-model:page="candidatePaging.page.value" :pages="candidatePaging.pages.value" plain />
         <AppMoneyInput v-model="add.price.value" :label="t.ownPriceLabel" />
-        <div class="flex flex-wrap justify-end gap-2">
+        <AppFormActions>
           <AppButton variant="ghost" @click="adding = false">{{ messages.common.cancel }}</AppButton>
           <AppButton :disabled="add.selected.value.size === 0" :loading="add.busy.value" @click="add.add">
             {{ fill(t.addSelected, { n: add.selected.value.size }) }}
           </AppButton>
-        </div>
+        </AppFormActions>
       </template>
     </AppCard>
 

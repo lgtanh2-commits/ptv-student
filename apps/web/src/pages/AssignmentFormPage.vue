@@ -14,6 +14,7 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppIcon from "@/ui/AppIcon.vue";
@@ -177,13 +178,23 @@ function confirmImport() {
                 ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
               >
             </div>
-            <div class="flex flex-wrap gap-2">
-              <AppButton v-if="q.options.length < 6" variant="ghost" compact @click="f.addOption(qi)"
+            <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <AppButton
+                v-if="q.options.length < 6"
+                variant="secondary"
+                compact
+                class="max-sm:self-stretch"
+                @click="f.addOption(qi)"
                 ><AppIcon name="plus" :size="16" />{{ t.addAnswer }}</AppButton
               >
-              <AppButton v-if="q.correct !== null" variant="ghost" compact @click="f.setCorrect(qi, null)">{{
-                t.noCorrect
-              }}</AppButton>
+              <AppButton
+                v-if="q.correct !== null"
+                variant="ghost"
+                compact
+                class="h-auto py-1 text-start whitespace-normal"
+                @click="f.setCorrect(qi, null)"
+                >{{ t.noCorrect }}</AppButton
+              >
             </div>
             <p class="text-sm" :class="q.correct !== null ? 'text-success' : 'text-base-content/60'">
               {{ q.correct !== null ? t.scoredBySystem : t.scoredByYou }}
@@ -203,11 +214,14 @@ function confirmImport() {
                 ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
               >
             </div>
-            <div>
-              <AppButton v-if="q.accepted.length < 10" variant="ghost" compact @click="f.addAccepted(qi)"
-                ><AppIcon name="plus" :size="16" />{{ t.addAccepted }}</AppButton
-              >
-            </div>
+            <AppButton
+              v-if="q.accepted.length < 10"
+              variant="secondary"
+              compact
+              class="sm:self-start"
+              @click="f.addAccepted(qi)"
+              ><AppIcon name="plus" :size="16" />{{ t.addAccepted }}</AppButton
+            >
             <p
               class="text-sm"
               :class="q.accepted.some((x) => x.trim() !== '') ? 'text-success' : 'text-base-content/60'"
@@ -217,18 +231,21 @@ function confirmImport() {
           </template>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <span class="text-sm font-medium">{{ t.addQuestionLabel }}:</span>
-          <AppButton
-            v-for="x in adders"
-            :key="x.kind"
-            variant="secondary"
-            compact
-            :disabled="f.wordsOnly.value"
-            @click="f.addQuestion(x.kind)"
-          >
-            <AppIcon name="plus" :size="16" />{{ x.label }}
-          </AppButton>
+          <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <AppButton
+              v-for="x in adders"
+              :key="x.kind"
+              variant="secondary"
+              compact
+              class="whitespace-nowrap"
+              :disabled="f.wordsOnly.value"
+              @click="f.addQuestion(x.kind)"
+            >
+              <AppIcon name="plus" :size="16" />{{ x.label }}
+            </AppButton>
+          </div>
         </div>
       </AppCard>
 
@@ -241,11 +258,9 @@ function confirmImport() {
             ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
           >
         </div>
-        <div>
-          <AppButton v-if="v.links.length < 10" variant="secondary" @click="f.addLink"
-            ><AppIcon name="plus" :size="18" />{{ t.addLink }}</AppButton
-          >
-        </div>
+        <AppButton v-if="v.links.length < 10" variant="secondary" class="sm:self-start" @click="f.addLink"
+          ><AppIcon name="plus" :size="18" />{{ t.addLink }}</AppButton
+        >
       </AppCard>
 
       <AppCard>
@@ -284,10 +299,10 @@ function confirmImport() {
         </template>
       </AppCard>
 
-      <div class="flex gap-3">
-        <AppButton type="submit" :loading="f.form.submitting.value">{{ t.save }}</AppButton>
+      <AppFormActions>
         <AppButton variant="ghost" @click="goBack(router, backTo)">{{ messages.common.cancel }}</AppButton>
-      </div>
+        <AppButton type="submit" :loading="f.form.submitting.value">{{ t.save }}</AppButton>
+      </AppFormActions>
     </form>
 
     <AppModal v-model="importing" :title="t.importTitle" :close-label="messages.common.close">
@@ -303,11 +318,9 @@ function confirmImport() {
           <li>{{ t.importHowTo2 }}</li>
           <li>{{ t.importHowTo3 }}</li>
         </ol>
-        <div>
-          <AppButton variant="secondary" @click="downloadSampleHomework"
-            ><AppIcon name="download" :size="18" />{{ t.importSample }}</AppButton
-          >
-        </div>
+        <AppButton variant="secondary" class="sm:self-start" @click="downloadSampleHomework"
+          ><AppIcon name="download" :size="18" />{{ t.importSample }}</AppButton
+        >
         <div class="fieldset">
           <label class="fieldset-legend" for="import-homework-file">{{ t.importFile }}</label>
           <input

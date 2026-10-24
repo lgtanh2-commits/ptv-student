@@ -9,7 +9,6 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppAuthPage from "@/ui/AppAuthPage.vue";
 import AppButton from "@/ui/AppButton.vue";
-import AppLink from "@/ui/AppLink.vue";
 
 // This page only shows a button. The link is used up when the person presses it, not when the
 // page opens, so an email scanner that visits the link cannot use it up.
@@ -31,7 +30,7 @@ const action = useOneClick(async () => {
   <AppAuthPage :title="t.title" :subtitle="action.expired.value || !token ? undefined : t.intro">
     <template v-if="action.expired.value || !token">
       <AppAlert kind="error">{{ t.expired }}</AppAlert>
-      <AppLink to="/sign-in">{{ t.askAgain }}</AppLink>
+      <AppButton variant="secondary" block @click="router.push('/sign-in')">{{ t.askAgain }}</AppButton>
     </template>
     <template v-else>
       <AppAlert v-if="action.error.value" kind="error">{{ action.error.value }}</AppAlert>

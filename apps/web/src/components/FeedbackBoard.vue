@@ -73,7 +73,7 @@ function meta(card: FeedbackCard): string {
           <p class="mt-1 text-xs text-base-content/70">{{ meta(card) }}</p>
         </li>
       </ul>
-      <AppEmpty v-else icon="message" :title="col.empty" />
+      <AppEmpty v-else compact :title="col.empty" />
     </section>
   </div>
 </template>

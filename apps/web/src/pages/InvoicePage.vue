@@ -13,6 +13,7 @@ import { useInvoice, useLessonPicker } from "@/features/invoices/useInvoices";
 import { useToast } from "@/features/toast/useToast";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
@@ -377,22 +378,22 @@ const canSend = computed(
                 ><AppIcon name="trash" :size="16" />{{ t.delete }}</AppButton
               >
             </template>
-            <template v-else-if="d.status === 'sent'">
+            <AppFormActions v-else-if="d.status === 'sent'" stack>
+              <AppButton variant="ghost" compact :disabled="inv.busy.value" @click="asking = 'cancel'">{{
+                t.cancel
+              }}</AppButton>
               <AppButton :loading="inv.busy.value" @click="inv.markPaid"
                 ><AppIcon name="done" :size="16" />{{ t.markPaid }}</AppButton
               >
+            </AppFormActions>
+            <AppFormActions v-else-if="d.status === 'paid'" stack>
               <AppButton variant="ghost" compact :disabled="inv.busy.value" @click="asking = 'cancel'">{{
                 t.cancel
               }}</AppButton>
-            </template>
-            <template v-else-if="d.status === 'paid'">
               <AppButton variant="secondary" :loading="inv.busy.value" @click="inv.markUnpaid">{{
                 t.markUnpaid
               }}</AppButton>
-              <AppButton variant="ghost" compact :disabled="inv.busy.value" @click="asking = 'cancel'">{{
-                t.cancel
-              }}</AppButton>
-            </template>
+            </AppFormActions>
           </AppCard>
         </div>
       </div>

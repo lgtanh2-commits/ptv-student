@@ -44,7 +44,7 @@ const action = useOneClick(async () => {
       <template v-if="googleOn">
         <GoogleButton intent="invite" :invite="token" :keep="trust" />
         <p class="-mt-2 text-center text-sm text-base-content/60">{{ t.googleHint }}</p>
-        <AppDivider>{{ t.orEmail }}</AppDivider>
+        <AppDivider plain>{{ t.orEmail }}</AppDivider>
       </template>
       <AppButton
         block

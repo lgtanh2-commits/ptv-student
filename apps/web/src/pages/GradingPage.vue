@@ -9,8 +9,10 @@ import { fill } from "@/features/text";
 import { usePaging } from "@/features/paging";
 import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
+import AppEmpty from "@/ui/AppEmpty.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppIcon from "@/ui/AppIcon.vue";
 import AppInput from "@/ui/AppInput.vue";
@@ -189,7 +191,7 @@ const stateNote = computed(() => {
         </AppCard>
 
         <AppCard :title="t.history" flush>
-          <p v-if="d.history.length === 0" class="p-5 text-sm text-base-content/60">{{ t.noHistory }}</p>
+          <AppEmpty v-if="d.history.length === 0" compact :title="t.noHistory" />
           <ul v-else class="divide-y divide-base-300">
             <li
               v-for="(h, i) in historyPaging.shown.value"
@@ -213,18 +215,20 @@ const stateNote = computed(() => {
           <p v-if="!g.complete.value" class="text-sm text-base-content/60">{{ t.pointsMissing }}</p>
           <AppTextarea v-model="g.feedback.value" :label="t.feedback" :rows="5" :hint="t.feedbackHint" />
           <p v-if="g.dirty.value" class="text-sm text-warning">{{ t.unsaved }}</p>
-          <div class="flex flex-wrap gap-2">
+          <AppFormActions stack>
+            <AppButton variant="secondary" :disabled="!canReturn || g.busy.value" @click="g.giveBack"
+              ><AppIcon name="send" :size="16" />{{ t.giveBack }}</AppButton
+            >
             <AppButton
               :loading="g.busy.value"
               :disabled="!g.dirty.value || !g.complete.value"
               @click="g.save"
               >{{ t.save }}</AppButton
             >
-            <AppButton variant="secondary" :disabled="!canReturn || g.busy.value" @click="g.giveBack"
-              ><AppIcon name="send" :size="16" />{{ t.giveBack }}</AppButton
-            >
-          </div>
-          <AppButton variant="ghost" compact @click="asking = true">{{ t.askAgain }}</AppButton>
+          </AppFormActions>
+          <AppButton variant="ghost" compact class="self-end" @click="asking = true">{{
+            t.askAgain
+          }}</AppButton>
         </AppCard>
       </div>
     </div>

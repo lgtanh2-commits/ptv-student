@@ -77,7 +77,7 @@ onMounted(load);
   <div class="flex flex-col gap-6">
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
     <AppLoading v-if="loading" :label="messages.common.loading" />
-    <AppCard v-else-if="sessions.length === 0"><AppEmpty icon="devices" :title="t.empty" /></AppCard>
+    <AppCard v-else-if="sessions.length === 0"><AppEmpty compact :title="t.empty" /></AppCard>
     <AppCard v-else flush :title="messages.settings.devicesTitle" :description="t.intro">
       <template #actions>
         <AppButton variant="danger" compact :loading="endingAll" @click="askingAll = true"

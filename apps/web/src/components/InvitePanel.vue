@@ -50,7 +50,7 @@ const stateTone = { sent: "info", expired: "warning", revoked: "neutral" } as co
       <AppAlert v-if="justSent" kind="success">{{ t.sent }}</AppAlert>
       <AppInput v-model="form.values.name" :label="t.name" :error="form.errors.value.name" />
       <AppInput v-model="form.values.email" :label="t.email" type="email" :error="form.errors.value.email" />
-      <AppButton type="submit" :loading="form.submitting.value">{{ t.submit }}</AppButton>
+      <AppButton type="submit" :loading="form.submitting.value" block>{{ t.submit }}</AppButton>
     </form>
 
     <div v-if="invites.length > 0 || actionError" class="flex flex-col gap-3 border-t border-base-300 pt-4">

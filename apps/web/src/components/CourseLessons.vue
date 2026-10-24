@@ -16,6 +16,7 @@ import { messages } from "@/messages";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
@@ -79,18 +80,18 @@ const statusTone = {
           form.formError.value
         }}</AppAlert>
         <LessonFields :values="form.values" :errors="form.errors.value" />
-        <div class="md:col-span-2">
+        <AppFormActions class="md:col-span-2">
           <AppButton type="submit" :loading="form.submitting.value"
             ><AppIcon name="calendar-plus" :size="18" />{{ t.add }}</AppButton
           >
-        </div>
+        </AppFormActions>
       </form>
     </AppCard>
 
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
     <AppLoading v-if="loading" :label="messages.common.loading" />
     <AppCard v-else-if="upcomingPaging.total.value === 0 && pastPaging.total.value === 0">
-      <AppEmpty icon="calendar" :title="t.empty" :text="t.emptyText" />
+      <AppEmpty compact :title="t.empty" :text="t.emptyText" />
     </AppCard>
 
     <template v-for="group in groups" :key="group.key">

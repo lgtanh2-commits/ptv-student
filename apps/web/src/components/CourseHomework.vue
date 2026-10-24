@@ -58,7 +58,7 @@ async function confirmDelete() {
     </template>
     <AppAlert v-if="error" kind="error" class="m-5">{{ error }}</AppAlert>
     <div v-if="loading" class="p-5"><AppLoading :label="messages.common.loading" :rows="2" /></div>
-    <AppEmpty v-else-if="items.length === 0" icon="attendance" :title="t.empty" :text="t.emptyText">
+    <AppEmpty v-else-if="items.length === 0" compact :title="t.empty" :text="t.emptyText">
       <AppButton @click="newHomework"><AppIcon name="plus" :size="18" />{{ t.new }}</AppButton>
     </AppEmpty>
     <ul v-else class="divide-y divide-base-300">

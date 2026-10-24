@@ -12,6 +12,7 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
+import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
 import AppConfirm from "@/ui/AppConfirm.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
@@ -121,9 +122,9 @@ async function toggleArchived(archived: boolean) {
               :hint="t.noteHint"
               :error="form.errors.value.teacherNote"
             />
-            <div>
+            <AppFormActions>
               <AppButton type="submit" :loading="form.submitting.value">{{ t.save }}</AppButton>
-            </div>
+            </AppFormActions>
           </form>
         </AppCard>
       </div>
@@ -136,7 +137,7 @@ async function toggleArchived(archived: boolean) {
           </div>
           <AppEmpty
             v-else-if="!attendance.info.value || attendance.info.value.total === 0"
-            icon="attendance"
+            compact
             :title="a.empty"
           />
           <template v-else>

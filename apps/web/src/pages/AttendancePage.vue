@@ -108,7 +108,7 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
         </template>
         <AppEmpty
           v-if="a.students.value.length === 0"
-          icon="users"
+          compact
           :title="t.noStudents"
           :text="t.noStudentsText"
         />
