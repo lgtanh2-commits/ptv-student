@@ -178,7 +178,7 @@ describe("linking a Telegram chat", () => {
   });
 });
 
-describe("notifications also reach a linked Telegram chat", () => {
+describe("notifications no longer go to a linked Telegram chat", () => {
   async function setup() {
     const t = await createTeacher("Lan Tran");
     const course = await createCourse(t, { maxStudents: null, name: "English A1" });
@@ -187,32 +187,13 @@ describe("notifications also reach a linked Telegram chat", () => {
     return { t, course, kid, id: w.id, qs: w.questions };
   }
 
-  it("tells a linked teacher on Telegram when a student hands in work, with the title and a link", async () => {
+  it("sends a linked teacher nothing on Telegram when a student hands in work, but the bell still rings", async () => {
     const { t, kid, id, qs } = await setup();
     await link(t, 555);
     telegramFake.asked = []; // the "Linked." reply is not part of what we are checking here
     const res = await submit(kid, id, fullAnswers(qs));
     expect(res.status, JSON.stringify(res.json)).toBe(200);
-    expect(telegramFake.asked).toHaveLength(1);
-    expect(telegramFake.asked[0]).toMatchObject({ chatId: "555" });
-    expect(telegramFake.asked[0]!.text).toContain("Hoa handed in work");
-    expect(telegramFake.asked[0]!.text).toContain(
-      `https://lms.test/assignments/${id}/students/${kid.studentId}`,
-    );
-  });
-
-  it("sends nothing to Telegram for a teacher who never linked one", async () => {
-    const { kid, id, qs } = await setup();
-    await submit(kid, id, fullAnswers(qs));
     expect(telegramFake.asked).toEqual([]);
-  });
-
-  it("still creates the in-app notification, and still answers 200, when the Telegram send fails", async () => {
-    const { t, kid, id, qs } = await setup();
-    await link(t, 555);
-    telegramFake.ok = false;
-    const res = await submit(kid, id, fullAnswers(qs));
-    expect(res.status).toBe(200);
     expect(
       await count(
         "SELECT COUNT(*) AS n FROM notifications WHERE kind = 'work_handed_in' AND link = ?",
@@ -221,7 +202,17 @@ describe("notifications also reach a linked Telegram chat", () => {
     ).toBe(1);
   });
 
-  it("the hourly reminder job also forwards to Telegram, once per person even if the job runs twice", async () => {
+  it("sends a linked student nothing on Telegram when homework is published", async () => {
+    const t = await createTeacher("Lan Tran");
+    const course = await createCourse(t, { maxStudents: null, name: "English A1" });
+    const kid = await joinedKid(t, course.id, "Hoa");
+    await link(kid, 666);
+    telegramFake.asked = [];
+    await publish(t, course.id, mixed());
+    expect(telegramFake.asked).toEqual([]);
+  });
+
+  it("the hourly reminder job sends nothing to Telegram either", async () => {
     const { kid, id } = await setup();
     await link(kid, 777);
     telegramFake.asked = [];
@@ -231,9 +222,12 @@ describe("notifications also reach a linked Telegram chat", () => {
       id,
     );
     await runNotificationJobs(env);
-    await runNotificationJobs(env);
-    expect(telegramFake.asked).toHaveLength(1);
-    expect(telegramFake.asked[0]).toMatchObject({ chatId: "777" });
-    expect(telegramFake.asked[0]!.text).toContain("Due soon");
+    expect(telegramFake.asked).toEqual([]);
+    expect(
+      await count(
+        "SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND kind LIKE '%due%'",
+        kid.userId,
+      ),
+    ).toBeGreaterThan(0);
   });
 });

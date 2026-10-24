@@ -9,7 +9,8 @@ export interface TelegramClient {
 
 /**
  * Talks to the Telegram Bot API. `null` when no bot is set up (TELEGRAM_BOT_TOKEN missing), so the rest of
- * the app can treat Telegram as an optional feature without checking every setting itself.
+ * the app can treat Telegram as an optional feature without checking every setting itself. The only message the
+ * app sends with it now is each new feedback to the owner (feedback/telegram.ts), and the replies to the linking bot.
  */
 export function telegramClient(env: Env): TelegramClient | null {
   const token = env.TELEGRAM_BOT_TOKEN;

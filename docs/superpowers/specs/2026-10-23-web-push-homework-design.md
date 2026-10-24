@@ -1,5 +1,10 @@
 # Browser push notifications, and an overdue reminder for homework
 
+> **Note 2026-10-24 (owner decision):** notifications are no longer sent to Telegram, for anyone. Wherever this spec
+> says Telegram forwards them, shares the sending limit with push, or has a card next to the push card, that is the
+> state at the time of writing: the limit now counts push only, and the Telegram card is gone. Telegram is only used
+> to tell the owner about new feedback.
+
 ## Why
 
 Students miss homework deadlines because they do not know the teacher gave them work. The bell in the app only

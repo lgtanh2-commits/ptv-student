@@ -204,23 +204,17 @@ describe("the bell", () => {
 });
 
 describe("Telegram", () => {
-  it("sends a Vietnamese student the Vietnamese title, and replies to the link in their language", async () => {
+  it("replies to the link in the language of the person, and sends them no notification there", async () => {
     const t = await createTeacher("Lan Tran");
     const course = await createCourse(t, { name: "English A1", maxStudents: null });
     const vi = await kidIn(t, course.id, "Hoa", "vi");
     const en = await kidIn(t, course.id, "Nam", "en");
-    expect(await linkTelegram(vi, 501)).toBe("Đã liên kết tài khoản. Bạn cũng sẽ nhận thông báo tại đây.");
-    expect(await linkTelegram(en, 502)).toBe("Linked. You will get your notifications here too.");
+    expect(await linkTelegram(vi, 501)).toBe("Đã liên kết tài khoản. Thông báo không được gửi qua Telegram.");
+    expect(await linkTelegram(en, 502)).toBe("Linked. Notifications are not sent to Telegram.");
 
     telegramFake.asked = [];
-    const w = await publish(t, course.id, mixed({ title: "Due soon: x" }));
-    const to = (chatId: string) => telegramFake.asked.find((m) => m.chatId === chatId)!.text.split("\n");
-    expect(to("501")).toEqual(["Bài tập mới: Due soon: x", "English A1", `https://lms.test/my/work/${w.id}`]);
-    expect(to("502")).toEqual([
-      "New homework: Due soon: x",
-      "English A1",
-      `https://lms.test/my/work/${w.id}`,
-    ]);
+    await publish(t, course.id, mixed({ title: "Due soon: x" }));
+    expect(telegramFake.asked).toEqual([]);
   });
 
   it("replies in Vietnamese to a bad code from a chat nobody linked", async () => {

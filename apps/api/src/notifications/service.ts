@@ -35,7 +35,7 @@ export async function markRead(ctx: Ctx, actor: Actor, ids: string[] | undefined
 /**
  * Runs a statement that makes notifications. A notification that could not be made never turns a good action
  * (opening work, handing in, scoring) into an error: it is logged for us and the action stays done. The person
- * still sees it in the app (the bell); reaching their browsers (push) and Telegram too is a bonus, sent after the
+ * still sees it in the app (the bell); reaching their browsers (push) too is a bonus, sent after the
  * answer went back, at most REQUEST_SEND_LIMIT at once (the rest is sent by the job that runs every minute).
  */
 export async function tell(ctx: Ctx, statement: D1PreparedStatement): Promise<void> {

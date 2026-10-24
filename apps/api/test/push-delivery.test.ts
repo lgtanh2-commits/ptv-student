@@ -172,21 +172,20 @@ describe("pushing notifications to browsers", () => {
     expect((await read(last, kid.receiver)).title).toBe("New homework: Unit 1 test");
   });
 
-  it("counts Telegram in the same limit", async () => {
-    const pushes = REQUEST_SEND_LIMIT - 2;
-    const chats = 7;
+  it("counts push only in the limit: linked Telegram chats add nothing", async () => {
+    const pushes = REQUEST_SEND_LIMIT + 5;
     const { t, course, kids } = await classWithPush(pushes);
-    for (const [i, kid] of kids.slice(0, chats).entries()) await linkTelegram(kid, 9100 + i);
+    for (const [i, kid] of kids.slice(0, 7).entries()) await linkTelegram(kid, 9100 + i);
     telegramFake.asked = []; // the "Linked." replies are not notifications
 
     await publish(t, course.id, mixed());
-    expect(pushFake.sent.length + telegramFake.asked.length).toBe(REQUEST_SEND_LIMIT);
-    expect(await queued()).toBe(pushes + chats - REQUEST_SEND_LIMIT);
+    expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
+    expect(await queued()).toBe(5);
+    expect(await count("SELECT COUNT(*) AS n FROM outbound_queue WHERE channel = 'telegram'")).toBe(0);
 
     await drainQueue(env);
     expect(pushFake.sent).toHaveLength(pushes);
-    expect(telegramFake.asked).toHaveLength(chats);
-    expect(telegramFake.asked.every((m) => m.text.startsWith("New homework: Unit 1 test"))).toBe(true);
+    expect(telegramFake.asked).toEqual([]);
     expect(await queued()).toBe(0);
   });
 
@@ -268,22 +267,6 @@ describe("pushing notifications to browsers", () => {
 
     await drainQueue(env);
     expect(pushFake.sent).toHaveLength(REQUEST_SEND_LIMIT);
-    expect(await queued()).toBe(0);
-  });
-
-  it("drops a queued Telegram message whose chat was unlinked before it went", async () => {
-    const { t, course, kids } = await classWithPush(1);
-    await linkTelegram(kids[0]!, 9300);
-    telegramFake.asked = [];
-    telegramFake.ok = false;
-    await publish(t, course.id, mixed());
-    expect(telegramFake.asked).toHaveLength(1);
-    expect(await count("SELECT COUNT(*) AS n FROM outbound_queue WHERE channel = 'telegram'")).toBe(1);
-    await call("/api/telegram/unlink", { method: "POST", cookie: kids[0]!.cookie });
-
-    telegramFake.ok = true;
-    await drainQueue(env, undefined, later(6));
-    expect(telegramFake.asked).toHaveLength(1);
     expect(await queued()).toBe(0);
   });
 
@@ -496,19 +479,18 @@ describe("pushing notifications to browsers", () => {
     expect(await queued()).toBe(0);
   });
 
-  it("does not send a waiting Telegram message to a chat that is now linked to someone else", async () => {
-    const { t, course, kids } = await classWithPush(2);
-    const [a, b] = [kids[0]!, kids[1]!];
-    await linkTelegram(a, 9400);
-    await setSql("DELETE FROM push_subscriptions WHERE user_id IN (?, ?)", a.userId, b.userId);
+  it("drops a queued Telegram row left from before, without calling Telegram, even for a linked chat", async () => {
+    const { kids } = await classWithPush(1);
+    await linkTelegram(kids[0]!, 9400);
     telegramFake.asked = [];
-    telegramFake.ok = false;
-    await publish(t, course.id, mixed());
-    expect(await count("SELECT COUNT(*) AS n FROM outbound_queue WHERE channel = 'telegram'")).toBe(1);
-    await linkTelegram(b, 9400);
-
-    telegramFake.ok = true;
-    telegramFake.asked = [];
+    await setSql(
+      `INSERT INTO outbound_queue (id, channel, user_id, target, content, created_at, tries, next_at)
+       VALUES ('old-tg', 'telegram', ?, '9400', 'New homework', ?, 0, ?)`,
+      kids[0]!.userId,
+      new Date().toISOString(),
+      new Date().toISOString(),
+    );
+    expect(await queued()).toBe(1);
     await drainQueue(env, undefined, later(6));
     expect(telegramFake.asked).toEqual([]);
     expect(await queued()).toBe(0);

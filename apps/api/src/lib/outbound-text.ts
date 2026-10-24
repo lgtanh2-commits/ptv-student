@@ -3,7 +3,7 @@ import type { EmailMessage } from "../email/provider";
 import type { Kind } from "../repos/notifications";
 
 /**
- * Emails, notifications and Telegram messages are made in English and stored or sent as finished text. They are
+ * Emails and notifications (and the push messages made from them) are made in English and stored or sent as finished text. They are
  * put into the recipient's language with only the table texts their kind can hold, so a name or homework title
  * that looks like another table text (`"Bob handed in work"`, `"Due soon: x"`) is never translated as that text:
  * it is user content and stays as it is.

@@ -40,7 +40,7 @@ The address is printed at the end, like `https://ptv-lms-staging.<your-account>.
 | `TURNSTILE_SECRET`        | `wrangler secret put TURNSTILE_SECRET --env <env>`                                          | Bot check on the server. The app refuses to run without it in staging and production.                                                                                                   |
 | `VITE_TURNSTILE_SITE_KEY` | Set when building the web app (`VITE_TURNSTILE_SITE_KEY=... pnpm --filter @lms/web build`)  | Shows the bot check on the forms. Create a Turnstile widget in the Cloudflare dashboard and allow the `workers.dev` address.                                                            |
 
-Telegram notifications (below) are optional and need three more settings, but the app runs fine without them.
+Telegram (below) is optional: only the feedback message to the owner uses it now.
 
 ## Sign in with Google
 
@@ -73,9 +73,12 @@ Pushes to `develop` deploy to staging. Production is a manual run of the workflo
 
 ## Telegram notifications (optional)
 
-A teacher can also get the notifications that ring the bell in the app (a student handing in work, work due
-soon...) as Telegram messages. Nobody has to set this up: without it, the "Telegram notifications" card on the
-Devices page simply does not show.
+Since 2026-10-24 (owner decision) Telegram is **only used to tell the owner about new feedback** (see "Telegram
+message to you" below). Notifications that ring the bell (a student handing in work, work due soon...) are no longer
+sent to Telegram for anyone; they go to the bell and to browser push. There is no Telegram card in the app any more.
+The linking routes, the webhook and the existing links are kept in the code and the database so forwarding can come
+back, but nothing is sent to a linked chat. Setting up a bot is needed only for the feedback message to the owner;
+the webhook steps below matter only if you want linking to work.
 
 A bot can only have **one** webhook address. Using the same bot for two environments (as staging and production
 do now) means only the one last set with `setWebhook` actually receives updates; the other environment's card
@@ -95,7 +98,7 @@ make a second bot with @BotFather instead (free, one more `/newbot`) and give it
      -d "url=<APP_URL>/api/telegram/webhook" \
      -d "secret_token=<the webhook secret>"
    ```
-4. On the Settings page, a teacher presses "Link Telegram", opens the link it gives in Telegram, and presses Start.
+4. Linking has no button in the app now (the card was removed on 2026-10-24); the routes still work, but a linked chat gets nothing.
 
 Local development needs the same three settings in `apps/api/.dev.vars` (already gitignored) to try the feature;
 without them it is simply off, same as in production.
@@ -133,7 +136,7 @@ Apply the migration and deploy the new code together, as the production workflow
 
 People send feedback from the "Feedback" menu item. Each one is saved with status `new` and is not public. Only items you accept (with a public title) appear on the board.
 
-**Telegram message to you (optional).** Set the chat that receives each new feedback. It uses the same bot as the other Telegram notifications (`TELEGRAM_BOT_TOKEN`); without the chat id nothing is sent, and feedback is still saved.
+**Telegram message to you (optional).** Set the chat that receives each new feedback. It uses the same bot as the (kept, unused) Telegram linking (`TELEGRAM_BOT_TOKEN`); without the chat id nothing is sent, and feedback is still saved.
 
 ```sh
 wrangler secret put FEEDBACK_TELEGRAM_CHAT_ID --env <env>
