@@ -7,6 +7,7 @@ import { useLessonCancel, useLessonRestore } from "@/features/lessons/useLessons
 import { usePaging } from "@/features/paging";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
+import AppActionBar from "@/ui/AppActionBar.vue";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppAvatar from "@/ui/AppAvatar.vue";
 import AppBadge from "@/ui/AppBadge.vue";
@@ -138,17 +139,16 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
         <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
       </AppCard>
 
-      <div
-        v-if="a.canSave.value && a.students.value.length"
-        class="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-base-300 bg-base-100/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-box md:border"
-      >
-        <p class="text-sm text-base-content/70">
-          {{ fill(t.summary, { a: a.attended.value, b: a.absent.value }) }}
-        </p>
+      <AppActionBar v-if="a.canSave.value && a.students.value.length">
+        <template #status>
+          <p class="text-base-content/70">
+            {{ fill(t.summary, { a: a.attended.value, b: a.absent.value }) }}
+          </p>
+        </template>
         <AppButton :loading="a.busy.value" :disabled="!a.dirty.value" @click="a.save(t.saved)">
           <AppIcon name="check" :size="18" />{{ t.save }}
         </AppButton>
-      </div>
+      </AppActionBar>
     </template>
 
     <AppModal

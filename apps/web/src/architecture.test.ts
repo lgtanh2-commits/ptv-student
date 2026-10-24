@@ -120,6 +120,31 @@ describe("frontend architecture (plan 5.2)", () => {
     expect(bad).toEqual([]);
   });
 
+  it("in a dialog footer the main button is the last one in the markup (on top in the phone's bottom sheet, far right on a wide screen)", () => {
+    const bad = screenTemplates().flatMap(({ file, template }) =>
+      [...template.matchAll(/<AppModal\b[\s\S]*?<\/AppModal>/g)].flatMap((modal) => {
+        const footer = modal[0].split("<template #actions>")[1] ?? "";
+        const controls = [...footer.matchAll(/<(AppButton|RouterLink)\b[^>]*>/g)].map((b) => b[0]);
+        const isMain = (tag: string) =>
+          tag.startsWith("<AppButton")
+            ? !/\svariant=/.test(tag) || /variant="danger"/.test(tag)
+            : /btn-primary/.test(tag);
+        const last = controls.at(-1);
+        return controls.some(isMain) && last && !isMain(last)
+          ? [`${file}: ${last.replace(/\s+/g, " ")}`]
+          : [];
+      }),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it("a bar stuck to the bottom of a page is an AppActionBar (full-width button on a phone, safe-area padding)", () => {
+    const bad = screenTemplates()
+      .filter(({ template }) => /\bsticky\b[^"]*\bbottom-0\b|\bbottom-0\b[^"]*\bsticky\b/.test(template))
+      .map(({ file }) => file);
+    expect(bad).toEqual([]);
+  });
+
   it("a regular button is never alone in a bare <div> (that strands it on the left at its natural width on a phone)", () => {
     const bad = screenTemplates().flatMap(({ file, template }) =>
       [...template.matchAll(/<div>\s*(<AppButton\b[^>]*>)[\s\S]*?<\/AppButton\s*>\s*<\/div>/g)]

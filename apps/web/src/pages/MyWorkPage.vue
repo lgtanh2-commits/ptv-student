@@ -7,6 +7,7 @@ import { dueWords, scoreText } from "@/features/homework/dates";
 import { useMyWork } from "@/features/my/useMy";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
+import AppActionBar from "@/ui/AppActionBar.vue";
 import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
@@ -288,21 +289,19 @@ const setLink = (qi: number, v: string) => {
         </div>
       </AppCard>
 
-      <div
-        v-if="w.canEdit"
-        class="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-base-300 bg-base-100/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-box md:border"
-      >
-        <p
-          class="text-sm"
-          :class="m.saveState.value === 'error' ? 'text-error' : 'text-base-content/60'"
-          aria-live="polite"
-        >
-          {{ saveText }}
-        </p>
+      <AppActionBar v-if="w.canEdit">
+        <template #status>
+          <p
+            :class="m.saveState.value === 'error' ? 'text-error' : 'text-base-content/60'"
+            aria-live="polite"
+          >
+            {{ saveText }}
+          </p>
+        </template>
         <AppButton :loading="m.submitting.value" @click="confirming = true"
           ><AppIcon name="send" :size="18" />{{ t.handIn }}</AppButton
         >
-      </div>
+      </AppActionBar>
     </template>
 
     <AppModal v-model="confirming" :title="t.handInTitle" :close-label="messages.common.close">
