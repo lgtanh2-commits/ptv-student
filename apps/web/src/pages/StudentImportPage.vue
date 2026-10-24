@@ -11,10 +11,11 @@ import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
+import AppDataList from "@/ui/AppDataList.vue";
 import AppIcon from "@/ui/AppIcon.vue";
+import AppListRow from "@/ui/AppListRow.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
-import AppTable from "@/ui/AppTable.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.importStudents;
@@ -98,29 +99,48 @@ const steps = computed(() => ({ input: 1, preview: 2, done: 3 })[imp.step.value]
       flush
     >
       <AppAlert v-if="imp.error.value" kind="error" class="m-5">{{ imp.error.value }}</AppAlert>
-      <AppTable>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>{{ t.colName }}</th>
-            <th>{{ t.colEmail }}</th>
-            <th>{{ t.colResult }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in paging.shown.value" :key="r.row">
-            <td class="text-base-content/60">{{ r.row }}</td>
-            <td>{{ imp.rows.value[r.row - 1]?.name || "-" }}</td>
-            <td>{{ imp.rows.value[r.row - 1]?.email || "-" }}</td>
-            <td>
+      <AppDataList>
+        <template #list>
+          <AppListRow v-for="r in paging.shown.value" :key="r.row">
+            <template #leading
+              ><span class="inline-block w-6 text-sm text-base-content/60 tabular-nums">{{
+                r.row
+              }}</span></template
+            >
+            <template #title>{{ imp.rows.value[r.row - 1]?.name || "-" }}</template>
+            <template #trailing>
               <AppBadge :tone="resultTone[r.result]">{{ resultText[r.result] }}</AppBadge>
-              <span v-if="r.message && r.result === 'invalid'" class="ml-2 text-sm text-base-content/60">{{
-                r.message
-              }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </AppTable>
+            </template>
+            <template #meta>
+              <span class="block truncate">{{ imp.rows.value[r.row - 1]?.email || "-" }}</span>
+              <span v-if="r.message && r.result === 'invalid'" class="block">{{ r.message }}</span>
+            </template>
+          </AppListRow>
+        </template>
+        <template #table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{{ t.colName }}</th>
+              <th>{{ t.colEmail }}</th>
+              <th>{{ t.colResult }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in paging.shown.value" :key="r.row">
+              <td class="text-base-content/60">{{ r.row }}</td>
+              <td>{{ imp.rows.value[r.row - 1]?.name || "-" }}</td>
+              <td>{{ imp.rows.value[r.row - 1]?.email || "-" }}</td>
+              <td>
+                <AppBadge :tone="resultTone[r.result]">{{ resultText[r.result] }}</AppBadge>
+                <span v-if="r.message && r.result === 'invalid'" class="ml-2 text-sm text-base-content/60">{{
+                  r.message
+                }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </template>
+      </AppDataList>
       <AppPager v-model:page="paging.page.value" :pages="paging.pages.value" />
       <div class="flex flex-col gap-3 border-t border-base-300 p-5">
         <p v-if="okCount === 0" class="text-base-content/70">{{ t.nothingNew }}</p>

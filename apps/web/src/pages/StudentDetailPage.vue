@@ -22,7 +22,7 @@ import AppLoading from "@/ui/AppLoading.vue";
 import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
-import AppStat from "@/ui/AppStat.vue";
+import AppStatGroup from "@/ui/AppStatGroup.vue";
 import AppTextarea from "@/ui/AppTextarea.vue";
 
 const t = messages.studentDetail;
@@ -141,15 +141,13 @@ async function toggleArchived(archived: boolean) {
             :title="a.empty"
           />
           <template v-else>
-            <div class="grid grid-cols-2 gap-3 p-5">
-              <AppStat
-                :value="attendance.info.value.attended"
-                :label="a.attended"
-                icon="done"
-                tone="secondary"
-              />
-              <AppStat :value="attendance.info.value.absent" :label="a.absent" icon="ban" tone="accent" />
-            </div>
+            <AppStatGroup
+              class="p-5"
+              :items="[
+                { value: attendance.info.value.attended, label: a.attended, icon: 'done', tone: 'secondary' },
+                { value: attendance.info.value.absent, label: a.absent, icon: 'ban', tone: 'accent' },
+              ]"
+            />
             <ul class="divide-y divide-base-300 border-t border-base-300">
               <li
                 v-for="r in attendance.info.value.recent"

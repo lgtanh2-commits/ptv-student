@@ -14,12 +14,12 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppCard from "@/ui/AppCard.vue";
-import AppIcon, { type IconName } from "@/ui/AppIcon.vue";
+import AppIcon from "@/ui/AppIcon.vue";
 import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
-import AppStat from "@/ui/AppStat.vue";
+import AppStatGroup, { type StatItem } from "@/ui/AppStatGroup.vue";
 
 const t = messages.my;
 const session = useSession();
@@ -34,22 +34,21 @@ const donePaging = usePaging(() => groups.value.done);
 const receiptPaging = usePaging(unpaid);
 
 /** The five things on this page. Each square at the top jumps to its list. */
-type Tile = { id: string; label: string; count: number; icon: IconName; tone?: "secondary" | "accent" };
-const tiles = computed((): Tile[] => [
-  { id: "home-lessons", label: t.tileLessons, count: lessons.value.length, icon: "calendar" },
+const tiles = computed((): StatItem[] => [
+  { id: "home-lessons", label: t.tileLessons, value: lessons.value.length, icon: "calendar" },
   {
     id: "home-todo",
     label: t.todoTitle,
-    count: groups.value.todo.length,
+    value: groups.value.todo.length,
     icon: "attendance",
     tone: "accent",
   },
-  { id: "home-again", label: t.tileAgain, count: groups.value.again.length, icon: "restore" },
-  { id: "home-done", label: t.tileDone, count: groups.value.done.length, icon: "done", tone: "secondary" },
+  { id: "home-again", label: t.tileAgain, value: groups.value.again.length, icon: "restore" },
+  { id: "home-done", label: t.tileDone, value: groups.value.done.length, icon: "done", tone: "secondary" },
   {
     id: "home-receipts",
     label: t.receiptsTitle,
-    count: unpaid.value.length,
+    value: unpaid.value.length,
     icon: "invoice",
     tone: "accent",
   },
@@ -66,17 +65,7 @@ function jump(id: string) {
     <AppLoading v-if="loading" :label="messages.common.loading" />
 
     <template v-else>
-      <nav class="grid grid-cols-2 gap-3 lg:grid-cols-5" :aria-label="t.overview">
-        <button
-          v-for="tile in tiles"
-          :key="tile.id"
-          type="button"
-          class="rounded-box text-left transition hover:ring-2 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-primary [&>div]:h-full"
-          @click="jump(tile.id)"
-        >
-          <AppStat :value="tile.count" :label="tile.label" :icon="tile.icon" :tone="tile.tone" />
-        </button>
-      </nav>
+      <AppStatGroup :items="tiles" :label="t.overview" @pick="jump" />
 
       <!-- Two equal columns on a wide screen: homework on the left, receipts and lessons on the right. On a small
            screen everything is one column, in the order of the numbers: to do, redo, receipts, lessons, scored. -->

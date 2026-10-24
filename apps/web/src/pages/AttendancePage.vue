@@ -22,7 +22,7 @@ import AppModal from "@/ui/AppModal.vue";
 import AppPage from "@/ui/AppPage.vue";
 import AppPager from "@/ui/AppPager.vue";
 import AppSegmented from "@/ui/AppSegmented.vue";
-import AppStat from "@/ui/AppStat.vue";
+import AppStatGroup from "@/ui/AppStatGroup.vue";
 
 const t = messages.attendance;
 const l = messages.lessons;
@@ -98,10 +98,12 @@ const { restoringId, restore } = useLessonRestore({ restored: l.restored }, a.lo
         </dl>
       </AppCard>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <AppStat :value="a.attended.value" :label="t.attended" icon="done" tone="secondary" />
-        <AppStat :value="a.absent.value" :label="t.absent" icon="ban" tone="accent" />
-      </div>
+      <AppStatGroup
+        :items="[
+          { value: a.attended.value, label: t.attended, icon: 'done', tone: 'secondary' },
+          { value: a.absent.value, label: t.absent, icon: 'ban', tone: 'accent' },
+        ]"
+      />
 
       <AppCard :title="fill(t.students, { n: a.students.value.length })" flush>
         <template v-if="a.canSave.value && a.students.value.length" #actions>

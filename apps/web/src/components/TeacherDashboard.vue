@@ -17,7 +17,7 @@ import AppIcon from "@/ui/AppIcon.vue";
 import AppListRow from "@/ui/AppListRow.vue";
 import AppLoading from "@/ui/AppLoading.vue";
 import AppPage from "@/ui/AppPage.vue";
-import AppStat from "@/ui/AppStat.vue";
+import AppStatGroup from "@/ui/AppStatGroup.vue";
 import { useRouter } from "vue-router";
 
 const t = messages.dashboard;
@@ -97,11 +97,13 @@ const statusText = {
     <AppAlert v-if="!session.me?.user.emailVerified" kind="warning">{{ messages.home.unconfirmed }}</AppAlert>
     <AppAlert v-if="error" kind="error">{{ error }}</AppAlert>
 
-    <div class="grid gap-4 sm:grid-cols-3">
-      <AppStat :value="courses.length" :label="t.courses" icon="book" />
-      <AppStat :value="studentTotal" :label="t.students" icon="users" tone="secondary" />
-      <AppStat :value="week.length" :label="t.lessonsWeek" icon="calendar" tone="accent" />
-    </div>
+    <AppStatGroup
+      :items="[
+        { value: courses.length, label: t.courses, icon: 'book' },
+        { value: studentTotal, label: t.students, icon: 'users', tone: 'secondary' },
+        { value: week.length, label: t.lessonsWeek, icon: 'calendar', tone: 'accent' },
+      ]"
+    />
 
     <AppCard v-if="showStart" :title="t.startTitle" :description="t.startText">
       <ol class="grid gap-3 md:grid-cols-3">

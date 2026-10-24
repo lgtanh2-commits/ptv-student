@@ -7,7 +7,7 @@ import { hasPaymentInfo, type SheetData } from "@/features/invoices/sheet";
 import { fill } from "@/features/text";
 import { messages } from "@/messages";
 import AppBadge from "@/ui/AppBadge.vue";
-import AppTable from "@/ui/AppTable.vue";
+import AppDataList from "@/ui/AppDataList.vue";
 
 // The fee receipt as a paper page. It is the part that is printed.
 const props = defineProps<{
@@ -60,31 +60,30 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
     <div v-else class="h-6"></div>
 
     <!-- A narrow receipt (small screen or narrow column) shows each line as a block, so nothing has to be scrolled sideways. -->
-    <ul class="divide-y divide-base-300 border-y border-base-300 @2xl:hidden">
-      <li v-for="(l, i) in data.lines" :key="i" class="flex flex-col gap-1 py-3">
-        <div class="flex items-start justify-between gap-3">
-          <p class="font-medium">{{ l.description }}</p>
-          <p class="whitespace-nowrap font-medium">{{ formatVnd(l.amount) }}</p>
-        </div>
-        <p v-if="l.dates.length" class="text-sm text-base-content/70">
-          {{ fill(t.lessonDays, { days: days(l.dates) }) }}
-        </p>
-        <p v-if="!l.discount" class="text-sm text-base-content/60">
-          <template v-if="l.perLesson"
-            >{{ l.quantity === 1 ? t.lessonOne : fill(t.lessonMany, { n: l.quantity }) }} ×
-            {{ formatVnd(l.unitPrice) }} {{ t.perLesson }}</template
-          >
-          <template v-else>{{ l.quantity }} × {{ formatVnd(l.unitPrice) }}</template>
-        </p>
-      </li>
-      <li class="flex items-center justify-between gap-3 py-3 font-semibold">
-        <span>{{ t.total }}</span>
-        <span class="text-lg">{{ formatVnd(data.total) }}</span>
-      </li>
-    </ul>
-
-    <div class="hidden @2xl:block">
-      <AppTable>
+    <AppDataList wide ruled>
+      <template #list>
+        <li v-for="(l, i) in data.lines" :key="i" class="flex flex-col gap-1 py-3">
+          <div class="flex items-start justify-between gap-3">
+            <p class="font-medium">{{ l.description }}</p>
+            <p class="whitespace-nowrap font-medium">{{ formatVnd(l.amount) }}</p>
+          </div>
+          <p v-if="l.dates.length" class="text-sm text-base-content/70">
+            {{ fill(t.lessonDays, { days: days(l.dates) }) }}
+          </p>
+          <p v-if="!l.discount" class="text-sm text-base-content/60">
+            <template v-if="l.perLesson"
+              >{{ l.quantity === 1 ? t.lessonOne : fill(t.lessonMany, { n: l.quantity }) }} ×
+              {{ formatVnd(l.unitPrice) }} {{ t.perLesson }}</template
+            >
+            <template v-else>{{ l.quantity }} × {{ formatVnd(l.unitPrice) }}</template>
+          </p>
+        </li>
+        <li class="flex items-center justify-between gap-3 py-3 font-semibold">
+          <span>{{ t.total }}</span>
+          <span class="text-lg whitespace-nowrap">{{ formatVnd(data.total) }}</span>
+        </li>
+      </template>
+      <template #table>
         <thead>
           <tr>
             <th class="min-w-44">{{ t.description }}</th>
@@ -121,8 +120,8 @@ const days = (dates: string[]) => dates.map((d) => formatDay(d).slice(0, 5)).joi
             <td class="whitespace-nowrap text-right text-lg">{{ formatVnd(data.total) }}</td>
           </tr>
         </tfoot>
-      </AppTable>
-    </div>
+      </template>
+    </AppDataList>
 
     <p v-if="data.status === 'paid' && data.paidAt" class="mt-4 text-sm text-success">
       {{ fill(t.paidOn, { date: formatWhen(data.paidAt) }) }}

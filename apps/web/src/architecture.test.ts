@@ -175,8 +175,24 @@ describe("frontend architecture (plan 5.2)", () => {
       .filter((f) => f.endsWith(".vue") && !f.endsWith("InvoiceSheet.vue"))
       .filter((f) => {
         const text = readFileSync(f, "utf8");
-        return text.includes("<AppTable") && !text.includes("<AppPager");
+        return text.includes("<AppDataList") && !text.includes("<AppPager");
       })
+      .map((f) => path.relative(root, f));
+    expect(bad).toEqual([]);
+  });
+
+  it("a table is an AppDataList (stacked rows on a phone, a table from sm), never a bare AppTable that scrolls sideways", () => {
+    const bad = [...files(path.join(root, "pages")), ...files(path.join(root, "components"))]
+      .filter((f) => f.endsWith(".vue"))
+      .filter((f) => /<AppTable\b|<table\b/.test(readFileSync(f, "utf8")))
+      .map((f) => path.relative(root, f));
+    expect(bad).toEqual([]);
+  });
+
+  it("number tiles are laid out by AppStatGroup (equal heights, compact on a phone, money as one card of rows)", () => {
+    const bad = [...files(path.join(root, "pages")), ...files(path.join(root, "components"))]
+      .filter((f) => f.endsWith(".vue"))
+      .filter((f) => /<AppStat\b/.test(readFileSync(f, "utf8")))
       .map((f) => path.relative(root, f));
     expect(bad).toEqual([]);
   });
