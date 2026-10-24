@@ -20,7 +20,8 @@ telegram.post("/telegram/unlink", requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
-// Telegram itself calls this address (see docs/deploy.md, "Telegram notifications"). It is exempt from the
+// Linking is kept, but notifications are no longer forwarded to Telegram (owner decision 2026-10-24); only new
+// feedback goes to the owner (feedback/telegram.ts). Telegram itself calls this address (see docs/deploy.md, "Telegram"). It is exempt from the
 // usual CSRF checks (middleware/csrf.ts) and checks its own secret header instead.
 telegram.post("/telegram/webhook", async (c) => {
   if (!isFromTelegram(c.env, c.req.header("x-telegram-bot-api-secret-token")))

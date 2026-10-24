@@ -170,21 +170,6 @@ export const vi: Messages = {
     hintAction: "Bật ngay",
     hintLater: "Để sau",
   },
-  telegram: {
-    title: "Thông báo Telegram",
-    text: "Nhận thông báo qua Telegram cho các sự kiện cũng xuất hiện tại đây, chẳng hạn khi học viên nộp bài.",
-    linkButton: "Liên kết Telegram",
-    openButton: "Mở Telegram",
-    askAgain: "Gửi liên kết mới",
-    waiting: "Đang chờ bạn nhấn Start trong Telegram...",
-    linkedTitle: "Đã liên kết",
-    linkedText: "Bạn sẽ nhận thông báo tại đây và trên Telegram.",
-    unlinkButton: "Hủy liên kết",
-    unlinkedNow: "Đã hủy liên kết Telegram.",
-    unlinkTitle: "Hủy liên kết Telegram?",
-    unlinkText: "Bạn sẽ không còn nhận thông báo qua Telegram. Bạn có thể liên kết lại sau.",
-    linkedNow: "Đã liên kết Telegram.",
-  },
   invites: {
     title: "Mời học viên",
     intro:

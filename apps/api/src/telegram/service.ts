@@ -17,6 +17,9 @@ import {
 import { AppError } from "../lib/errors";
 import { telegramClient } from "./client";
 
+// Linking a chat is kept (the links stay so forwarding can come back), but nothing is forwarded to a linked chat now:
+// notifications go to the bell and browser push only (owner decision 2026-10-24).
+
 /** Both settings must be there: one to send messages, one to build the "open Telegram" link. */
 const isSetUp = (env: Env): env is Env & { TELEGRAM_BOT_USERNAME: string } =>
   telegramClient(env) !== null && Boolean(env.TELEGRAM_BOT_USERNAME);
@@ -100,5 +103,5 @@ export async function handleUpdate(env: Env, body: unknown): Promise<void> {
     deleteOtherLinkOfChatStatement(env.DB, chatId, link.user_id),
     upsertLinkStatement(env.DB, link.user_id, chatId),
   ]);
-  await reply("Linked. You will get your notifications here too.");
+  await reply("Linked. Notifications are not sent to Telegram.");
 }

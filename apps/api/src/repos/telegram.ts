@@ -13,40 +13,6 @@ export const findLink = (db: D1Database, userId: string): Promise<TelegramLinkRo
     .bind(userId)
     .first<TelegramLinkRow>();
 
-/** The Telegram chat linked to each of these people, for the ones who have one, with the language to write in. */
-export async function linkedChatsOf(
-  db: D1Database,
-  userIds: string[],
-): Promise<Map<string, { chatId: string; language: Language }>> {
-  if (userIds.length === 0) return new Map();
-  const res = await db
-    .prepare(
-      `SELECT t.user_id, t.chat_id, u.language FROM telegram_links t JOIN users u ON u.id = t.user_id
-       WHERE t.user_id IN (SELECT value FROM json_each(?))`,
-    )
-    .bind(JSON.stringify(userIds))
-    .all<{ user_id: string; chat_id: string; language: string }>();
-  return new Map(
-    res.results.map((r) => [
-      r.user_id,
-      { chatId: r.chat_id, language: parseLanguage(r.language) ?? DEFAULT_LANGUAGE },
-    ]),
-  );
-}
-
-/**
- * Who each of these chats is linked to now, by chat id. A chat unlinked since is missing, so it gets nothing more;
- * a chat linked to someone else since gets nothing that waited for the person before.
- */
-export async function stillLinkedChats(db: D1Database, chatIds: string[]): Promise<Map<string, string>> {
-  if (chatIds.length === 0) return new Map();
-  const res = await db
-    .prepare("SELECT chat_id, user_id FROM telegram_links WHERE chat_id IN (SELECT value FROM json_each(?))")
-    .bind(JSON.stringify(chatIds))
-    .all<{ chat_id: string; user_id: string }>();
-  return new Map(res.results.map((r) => [r.chat_id, r.user_id]));
-}
-
 /** The language of the person this chat is linked to; Vietnamese for a chat nobody linked. */
 export async function languageOfChat(db: D1Database, chatId: string): Promise<Language> {
   const row = await db

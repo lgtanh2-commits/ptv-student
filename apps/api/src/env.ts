@@ -24,9 +24,9 @@ export interface Env {
   GOOGLE_MODE?: "dev";
   /** Cloudflare Turnstile secret. Required in staging and production. */
   TURNSTILE_SECRET?: string;
-  /** A Telegram bot's token (from BotFather). Without it, Telegram notifications are hidden. */
+  /** A Telegram bot's token (from BotFather). Needed for the feedback message to the owner and for linking (kept, but nothing is forwarded to linked chats now). */
   TELEGRAM_BOT_TOKEN?: string;
-  /** The bot's @username, used to build the "open Telegram" link. Without it, Telegram notifications are hidden. */
+  /** The bot's @username, used to build the "open Telegram" link. Without it, linking is hidden. */
   TELEGRAM_BOT_USERNAME?: string;
   /** Checked against the header Telegram sends on every webhook call, so nobody else can call it. Required to use Telegram. */
   TELEGRAM_WEBHOOK_SECRET?: string;

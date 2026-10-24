@@ -38,7 +38,7 @@ export async function makeReminders(env: Env, now: Date = new Date()): Promise<N
   return [...dueRows, ...overdueRows];
 }
 
-/** Sends reminders to browsers with push on and to linked Telegram chats, within one send limit; the rest waits for the job that runs every minute. */
+/** Sends reminders to browsers with push on, within one send limit; the rest waits for the job that runs every minute. */
 export const sendReminders = (env: Env, rows: NotifiedRow[]): Promise<void> =>
   deliver(env, rows, JOB_SEND_LIMIT);
 

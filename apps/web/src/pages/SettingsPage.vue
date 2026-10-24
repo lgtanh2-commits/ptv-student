@@ -7,7 +7,7 @@ import { messages } from "@/messages";
 import AppPage from "@/ui/AppPage.vue";
 
 // Everyone can choose a language and turn on notifications on this device. Only teachers also see their
-// devices and Telegram.
+// devices.
 const t = messages.settings;
 const session = useSession();
 </script>

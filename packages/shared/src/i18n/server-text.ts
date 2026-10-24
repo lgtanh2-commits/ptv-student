@@ -409,9 +409,9 @@ export const SERVER_TEXT: readonly ServerText[] = [
     vi: "Mã này đã hết hạn hoặc không còn hiệu lực. Vui lòng yêu cầu mã mới trong ứng dụng.",
   },
   {
-    id: "Linked. You will get your notifications here too.",
-    en: "Linked. You will get your notifications here too.",
-    vi: "Đã liên kết tài khoản. Bạn cũng sẽ nhận thông báo tại đây.",
+    id: "Linked. Notifications are not sent to Telegram.",
+    en: "Linked. Notifications are not sent to Telegram.",
+    vi: "Đã liên kết tài khoản. Thông báo không được gửi qua Telegram.",
   },
   { id: "New homework: ", en: "New homework: ", vi: "Bài tập mới: " },
   { id: "Due soon: ", en: "Due soon: ", vi: "Sắp đến hạn nộp: " },

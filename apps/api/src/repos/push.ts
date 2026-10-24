@@ -82,9 +82,9 @@ export interface QueuedMessage {
   channel: "push" | "telegram";
   /** The person the message is for. */
   user_id: string;
-  /** A push subscription id, or a Telegram chat id. */
+  /** A push subscription id (or, on a row left from before, a Telegram chat id). */
   target: string;
-  /** For push the JSON `{ title, body, link }`, for Telegram the finished text. */
+  /** For push the JSON `{ title, body, link }` (for a leftover Telegram row, the finished text). */
   content: string;
   tries: number;
 }
