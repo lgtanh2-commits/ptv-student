@@ -17,7 +17,7 @@ const problems: { icon: IconName; problem: string; fix: string }[] = [
   { icon: "message", problem: t.p1Problem, fix: t.p1Fix },
   { icon: "clock", problem: t.p2Problem, fix: t.p2Fix },
   { icon: "invoice", problem: t.p3Problem, fix: t.p3Fix },
-  { icon: "attendance", problem: t.p4Problem, fix: t.p4Fix },
+  { icon: "edit", problem: t.p4Problem, fix: t.p4Fix },
 ];
 
 const features: { icon: IconName; title: string; text: string }[] = [
@@ -195,8 +195,8 @@ const faq = [
         <h2 class="text-3xl font-semibold tracking-tight">{{ t.ctaTitle }}</h2>
         <p class="text-lg text-base-content/70">{{ t.ctaText }}</p>
         <div class="flex w-full max-w-sm flex-col gap-3">
-          <GoogleButton intent="sign-up" />
           <AppButton @click="router.push('/sign-up')">{{ t.start }}</AppButton>
+          <GoogleButton intent="sign-up" />
         </div>
       </div>
     </section>
