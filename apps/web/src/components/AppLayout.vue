@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import AppToaster from "@/components/AppToaster.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
 import { useSession } from "@/features/auth/session";
@@ -17,6 +17,7 @@ import AppShell from "@/ui/AppShell.vue";
 // The frame of the app. Signed in: a side menu. Not signed in: a slim top bar.
 const session = useSession();
 const router = useRouter();
+const route = useRoute();
 const t = messages.nav;
 useUnreadPolling(() => session.me !== null);
 const role = computed(() => (session.isTeacher ? t.teacher : t.student));
@@ -77,6 +78,15 @@ async function signOut() {
       <RouterLink to="/" class="inline-flex"><AppBrand :name="messages.app.name" /></RouterLink>
     </template>
     <template #actions>
+      <nav v-if="route.path === '/'" class="mr-2 hidden items-center gap-1 text-sm md:flex">
+        <a href="#features" class="rounded-field px-3 py-2 hover:bg-base-200">{{
+          messages.landing.navFeatures
+        }}</a>
+        <a href="#how" class="rounded-field px-3 py-2 hover:bg-base-200">{{ messages.landing.navHow }}</a>
+        <a href="#students" class="rounded-field px-3 py-2 hover:bg-base-200">{{
+          messages.landing.navStudents
+        }}</a>
+      </nav>
       <AppButton variant="ghost" compact @click="router.push('/sign-in')">{{ t.signIn }}</AppButton>
       <AppButton compact @click="router.push('/sign-up')">{{ t.signUp }}</AppButton>
     </template>
