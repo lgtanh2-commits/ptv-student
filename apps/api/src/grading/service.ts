@@ -247,7 +247,8 @@ export async function giveBack(
       assignmentId,
       studentId,
       kind: "homework_returned",
-      prefix: "Your work was scored: ",
+      title: "{title} has been marked",
+      body: "Your results are ready. Tap to view.",
       dedupe: null,
     }),
   );
@@ -295,7 +296,8 @@ export async function askAgain(
       assignmentId,
       studentId,
       kind: "homework_again",
-      prefix: "Please change your work: ",
+      title: "Please revise {title}",
+      body: "Your teacher has asked you to redo this assignment. Tap to view.",
       dedupe: null,
     }),
   );

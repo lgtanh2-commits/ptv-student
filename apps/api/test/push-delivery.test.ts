@@ -110,8 +110,8 @@ const homeworkRows = (kids: { userId: string }[]) =>
   kids.map((k) => ({
     user_id: k.userId,
     kind: "homework_new",
-    title: "New homework: Unit 1 test",
-    body: "English A1",
+    title: "You have a new assignment!",
+    body: "You have a new assignment from English A1.",
     link: "/my/work/1",
   }));
 
@@ -131,13 +131,13 @@ describe("pushing notifications to browsers", () => {
     const toHoa = pushFake.sent.find((s) => s.endpoint === hoaDevice.endpoint)!;
     const toNam = pushFake.sent.find((s) => s.endpoint === namDevice.endpoint)!;
     expect(await read(toHoa, hoaDevice.receiver)).toEqual({
-      title: "Bài tập mới: Unit 1 test",
-      body: "English A1",
+      title: "Bạn có 1 bài tập mới!",
+      body: "Bạn có 1 bài tập mới từ lớp English A1",
       link: `/my/work/${w.id}`,
     });
     expect(await read(toNam, namDevice.receiver)).toEqual({
-      title: "New homework: Unit 1 test",
-      body: "English A1",
+      title: "You have a new assignment!",
+      body: "You have a new assignment from English A1.",
       link: `/my/work/${w.id}`,
     });
 
@@ -169,7 +169,7 @@ describe("pushing notifications to browsers", () => {
     // A queued message is the same message: the student who waited reads the same words.
     const last = pushFake.sent.at(-1)!;
     const kid = kids.find((k) => k.endpoint === last.endpoint)!;
-    expect((await read(last, kid.receiver)).title).toBe("New homework: Unit 1 test");
+    expect((await read(last, kid.receiver)).title).toBe("You have a new assignment!");
   });
 
   it("counts push only in the limit: linked Telegram chats add nothing", async () => {

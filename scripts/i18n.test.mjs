@@ -27,6 +27,22 @@ beforeEach(() => {
   copyFileSync(path.join(ROOT, "packages/shared/src/glossary.ts"), files.glossary);
 });
 
+// The table already holds the notification texts from before 2026-10-24 (the code no longer writes them, so the
+// scan does not find them): they are kept to translate old notifications, and the import accepts them from the table.
+const LEGACY = [
+  ["{s.name} handed in work", "{s.name} đã nộp bài"],
+  ["Your work was scored: ", "Bài của bạn đã được chấm điểm: "],
+  ["Please change your work: ", "Vui lòng chỉnh sửa bài: "],
+  ["New homework: ", "Bài tập mới: "],
+  ["Due soon: ", "Sắp đến hạn nộp: "],
+];
+beforeEach(() => {
+  const entries = LEGACY.map(
+    ([id, vi]) => `{ id: ${JSON.stringify(id)}, en: ${JSON.stringify(id)}, vi: ${JSON.stringify(vi)} }`,
+  );
+  writeFileSync(files.serverText, `export const SERVER_TEXT = [${entries.join(", ")}];\n`);
+});
+
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 const paths = () => [
@@ -272,9 +288,10 @@ test("a made-up pattern id is refused even if its fixed parts are somewhere in t
 
 test("a server id already in the table is accepted even if the scan does not find it", () => {
   const id = "Kept from an earlier table.";
+  const kept = `{ id: ${JSON.stringify(id)}, en: ${JSON.stringify(id)}, vi: "Giữ lại." }`;
   writeFileSync(
     files.serverText,
-    `export const SERVER_TEXT = [{ id: ${JSON.stringify(id)}, en: ${JSON.stringify(id)}, vi: "Giữ lại." }];\n`,
+    readFileSync(files.serverText, "utf8").replace("SERVER_TEXT = [", `SERVER_TEXT = [${kept}, `),
   );
   const r = apply([...rows(), { key: "server.300", source: id, en: id, vi: "Giữ lại." }]);
   assert.equal(r.status, 0, r.stderr);
@@ -318,7 +335,7 @@ test("the export does not list the made patterns as rows", () => {
   assert.equal(r.status, 0, r.stderr);
   const ids = JSON.parse(r.stdout).server.map((s) => s.id);
   assert.ok(ids.includes("New homework: "));
-  assert.ok(!ids.some((id) => id.endsWith("{title}")));
+  for (const [, id] of NOTICE_PREFIXES) assert.ok(!ids.includes(`${id}{title}`), id);
 });
 
 test("the scan leaves out module specifiers such as @lms/shared", () => {

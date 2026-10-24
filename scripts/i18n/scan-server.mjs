@@ -33,13 +33,27 @@ const ALWAYS = new Set([
   "Hi {studentName},",
   "Hello {current.student_name},",
   "Question {i + 1}: ",
-  "{lesson.course_name} · now {body.date} {body.startTime}",
 ]);
 // Texts built inside SQL statements (joined with ||), so they are not one string literal in the code.
 const IN_SQL = [
-  { file: "apps/api/src/repos/notifications.ts", id: "{s.name} handed in work" },
-  { file: "apps/api/src/repos/notifications.ts", id: "New homework: " },
-  { file: "apps/api/src/repos/notifications.ts", id: "Due soon: " },
+  { file: "apps/api/src/repos/notifications.ts", id: "You have a new assignment!" },
+  { file: "apps/api/src/repos/notifications.ts", id: "You have a new assignment from {course}." },
+  { file: "apps/api/src/repos/notifications.ts", id: "{title} is due soon" },
+  {
+    file: "apps/api/src/repos/notifications.ts",
+    id: "Your assignment is due in 24 hours. Try to finish it early!",
+  },
+  { file: "apps/api/src/repos/notifications.ts", id: "{title} is overdue!" },
+  {
+    file: "apps/api/src/repos/notifications.ts",
+    id: "Your assignment is past its due date. Please hand it in as soon as you can!",
+  },
+  {
+    file: "apps/api/src/repos/notifications.ts",
+    id: "Your assignment is past its due date and can no longer be handed in. Please contact your teacher for help!",
+  },
+  { file: "apps/api/src/repos/notifications.ts", id: "{name} handed in {title}" },
+  { file: "apps/api/src/repos/notifications.ts", id: "Please check {name}'s work." },
 ];
 
 const GROUPS = {

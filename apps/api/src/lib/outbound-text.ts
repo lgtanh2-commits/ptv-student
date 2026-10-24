@@ -40,24 +40,75 @@ export const EMAIL_IDS: Record<string, readonly string[]> = {
   ],
 };
 
-/** The table texts the title and the body of each kind of notification can hold. The rest is user content. */
+/**
+ * The table texts the title and the body of each kind of notification can hold. The rest is user content.
+ * The texts marked "before 2026-10-24" translate notifications stored with the old wording; they can be removed
+ * after 2027-01-23 (notifications are deleted after 90 days).
+ */
 export const NOTICE_IDS: Record<Kind, { title: readonly string[]; body: readonly string[] }> = {
-  homework_new: { title: ["New homework: {title}"], body: [] },
-  homework_due: { title: ["Due soon: {title}"], body: [] },
+  homework_new: {
+    title: [
+      "You have a new assignment!",
+      "New homework: {title}", // before 2026-10-24
+    ],
+    body: ["You have a new assignment from {course}."],
+  },
+  homework_due: {
+    title: [
+      "{title} is due soon",
+      "Due soon: {title}", // before 2026-10-24
+    ],
+    body: ["Your assignment is due in 24 hours. Try to finish it early!"],
+  },
   homework_overdue: {
     title: [
-      "Overdue: {title}. Please finish it soon.",
-      "Overdue and closed: {title}. Ask your teacher to open it again.",
+      "{title} is overdue!",
+      "Overdue: {title}. Please finish it soon.", // before 2026-10-24
+      "Overdue and closed: {title}. Ask your teacher to open it again.", // before 2026-10-24
     ],
-    body: [],
+    body: [
+      "Your assignment is past its due date. Please hand it in as soon as you can!",
+      "Your assignment is past its due date and can no longer be handed in. Please contact your teacher for help!",
+    ],
   },
-  homework_returned: { title: ["Your work was scored: {title}"], body: [] },
-  homework_again: { title: ["Please change your work: {title}"], body: [] },
-  receipt_sent: { title: ["New fee receipt: {monthName(current.period)}"], body: [] },
-  work_handed_in: { title: ["{s.name} handed in work"], body: [] },
+  homework_returned: {
+    title: [
+      "{title} has been marked",
+      "Your work was scored: {title}", // before 2026-10-24
+    ],
+    body: ["Your results are ready. Tap to view."],
+  },
+  homework_again: {
+    title: [
+      "Please revise {title}",
+      "Please change your work: {title}", // before 2026-10-24
+    ],
+    body: ["Your teacher has asked you to redo this assignment. Tap to view."],
+  },
+  receipt_sent: {
+    title: [
+      "You have a new fee receipt!",
+      "New fee receipt: {monthName(current.period)}", // before 2026-10-24
+    ],
+    body: ["Your teacher has sent you a new fee receipt. Tap to view."],
+  },
+  work_handed_in: {
+    // "Nam handed in work" (old) also fits "{name} handed in {title}"; the old text has more fixed words, so it wins.
+    title: [
+      "{s.name} handed in work", // before 2026-10-24
+      "{name} handed in {title}",
+    ],
+    body: ["Please check {name}'s work."],
+  },
   lesson_changed: {
-    title: ["Your class time changed"],
-    body: ["{lesson.course_name} · now {body.date} {body.startTime}"],
+    title: [
+      "Your lesson has been changed",
+      "Your class time changed", // before 2026-10-24
+    ],
+    body: [
+      "Your lesson has been updated. Tap to view.",
+      "{lesson.course_name} · now {body.date} {body.startTime}", // before 2026-10-24
+    ],
   },
 };
 

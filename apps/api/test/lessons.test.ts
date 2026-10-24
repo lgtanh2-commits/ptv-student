@@ -462,12 +462,14 @@ describe("change lessons", () => {
     const items = (await call("/api/notifications", { cookie: kid.cookie })).json.items as {
       kind: string;
       title: string;
+      body: string;
       link: string;
     }[];
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({
       kind: "lesson_changed",
-      title: "Your class time changed",
+      title: "Your lesson has been changed",
+      body: "Your lesson has been updated. Tap to view.",
       link: `/my/courses/${course.id}`,
     });
   });

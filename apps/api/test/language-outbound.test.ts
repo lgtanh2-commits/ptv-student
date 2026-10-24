@@ -177,19 +177,27 @@ describe("the bell", () => {
     await publish(t, course.id, mixed({ title: "Due soon: x" }));
 
     expect(await bell(vi)).toMatchObject([
-      { kind: "homework_new", title: "Bài tập mới: Due soon: x", body: "Your class time changed" },
+      {
+        kind: "homework_new",
+        title: "Bạn có 1 bài tập mới!",
+        body: "Bạn có 1 bài tập mới từ lớp Your class time changed",
+      },
     ]);
     expect(await bell(en)).toMatchObject([
-      { kind: "homework_new", title: "New homework: Due soon: x", body: "Your class time changed" },
+      {
+        kind: "homework_new",
+        title: "You have a new assignment!",
+        body: "You have a new assignment from Your class time changed.",
+      },
     ]);
   });
 
   it("does not let a homework title match another catalog text", async () => {
     const t = await createTeacher("Lan Tran");
-    const course = await createCourse(t, { maxStudents: null });
+    const course = await createCourse(t, { name: "Bob handed in work", maxStudents: null });
     const vi = await kidIn(t, course.id, "Hoa", "vi");
-    await publish(t, course.id, mixed({ title: "Bob handed in work" }));
-    expect((await bell(vi))[0]!.title).toBe("Bài tập mới: Bob handed in work");
+    await publish(t, course.id, mixed({ title: "Due soon: x" }));
+    expect((await bell(vi))[0]!.body).toBe("Bạn có 1 bài tập mới từ lớp Bob handed in work");
   });
 
   it("tells a Vietnamese teacher in Vietnamese that work was handed in, names as they are", async () => {
@@ -199,7 +207,12 @@ describe("the bell", () => {
     const w = await publish(t, course.id, mixed({ title: "Unit 1" }));
     expect((await submit(kid, w.id, fullAnswers(w.questions))).status).toBe(200);
     const items = (await bell(t)).filter((i) => i.kind === "work_handed_in");
-    expect(items).toMatchObject([{ title: "New homework: Hoa đã nộp bài", body: "Unit 1 · English A1" }]);
+    expect(items).toMatchObject([
+      {
+        title: "New homework: Hoa đã nộp bài Unit 1",
+        body: "Vui lòng kiểm tra bài tập của học sinh New homework: Hoa",
+      },
+    ]);
   });
 });
 
@@ -286,8 +299,8 @@ describe("fee receipts", () => {
     expect(sent.status, JSON.stringify(sent.json)).toBe(200);
 
     expect((await bell(vi)).find((i) => i.kind === "receipt_sent")).toMatchObject({
-      title: "Phiếu thu học phí mới: 10/2020",
-      body: "Lan Tran's classroom", // the name on the receipt, as it is
+      title: "Bạn có 1 phiếu thu học phí mới!",
+      body: "Giáo viên đã gửi phiếu thu mới cho bạn. Bấm để kiểm tra.",
     });
     const mail = await lastMail(vi.email, "invoice");
     expect(mail.subject).toBe("Phiếu thu học phí tháng 10/2020");

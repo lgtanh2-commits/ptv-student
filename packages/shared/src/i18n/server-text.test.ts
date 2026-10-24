@@ -31,10 +31,32 @@ const sources = Object.values(
 /** The fixed parts of an id, around its `{…}` placeholders (SQL builds some texts with `||`). */
 const literalParts = (id: string) => id.split(/\{[^{}]*\}/).filter((p) => p !== "");
 
+/**
+ * Notification texts from before 2026-10-24. They are no longer written anywhere in the code; they stay in the
+ * table to translate old stored notifications. Remove them (and these lines) after 2027-01-23, when notifications
+ * made with the old wording have been deleted (they are deleted after 90 days).
+ */
+const BEFORE_2026_10_24 = new Set([
+  "Your work was scored: ",
+  "Please change your work: ",
+  "New fee receipt: {monthName(current.period)}",
+  "Your class time changed",
+  "New homework: ",
+  "Due soon: ",
+  "{s.name} handed in work",
+  "{lesson.course_name} · now {body.date} {body.startTime}",
+  "New homework: {title}",
+  "Due soon: {title}",
+  "Overdue: {title}. Please finish it soon.",
+  "Overdue and closed: {title}. Ask your teacher to open it again.",
+  "Your work was scored: {title}",
+  "Please change your work: {title}",
+]);
+
 describe("SERVER_TEXT", () => {
   it("has entries, and the source files are read", () => {
     expect(sources.length).toBeGreaterThan(50);
-    expect(sources.some((text) => text.includes("'New homework: '"))).toBe(true);
+    expect(sources.some((text) => text.includes("'You have a new assignment!'"))).toBe(true);
     expect(sources.some((text) => text.includes("Please sign in to continue."))).toBe(true);
     expect(sources.some((text) => text.includes("export const SERVER_TEXT"))).toBe(false);
     expect(SERVER_TEXT.length).toBeGreaterThan(170);
@@ -47,7 +69,9 @@ describe("SERVER_TEXT", () => {
 
   it("has no stale ids: the fixed parts of every id are in one source file", () => {
     const stale = SERVER_TEXT.map((e) => e.id).filter(
-      (id) => !sources.some((text) => literalParts(id).every((part) => text.includes(part))),
+      (id) =>
+        !BEFORE_2026_10_24.has(id) &&
+        !sources.some((text) => literalParts(id).every((part) => text.includes(part))),
     );
     expect(stale).toEqual([]);
   });

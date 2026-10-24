@@ -390,6 +390,8 @@ export const SERVER_TEXT: readonly ServerText[] = [
     en: "Hello {current.student_name},",
     vi: "Xin chào {current.student_name},",
   },
+  // Before 2026-10-24: these translate notifications stored with the old wording. They can be removed after
+  // 2027-01-23 (notifications are deleted after 90 days).
   { id: "Your work was scored: ", en: "Your work was scored: ", vi: "Bài của bạn đã được chấm điểm: " },
   { id: "Please change your work: ", en: "Please change your work: ", vi: "Vui lòng chỉnh sửa bài: " },
   {
@@ -413,6 +415,8 @@ export const SERVER_TEXT: readonly ServerText[] = [
     en: "Linked. Notifications are not sent to Telegram.",
     vi: "Đã liên kết tài khoản. Thông báo không được gửi qua Telegram.",
   },
+  // Before 2026-10-24: these translate notifications stored with the old wording. They can be removed after
+  // 2027-01-23 (notifications are deleted after 90 days).
   { id: "New homework: ", en: "New homework: ", vi: "Bài tập mới: " },
   { id: "Due soon: ", en: "Due soon: ", vi: "Sắp đến hạn nộp: " },
   { id: "{s.name} handed in work", en: "{s.name} handed in work", vi: "{s.name} đã nộp bài" },
@@ -676,6 +680,8 @@ export const SERVER_TEXT: readonly ServerText[] = [
     en: "Please write at least 5 characters.",
     vi: "Vui lòng viết ít nhất 5 ký tự.",
   },
+  // Before 2026-10-24: these translate notifications stored with the old wording. They can be removed after
+  // 2027-01-23 (notifications are deleted after 90 days).
   { id: "New homework: {title}", en: "New homework: {title}", vi: "Bài tập mới: {title}" },
   { id: "Due soon: {title}", en: "Due soon: {title}", vi: "Sắp đến hạn nộp: {title}" },
   {
@@ -697,5 +703,91 @@ export const SERVER_TEXT: readonly ServerText[] = [
     id: "Please change your work: {title}",
     en: "Please change your work: {title}",
     vi: "Vui lòng chỉnh sửa bài: {title}",
+  },
+  // Notification wording from 2026-10-24 (the bell and the push).
+  {
+    id: "You have a new assignment!",
+    en: "You have a new assignment!",
+    vi: "Bạn có 1 bài tập mới!",
+  },
+  {
+    id: "You have a new assignment from {course}.",
+    en: "You have a new assignment from {course}.",
+    vi: "Bạn có 1 bài tập mới từ lớp {course}",
+  },
+  {
+    id: "{title} is due soon",
+    en: "{title} is due soon",
+    vi: "Sắp đến hạn nộp bài {title}",
+  },
+  {
+    id: "Your assignment is due in 24 hours. Try to finish it early!",
+    en: "Your assignment is due in 24 hours. Try to finish it early!",
+    vi: "Bài tập của bạn sẽ đến hạn trong 24h nữa. Hãy hoàn thành sớm nhé!",
+  },
+  {
+    id: "{title} is overdue!",
+    en: "{title} is overdue!",
+    vi: "Bài {title} đã quá hạn!",
+  },
+  {
+    id: "Your assignment is past its due date. Please hand it in as soon as you can!",
+    en: "Your assignment is past its due date. Please hand it in as soon as you can!",
+    vi: "Bài tập của bạn đã quá hạn. Hãy nhanh chóng nộp bài nhé!",
+  },
+  {
+    id: "Your assignment is past its due date and can no longer be handed in. Please contact your teacher for help!",
+    en: "Your assignment is past its due date and can no longer be handed in. Please contact your teacher for help!",
+    vi: "Bài tập của bạn đã quá hạn và không thể nộp. Liên hệ với giáo viên để được hỗ trợ nhé!",
+  },
+  {
+    id: "{title} has been marked",
+    en: "{title} has been marked",
+    vi: "Bài {title} đã được chấm",
+  },
+  {
+    id: "Your results are ready. Tap to view.",
+    en: "Your results are ready. Tap to view.",
+    vi: "Kết quả bài tập đã có. Bấm để kiểm tra.",
+  },
+  {
+    id: "Please revise {title}",
+    en: "Please revise {title}",
+    vi: "Vui lòng chỉnh sửa bài {title}",
+  },
+  {
+    id: "Your teacher has asked you to redo this assignment. Tap to view.",
+    en: "Your teacher has asked you to redo this assignment. Tap to view.",
+    vi: "Giáo viên đã yêu cầu bạn làm lại bài. Bấm để kiểm tra.",
+  },
+  {
+    id: "You have a new fee receipt!",
+    en: "You have a new fee receipt!",
+    vi: "Bạn có 1 phiếu thu học phí mới!",
+  },
+  {
+    id: "Your teacher has sent you a new fee receipt. Tap to view.",
+    en: "Your teacher has sent you a new fee receipt. Tap to view.",
+    vi: "Giáo viên đã gửi phiếu thu mới cho bạn. Bấm để kiểm tra.",
+  },
+  {
+    id: "Your lesson has been changed",
+    en: "Your lesson has been changed",
+    vi: "Buổi học của bạn đã được thay đổi",
+  },
+  {
+    id: "Your lesson has been updated. Tap to view.",
+    en: "Your lesson has been updated. Tap to view.",
+    vi: "Buổi học đã được cập nhật. Bấm để kiểm tra.",
+  },
+  {
+    id: "{name} handed in {title}",
+    en: "{name} handed in {title}",
+    vi: "{name} đã nộp bài {title}",
+  },
+  {
+    id: "Please check {name}'s work.",
+    en: "Please check {name}'s work.",
+    vi: "Vui lòng kiểm tra bài tập của học sinh {name}",
   },
 ];
