@@ -24,7 +24,16 @@ const name = z
 /** Sent by the bot check widget. Empty is allowed here; the server decides if it is required. */
 const captcha = z.string().max(4096).optional();
 
-export const signUpBody = z.object({ name, email, captcha });
+/** The browser's random anonymous id (product metrics). Never anything a person typed. */
+export const anonymousId = z.string().regex(/^[A-Za-z0-9-]{8,64}$/);
+
+export const signUpBody = z.object({
+  name,
+  email,
+  captcha,
+  /** Links the sign up to the visits before it. A bad one is dropped, never a reason to refuse the sign up. */
+  anonymousId: anonymousId.optional().catch(undefined),
+});
 export const tokenBody = z.object({ token: z.string().min(20).max(200) });
 export const consumeLinkBody = tokenBody.extend({ trustDevice: z.boolean().optional() });
 export const emailOnlyBody = z.object({ email, captcha });

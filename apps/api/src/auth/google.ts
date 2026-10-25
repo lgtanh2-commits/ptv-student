@@ -1,4 +1,5 @@
 import { DEFAULT_LANGUAGE } from "@lms/shared";
+import { emailSignUpConfirmed, roleAdded, signedUp } from "../analytics/events";
 import { auditStatement } from "../audit";
 import type { Flow } from "../google/flow";
 import type { GoogleIdentity } from "../google/client";
@@ -50,6 +51,7 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
   let tenantId: string | null = null;
   let action = "auth.google_sign_in";
   const joined: { tenantId: string; studentId: string }[] = [];
+  let wasStudent = false;
 
   // 2. Which classes is this email invited to? Only these can be joined.
   let invites: { id: string; tenant_id: string; name: string }[];
@@ -98,9 +100,11 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
     }
   } else {
     before.push(markEmailVerified(db, userId));
-    if ((await membershipsOf(db, userId)).length === 0 && invites.length === 0) {
+    const memberships = await membershipsOf(db, userId);
+    if (memberships.length === 0 && invites.length === 0) {
       throw new AppError("ACCOUNT_PAUSED");
     }
+    wasStudent = memberships.some((m) => m.role === "student");
   }
 
   // 4. Join the invited classes. A new person (no account, not a teacher) is created by the first join.
@@ -132,8 +136,9 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
 
   if (!linked) before.push(linkGoogle(db, userId, id.subject));
 
+  let session: NewSession;
   try {
-    return await openSession(ctx, userId, {
+    session = await openSession(ctx, userId, {
       trustDevice: flow.keep,
       before,
       action,
@@ -144,4 +149,23 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
     if (String(err).includes("UNIQUE")) throw new AppError("GOOGLE_FAILED");
     throw err;
   }
+
+  // Product metrics, after the account is saved.
+  if (!user) {
+    // A new account: a teacher's own (sign up), or a student's made by the first invite it joined.
+    const role = flow.intent === "sign-up" ? "teacher" : "student";
+    await signedUp(ctx, {
+      userId,
+      role,
+      method: "google",
+      anonymousId: flow.anonymousId,
+      createdAt: new Date().toISOString(),
+    });
+    if (role === "teacher" && joined.length > 0) await roleAdded(ctx, { userId, role: "student" });
+  } else {
+    // A teacher who signed up by email but never confirmed: Google just proved the address.
+    if (user.email_verified_at === null) await emailSignUpConfirmed(ctx, userId);
+    if (joined.length > 0 && !wasStudent) await roleAdded(ctx, { userId, role: "student" });
+  }
+  return session;
 }

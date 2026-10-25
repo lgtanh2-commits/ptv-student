@@ -37,15 +37,27 @@ export function insertUser(
     passwordHash: string | null;
     verified: boolean;
     language: Language;
+    /** The browser's anonymous id at an email sign up (product metrics), if it sent one. */
+    signupAnonId?: string | null;
   },
 ): D1PreparedStatement {
   const now = nowIso();
   return db
     .prepare(
-      `INSERT INTO users (id, email, name, password_hash, email_verified_at, language, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, email, name, password_hash, email_verified_at, language, signup_anon_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(u.id, u.email, u.name, u.passwordHash, u.verified ? now : null, u.language, now, now);
+    .bind(
+      u.id,
+      u.email,
+      u.name,
+      u.passwordHash,
+      u.verified ? now : null,
+      u.language,
+      u.signupAnonId ?? null,
+      now,
+      now,
+    );
 }
 
 /** Changes the language a person sees the app in. */

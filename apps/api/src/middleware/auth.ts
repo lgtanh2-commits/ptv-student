@@ -1,6 +1,8 @@
 import { DEFAULT_LANGUAGE, parseLanguage } from "@lms/shared";
 import { createMiddleware } from "hono/factory";
+import { appOpened } from "../analytics/events";
 import { teacherMembership, type Actor } from "../auth/actor";
+import { deferFor } from "../auth/service";
 import { readSessionToken } from "../auth/session";
 import type { AppBindings } from "../env";
 import { sha256Hex } from "../lib/crypto";
@@ -45,6 +47,8 @@ export const loadActor = createMiddleware<AppBindings>(async (c, next) => {
           })),
         };
         c.set("actor", actor);
+        // Product metrics: the first signed in request of the day sends "App Opened", after the answer.
+        await appOpened({ env: c.env, defer: deferFor(c) }, actor);
       }
     }
   }
