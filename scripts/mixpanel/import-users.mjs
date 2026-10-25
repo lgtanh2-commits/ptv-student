@@ -79,7 +79,8 @@ export function buildPayloads(rows, token) {
         role,
         method,
         time: Date.parse(r.created_at),
-        $insert_id: `signed-up:${r.id}`,
+        // Same as signedUpId in apps/api/src/analytics/events.ts.
+        $insert_id: `su${r.id.replace(/-/g, "").toLowerCase()}`,
       },
     });
   }

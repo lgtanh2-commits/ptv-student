@@ -59,3 +59,14 @@ test("a teacher with Google is google, a teacher without is email, a student is 
     ],
   );
 });
+
+test("the Signed Up insert id is the one the app sends, and one Mixpanel accepts", () => {
+  const id = "01a0ba80-7f6d-74dd-b612-1e7326035b66";
+  const { events } = buildPayloads(
+    [{ id, created_at: "2026-01-01T00:00:00.000Z", is_teacher: 1, is_student: 0, has_google: 0 }],
+    "t",
+  );
+  const insertId = events[0].properties.$insert_id;
+  assert.equal(insertId, "su01a0ba807f6d74ddb6121e7326035b66");
+  assert.match(insertId, /^[A-Za-z0-9!#$%^&*+_-]{1,36}$/);
+});
