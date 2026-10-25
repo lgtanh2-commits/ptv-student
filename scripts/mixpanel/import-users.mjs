@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // One-off import of the people who already have an account into Mixpanel (developer tooling, not CI).
-//   node scripts/mixpanel/import-users.mjs --env production --dry-run   counts and one sample, sends nothing
-//   node scripts/mixpanel/import-users.mjs --env production             the real import
+//   node scripts/mixpanel/import-users.mjs --env production --before 2026-10-26T03:00:00Z --dry-run   counts, sends nothing
+//   node scripts/mixpanel/import-users.mjs --env production --before 2026-10-26T03:00:00Z             the real import
+// --before (required) is the production deploy time: people from then on are sent live by the app, not by this.
+// --env staging is only allowed with --dry-run.
 // Reads production D1 read-only (SELECT only, through wrangler). The real run needs, from the environment:
 //   MIXPANEL_SA_USERNAME, MIXPANEL_SA_SECRET (service account), MIXPANEL_PROJECT_ID, MIXPANEL_TOKEN.
 // Nothing here is written to a file. Delete the service account when the import is done (docs/deploy.md).
@@ -13,19 +15,41 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const BATCH = 2000;
 
 /**
+ * The cutoff of the import: the moment of the production deploy, as an ISO time. Anyone who signed up from then on
+ * is sent live by the app (with the time of the sign-up), so the import must stop before it or Mixpanel counts
+ * them twice. Returns the time in the form the database stores (UTC, with milliseconds and "Z").
+ */
+export function parseBefore(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}(T|$)/.test(value)) {
+    throw new Error("--before must be an ISO time, e.g. 2026-10-26T03:00:00Z (the production deploy time)");
+  }
+  const t = Date.parse(value);
+  if (Number.isNaN(t)) throw new Error("--before is not a valid time");
+  return new Date(t).toISOString();
+}
+
+/**
  * Teachers: a teacher membership and a confirmed email (same rule as the live "Signed Up" for email teachers).
  * Students: a student profile that has an account (students.user_id).
- * Never selects a name or an email: only ids, dates and what is needed to pick `method`.
+ * Only accounts made before the cutoff, and teachers confirmed before it too (a teacher is sent live when the email
+ * is confirmed, so one confirmed after the cutoff is already counted by the app).
+ * Never selects a name or an email: only ids, dates and what is needed to pick `method`. `before` is a time from
+ * `parseBefore`, so it holds only digits, "-", ":", "." "T" and "Z".
  */
-export const USERS_SQL = `
+export function usersSql(before) {
+  if (parseBefore(before) !== before) throw new Error("usersSql wants the time from parseBefore");
+  const teacher = `(u.email_verified_at IS NOT NULL AND u.email_verified_at < '${before}' AND EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = u.id AND m.role = 'teacher'))`;
+  return `
 SELECT u.id AS id, u.created_at AS created_at,
-  CASE WHEN u.email_verified_at IS NOT NULL AND EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = u.id AND m.role = 'teacher') THEN 1 ELSE 0 END AS is_teacher,
+  CASE WHEN ${teacher} THEN 1 ELSE 0 END AS is_teacher,
   CASE WHEN EXISTS (SELECT 1 FROM students s WHERE s.user_id = u.id) THEN 1 ELSE 0 END AS is_student,
   CASE WHEN EXISTS (SELECT 1 FROM identities i WHERE i.user_id = u.id AND i.provider = 'google') THEN 1 ELSE 0 END AS has_google
 FROM users u
-WHERE (u.email_verified_at IS NOT NULL AND EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = u.id AND m.role = 'teacher'))
-   OR EXISTS (SELECT 1 FROM students s WHERE s.user_id = u.id)
+WHERE u.created_at < '${before}'
+  AND (${teacher}
+   OR EXISTS (SELECT 1 FROM students s WHERE s.user_id = u.id))
 ORDER BY u.created_at, u.id`;
+}
 
 /**
  * The role and method of the Signed Up event. The sign-up path is not stored, so it is inferred:
@@ -65,10 +89,22 @@ export function buildPayloads(rows, token) {
 const chunks = (list, n) =>
   Array.from({ length: Math.ceil(list.length / n) }, (_, i) => list.slice(i * n, i * n + n));
 
-function readUsers(env) {
+function readUsers(env, before) {
   const out = execFileSync(
     "pnpm",
-    ["exec", "wrangler", "d1", "execute", "DB", "--env", env, "--remote", "--json", "--command", USERS_SQL],
+    [
+      "exec",
+      "wrangler",
+      "d1",
+      "execute",
+      "DB",
+      "--env",
+      env,
+      "--remote",
+      "--json",
+      "--command",
+      usersSql(before),
+    ],
     { cwd: path.join(root, "apps/api"), encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
   );
   const parsed = JSON.parse(out.slice(out.indexOf("[")));
@@ -89,11 +125,15 @@ async function post(url, body, headers = {}) {
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
-  const env = args[args.indexOf("--env") + 1];
-  if (!args.includes("--env") || !["production", "staging"].includes(env)) {
-    throw new Error("usage: import-users.mjs --env production [--dry-run]");
-  }
-  const rows = readUsers(env);
+  const value = (flag) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : undefined);
+  const env = value("--env");
+  const usage = "usage: import-users.mjs --env production --before <ISO deploy time> [--dry-run]";
+  if (!["production", "staging"].includes(env)) throw new Error(usage);
+  if (env === "staging" && !dryRun) throw new Error("--env staging only works together with --dry-run");
+  if (value("--before") === undefined) throw new Error(`--before is required. ${usage}`);
+  const before = parseBefore(value("--before"));
+  console.log(`only accounts made before ${before}`);
+  const rows = readUsers(env, before);
   const teachers = rows.filter((r) => r.is_teacher).length;
   const students = rows.filter((r) => r.is_student).length;
   const both = rows.filter((r) => r.is_teacher && r.is_student).length;

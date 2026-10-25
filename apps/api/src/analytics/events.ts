@@ -2,7 +2,7 @@ import type { Language, PublicEventBody } from "@lms/shared";
 import type { Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
 import { utcToLocal } from "../lib/zone";
-import { markActiveDay, signupAnonIdOf, userCreatedAt } from "../repos/analytics";
+import { markActiveDay, userCreatedAt } from "../repos/analytics";
 import { setProfile, track, type MixpanelEvent } from "./mixpanel";
 
 /**
@@ -75,17 +75,18 @@ export async function roleAdded(ctx: EventCtx, o: { userId: string; role: Role }
 
 /**
  * A teacher's email sign up became real: the address was confirmed (by the link, or by Google or an invite to the
- * same address). Carries the anonymous id kept from the sign up.
+ * same address). `anonymousId` is the one kept from the sign up, read by the caller before confirming clears it.
  */
-export async function emailSignUpConfirmed(ctx: EventCtx, userId: string): Promise<void> {
+export async function emailSignUpConfirmed(
+  ctx: EventCtx,
+  userId: string,
+  anonymousId: string | null,
+): Promise<void> {
   if (!ctx.env.MIXPANEL_TOKEN) return;
   const db = ctx.env.DB;
   await ctx.defer(
     (async () => {
-      const [anonymousId, createdAt] = await Promise.all([
-        signupAnonIdOf(db, userId),
-        userCreatedAt(db, userId),
-      ]);
+      const createdAt = await userCreatedAt(db, userId);
       await sendSignedUp(ctx.env, {
         userId,
         role: "teacher",
@@ -135,7 +136,8 @@ function hostOf(referrer: string | undefined): string | undefined {
  */
 export async function welcomeEvent(ctx: EventCtx, body: PublicEventBody, language: Language): Promise<void> {
   if (!ctx.env.MIXPANEL_TOKEN) return;
-  const who = { distinct_id: body.anonymousId, $device_id: body.anonymousId };
+  // "$device:" is how Mixpanel names a visitor who is not signed in; the same id is the device id of Signed Up.
+  const who = { distinct_id: `$device:${body.anonymousId}`, $device_id: body.anonymousId };
   let properties: MixpanelEvent["properties"];
   if (body.event === "Welcome Viewed") {
     const referrer = hostOf(body.referrer);

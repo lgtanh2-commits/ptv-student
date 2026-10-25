@@ -81,7 +81,11 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
       url,
       body: JSON.parse(String(init?.body)),
     });
-    return new Response(mixpanelFake.status === 200 ? "1" : "nope", { status: mixpanelFake.status });
+    // With strict=1 /track answers with JSON; a rejected event is a 400.
+    const ok = mixpanelFake.status === 200;
+    return new Response(ok ? (url.includes("strict=1") ? '{"code":200,"status":"OK"}' : "1") : "nope", {
+      status: mixpanelFake.status,
+    });
   }
   if (url.includes("challenges.cloudflare.com")) return Response.json(turnstileAnswer);
   if (url === "https://oauth2.googleapis.com/token" && googleFake.answer) {

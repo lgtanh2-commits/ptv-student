@@ -103,7 +103,7 @@ export function insertMembership(
 export const markEmailVerified = (db: D1Database, userId: string): D1PreparedStatement =>
   db
     .prepare(
-      "UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?1), updated_at = ?1 WHERE id = ?2",
+      "UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?1), signup_anon_id = NULL, updated_at = ?1 WHERE id = ?2",
     )
     .bind(nowIso(), userId);
 

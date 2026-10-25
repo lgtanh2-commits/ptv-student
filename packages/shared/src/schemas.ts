@@ -24,8 +24,10 @@ const name = z
 /** Sent by the bot check widget. Empty is allowed here; the server decides if it is required. */
 const captcha = z.string().max(4096).optional();
 
-/** The browser's random anonymous id (product metrics). Never anything a person typed. */
-export const anonymousId = z.string().regex(/^[A-Za-z0-9-]{8,64}$/);
+/** The browser's random anonymous id (product metrics): a UUID, or 32 hex digits where randomUUID is missing. */
+export const anonymousId = z
+  .string()
+  .regex(/^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{32})$/i);
 
 export const signUpBody = z.object({
   name,

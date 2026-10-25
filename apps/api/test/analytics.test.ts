@@ -14,6 +14,10 @@ import {
 } from "./helpers";
 
 const ON = { MIXPANEL_TOKEN: "test-token" };
+const ANON1 = "11111111-2222-4333-8444-555555555551";
+const ANON2 = "11111111-2222-4333-8444-555555555552";
+const ANON3 = "11111111-2222-4333-8444-555555555553";
+const ANON_G = "11111111-2222-4333-8444-5555555555a1";
 
 interface TrackedEvent {
   event: string;
@@ -112,7 +116,7 @@ describe("Mixpanel events", () => {
   });
 
   it("sends Signed Up for a teacher only when the email is confirmed, with the sign-up's anonymous id", async () => {
-    const email = await signUpTeacher({ anonymousId: "anon-1-abcdef" });
+    const email = await signUpTeacher({ anonymousId: ANON1 });
     expect(mixpanelFake.sent).toEqual([]);
     await confirm(email);
     const userId = await userIdOf(email);
@@ -123,7 +127,7 @@ describe("Mixpanel events", () => {
       token: "test-token",
       distinct_id: userId,
       $user_id: userId,
-      $device_id: "anon-1-abcdef",
+      $device_id: ANON1,
       $insert_id: `signed-up:${userId}`,
       role: "teacher",
       method: "email",
@@ -204,13 +208,13 @@ describe("Mixpanel events", () => {
 
   it("sends Signed Up for a Google sign-up with the anonymous id from the start of the trip", async () => {
     const email = uniqueEmail("gteacher");
-    const trip = await googleSignIn({ email, intent: "sign-up", anon: "anon-google-1", env: ON });
+    const trip = await googleSignIn({ email, intent: "sign-up", anon: ANON_G, env: ON });
     expect(trip.session).toBeDefined();
     const userId = await userIdOf(email);
     expect(tracked("Signed Up").map((e) => e.properties)).toEqual([
       expect.objectContaining({
         distinct_id: userId,
-        $device_id: "anon-google-1",
+        $device_id: ANON_G,
         role: "teacher",
         method: "google",
       }),
@@ -219,6 +223,66 @@ describe("Mixpanel events", () => {
     mixpanelFake.sent = [];
     await googleSignIn({ email, intent: "sign-in", env: ON });
     expect(tracked("Signed Up")).toEqual([]);
+  });
+
+  it("asks Mixpanel to check events (strict) and logs a rejected one", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    mixpanelFake.status = 400;
+    await confirm(await signUpTeacher());
+    const track = mixpanelFake.sent.find((s) => s.path === "/track")!;
+    expect(new URL(track.url).searchParams.get("strict")).toBe("1");
+    expect(new URL(track.url).searchParams.get("ip")).toBe("0");
+    expect(err.mock.calls.some((c) => String(c[0]).includes("mixpanel send failed"))).toBe(true);
+    err.mockRestore();
+  });
+
+  it("clears the kept anonymous id once the email is confirmed", async () => {
+    const email = await signUpTeacher({ anonymousId: ANON1 });
+    const kept = () =>
+      env.DB.prepare("SELECT signup_anon_id AS a FROM users WHERE email = ?")
+        .bind(email)
+        .first<{ a: string | null }>();
+    expect((await kept())!.a).toBe(ANON1);
+    await confirm(email);
+    expect((await kept())!.a).toBeNull();
+  });
+
+  it("sends Signed Up (email) once when an unconfirmed email sign-up is confirmed by Google", async () => {
+    const email = await signUpTeacher({ anonymousId: ANON1 });
+    await googleSignIn({ email, intent: "sign-in", env: ON });
+    const userId = await userIdOf(email);
+    expect(tracked("Signed Up").map((e) => e.properties)).toEqual([
+      expect.objectContaining({ distinct_id: userId, role: "teacher", method: "email", $device_id: ANON1 }),
+    ]);
+    mixpanelFake.sent = [];
+    await googleSignIn({ email, intent: "sign-in", env: ON });
+    expect(tracked("Signed Up")).toEqual([]);
+  });
+
+  it("sends Signed Up (email) once when an unconfirmed email sign-up accepts an invite", async () => {
+    const email = await signUpTeacher({ anonymousId: ANON2 });
+    const t = await createTeacher();
+    await inviteAndAccept(t, email, "Lan");
+    const userId = await userIdOf(email);
+    expect(tracked("Signed Up").map((e) => e.properties)).toEqual([
+      expect.objectContaining({ distinct_id: userId, role: "teacher", method: "email", $device_id: ANON2 }),
+    ]);
+    expect(tracked("Role Added")).toHaveLength(1);
+  });
+
+  it("sends Signed Up teacher and Role Added student for a Google sign-up with pending invites", async () => {
+    const t = await createTeacher();
+    const email = uniqueEmail("both");
+    await call("/api/invites", { method: "POST", cookie: t.cookie, body: { name: "Sam", email } });
+    mixpanelFake.sent = [];
+    await googleSignIn({ email, intent: "sign-up", env: ON });
+    const userId = await userIdOf(email);
+    expect(tracked("Signed Up").map((e) => e.properties)).toEqual([
+      expect.objectContaining({ distinct_id: userId, role: "teacher", method: "google" }),
+    ]);
+    expect(tracked("Role Added").map((e) => e.properties)).toEqual([
+      expect.objectContaining({ distinct_id: userId, role: "student" }),
+    ]);
   });
 
   it("sends App Opened once per person per Vietnam day", async () => {
@@ -254,7 +318,7 @@ describe("Mixpanel events", () => {
   });
 
   it("never sends a name or an email", async () => {
-    const email = await signUpTeacher({ name: "Nguyen Thi Lan", anonymousId: "anon-2-abcdef" });
+    const email = await signUpTeacher({ name: "Nguyen Thi Lan", anonymousId: ANON2 });
     const verified = await confirm(email);
     await call("/api/me", { cookie: verified.cookie, env: ON });
     const teacher = await createTeacher("Tran Van Binh");
@@ -279,7 +343,7 @@ describe("Mixpanel events", () => {
 
   it("an action still succeeds when Mixpanel fails", async () => {
     mixpanelFake.status = 500;
-    const email = await signUpTeacher({ anonymousId: "anon-3-abcdef" });
+    const email = await signUpTeacher({ anonymousId: ANON3 });
     const verified = await confirm(email);
     expect(verified.cookie).toBeDefined();
     expect((await call("/api/me", { cookie: verified.cookie, env: ON })).status).toBe(200);

@@ -83,11 +83,14 @@ Counts of people (sign-ups, who opened the app each day, welcome page views and 
 ```bash
 # the service account username and secret, the project id and the project token; never put them in a file in the repository
 export MIXPANEL_SA_USERNAME=... MIXPANEL_SA_SECRET=... MIXPANEL_PROJECT_ID=... MIXPANEL_TOKEN=...
-node scripts/mixpanel/import-users.mjs --env production --dry-run   # counts and one sample, sends nothing
-node scripts/mixpanel/import-users.mjs --env production             # the real import
+# --before: the time the production deploy with the Mixpanel events went live (note it when you deploy)
+node scripts/mixpanel/import-users.mjs --env production --before 2026-10-26T03:00:00Z --dry-run   # counts and one sample, sends nothing
+node scripts/mixpanel/import-users.mjs --env production --before 2026-10-26T03:00:00Z             # the real import
 ```
 
-It reads production D1 read-only and sends one profile and one `Signed Up` event (dated at the account's creation, `$insert_id` `signed-up:<userId>`) per confirmed teacher and per student with an account. Running it twice does not count anyone twice. The sign-up path is not stored, so `method` is inferred: a teacher with a linked Google account is `google`, other teachers `email`, students `invite`.
+**Note the time of the production deploy and pass it as `--before`** (required; the script refuses to run, even with `--dry-run`, without it). From that moment the app sends `Signed Up` live, dated at the moment it happens, while the import dates it at the account's creation, so Mixpanel would not see them as the same event. The import therefore takes only accounts made before the deploy, and teachers confirmed before it. `--env staging` works only with `--dry-run`.
+
+It reads production D1 read-only and sends one profile and one `Signed Up` event (dated at the account's creation, `$insert_id` `signed-up:<userId>`) per confirmed teacher and per student with an account, made before `--before`. Running it twice does not count anyone twice. The sign-up path is not stored, so `method` is inferred: a teacher with a linked Google account is `google`, other teachers `email`, students `invite`.
 
 - **Afterwards delete the service account** in Mixpanel (Organization settings, Service accounts) and unset the variables.
 

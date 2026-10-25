@@ -1,6 +1,6 @@
 -- 0024: product metrics in Mixpanel. Expand only.
 --
--- The browser's anonymous id at email sign up, kept until the email is confirmed, so the "Signed Up" event can be
+-- The browser's anonymous id at email sign up, kept until the email is confirmed (then cleared), so the "Signed Up" event can be
 -- joined to the visits before it (also when the email is confirmed on another device). Empty for everyone else.
 ALTER TABLE users ADD COLUMN signup_anon_id TEXT;
 

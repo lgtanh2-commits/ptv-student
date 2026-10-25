@@ -1,6 +1,7 @@
 import { DEFAULT_LANGUAGE, LIMITS, type Language, type SignUpBody } from "@lms/shared";
 import type { Context } from "hono";
 import { emailSignUpConfirmed } from "../analytics/events";
+import { signupAnonIdOf } from "../repos/analytics";
 import { auditStatement } from "../audit";
 import { getEmailProvider } from "../email/provider";
 import type { EmailMessage } from "../email/provider";
@@ -219,12 +220,15 @@ export async function verifyEmail(ctx: Ctx, token: string): Promise<NewSession> 
   if (!row?.user_id) throw new AppError("LINK_EXPIRED");
   // Only the first confirmation turns the sign up into an account (product metrics).
   const firstTime = (await findUserById(ctx.env.DB, row.user_id))?.email_verified_at === null;
+  // Confirming clears the kept anonymous id, so it is read first.
+  const anonymousId =
+    firstTime && ctx.env.MIXPANEL_TOKEN ? await signupAnonIdOf(ctx.env.DB, row.user_id) : null;
   const session = await openSession(ctx, row.user_id, {
     trustDevice: true, // they just made this account on this device
     before: [markEmailVerified(ctx.env.DB, row.user_id)],
     action: "auth.email_verified",
   });
-  if (firstTime) await emailSignUpConfirmed(ctx, row.user_id);
+  if (firstTime) await emailSignUpConfirmed(ctx, row.user_id, anonymousId);
   return session;
 }
 

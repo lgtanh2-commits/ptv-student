@@ -38,7 +38,7 @@ describe("POST /api/events (welcome page)", () => {
     expect(events[0]!.event).toBe("Welcome Viewed");
     expect(events[0]!.properties).toEqual({
       token: "test-token",
-      distinct_id: ANON,
+      distinct_id: `$device:${ANON}`,
       $device_id: ANON,
       referrer: "www.google.com",
       language: "vi",
@@ -69,7 +69,7 @@ describe("POST /api/events (welcome page)", () => {
     expect(events[0]!.event).toBe("Sign Up Clicked");
     expect(events[0]!.properties).toEqual({
       token: "test-token",
-      distinct_id: ANON,
+      distinct_id: `$device:${ANON}`,
       $device_id: ANON,
       button: "google",
       place: "bottom",
@@ -90,6 +90,8 @@ describe("POST /api/events (welcome page)", () => {
     ["an unknown place", { event: "Sign Up Clicked", anonymousId: ANON, button: "email", place: "side" }],
     ["a missing id", { event: "Welcome Viewed" }],
     ["a short id", { event: "Welcome Viewed", anonymousId: "abc" }],
+    ["short free text", { event: "Welcome Viewed", anonymousId: "hello-world-1" }],
+    ["a long id that is not a UUID", { event: "Welcome Viewed", anonymousId: "a".repeat(40) }],
     ["an oversize id", { event: "Welcome Viewed", anonymousId: "a".repeat(65) }],
     ["an id with other characters", { event: "Welcome Viewed", anonymousId: "abc def <script>" }],
     [

@@ -1,5 +1,6 @@
 import { DEFAULT_LANGUAGE } from "@lms/shared";
 import { emailSignUpConfirmed, roleAdded, signedUp } from "../analytics/events";
+import { signupAnonIdOf } from "../repos/analytics";
 import { auditStatement } from "../audit";
 import type { Flow } from "../google/flow";
 import type { GoogleIdentity } from "../google/client";
@@ -136,6 +137,12 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
 
   if (!linked) before.push(linkGoogle(db, userId, id.subject));
 
+  // Confirming the address clears the anonymous id kept from an email sign up, so it is read first.
+  const keptAnonId =
+    user && user.email_verified_at === null && ctx.env.MIXPANEL_TOKEN
+      ? await signupAnonIdOf(db, userId)
+      : null;
+
   let session: NewSession;
   try {
     session = await openSession(ctx, userId, {
@@ -164,7 +171,7 @@ export async function signInWithGoogle(ctx: Ctx, id: GoogleIdentity, flow: Flow)
     if (role === "teacher" && joined.length > 0) await roleAdded(ctx, { userId, role: "student" });
   } else {
     // A teacher who signed up by email but never confirmed: Google just proved the address.
-    if (user.email_verified_at === null) await emailSignUpConfirmed(ctx, userId);
+    if (user.email_verified_at === null) await emailSignUpConfirmed(ctx, userId, keptAnonId);
     if (joined.length > 0 && !wasStudent) await roleAdded(ctx, { userId, role: "student" });
   }
   return session;

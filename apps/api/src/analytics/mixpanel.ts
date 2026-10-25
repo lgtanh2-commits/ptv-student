@@ -17,12 +17,12 @@ export interface MixpanelEvent {
 }
 
 /**
- * `?ip=0`: Mixpanel must not take the Worker's address as the person's location. The answer's body is never read
- * or logged.
+ * `?ip=0`: Mixpanel must not take the Worker's address as the person's location. `/track` is `strict=1`, so an
+ * event Mixpanel rejects comes back as an error status and is logged. The answer's body is never read or logged.
  */
 async function post(path: "/track" | "/engage", body: unknown[]): Promise<void> {
   try {
-    const res = await fetch(`${API}${path}?ip=0`, {
+    const res = await fetch(`${API}${path}?ip=0${path === "/track" ? "&strict=1" : ""}`, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "text/plain" },
       body: JSON.stringify(body),
