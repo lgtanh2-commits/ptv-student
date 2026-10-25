@@ -1,3 +1,4 @@
+import type { Language, PublicEventBody } from "@lms/shared";
 import type { Actor } from "../auth/actor";
 import type { Ctx } from "../auth/service";
 import { utcToLocal } from "../lib/zone";
@@ -116,4 +117,31 @@ export async function appOpened(ctx: EventCtx, actor: Actor): Promise<void> {
       ]);
     })(),
   );
+}
+
+/** The host of the page the visitor came from ("www.google.com"), or nothing when it is not an address. */
+function hostOf(referrer: string | undefined): string | undefined {
+  if (!referrer) return undefined;
+  try {
+    return new URL(referrer).host || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * An event the welcome page reported for an anonymous visitor (checked by `publicEventBody`). It is known by the
+ * browser's anonymous id only, which `Signed Up` carries too, so Mixpanel joins the visit to the account later.
+ */
+export async function welcomeEvent(ctx: EventCtx, body: PublicEventBody, language: Language): Promise<void> {
+  if (!ctx.env.MIXPANEL_TOKEN) return;
+  const who = { distinct_id: body.anonymousId, $device_id: body.anonymousId };
+  let properties: MixpanelEvent["properties"];
+  if (body.event === "Welcome Viewed") {
+    const referrer = hostOf(body.referrer);
+    properties = { ...who, ...(referrer ? { referrer } : {}), language };
+  } else {
+    properties = { ...who, button: body.button, place: body.place, language };
+  }
+  await ctx.defer(track(ctx.env, [{ event: body.event, properties: { ...properties, time: Date.now() } }]));
 }

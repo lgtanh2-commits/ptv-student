@@ -14,6 +14,7 @@ import { auth } from "./routes/auth";
 import { courses } from "./routes/courses";
 import { dev } from "./routes/dev";
 import { enrollments } from "./routes/enrollments";
+import { events } from "./routes/events";
 import { feedback } from "./routes/feedback";
 import { google } from "./routes/google";
 import { grading } from "./routes/grading";
@@ -70,6 +71,7 @@ export function createApp() {
   api.route("/", telegram);
   api.route("/", push);
   api.route("/", feedback);
+  api.route("/", events);
   api.route("/", dev);
   app.route("/api", api);
 

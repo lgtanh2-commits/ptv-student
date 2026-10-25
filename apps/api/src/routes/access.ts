@@ -21,6 +21,7 @@ export const ROUTE_ACCESS: Record<string, Access> = {
   "POST /api/auth/sign-in-link/request": "public",
   "POST /api/auth/sign-in-link/consume": "public",
   "POST /api/invites/accept": "public",
+  "POST /api/events": "public", // the welcome page's visits and sign up clicks; rate limited per address
   "GET /api/me": "user",
   "PUT /api/me/language": "user",
   "POST /api/auth/sign-out": "user",

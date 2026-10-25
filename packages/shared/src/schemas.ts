@@ -34,6 +34,25 @@ export const signUpBody = z.object({
   /** Links the sign up to the visits before it. A bad one is dropped, never a reason to refuse the sign up. */
   anonymousId: anonymousId.optional().catch(undefined),
 });
+/**
+ * What the welcome page reports (`POST /api/events`, forwarded to Mixpanel). Only these two events and these
+ * properties: anything else is refused, so nobody can send other data through the app.
+ */
+export const publicEventBody = z.discriminatedUnion("event", [
+  z.strictObject({
+    event: z.literal("Welcome Viewed"),
+    anonymousId,
+    referrer: z.string().max(100).optional(),
+  }),
+  z.strictObject({
+    event: z.literal("Sign Up Clicked"),
+    anonymousId,
+    button: z.enum(["email", "google"]),
+    place: z.enum(["top", "hero", "bottom"]),
+  }),
+]);
+export type PublicEventBody = z.infer<typeof publicEventBody>;
+
 export const tokenBody = z.object({ token: z.string().min(20).max(200) });
 export const consumeLinkBody = tokenBody.extend({ trustDevice: z.boolean().optional() });
 export const emailOnlyBody = z.object({ email, captcha });

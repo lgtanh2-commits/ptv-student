@@ -1,9 +1,11 @@
 <script setup lang="ts">
 // The welcome page for someone not signed in. Written first for teachers looking for a way to run
 // their classes; students get their own block near the end, since they join only by invitation.
+import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import GoogleButton from "@/components/GoogleButton.vue";
 import LandingPreview from "@/components/LandingPreview.vue";
+import { anonymousId, referrerOrigin, sendEvent, signUpClicked } from "@/features/analytics/anon";
 import { DEMO_VIDEO_URL, youtubeEmbed } from "@/features/landing/demo";
 import { messages } from "@/messages";
 import AppButton from "@/ui/AppButton.vue";
@@ -12,6 +14,19 @@ import AppIcon, { type IconName } from "@/ui/AppIcon.vue";
 const t = messages.landing;
 const router = useRouter();
 const video = youtubeEmbed(DEMO_VIDEO_URL);
+
+// Product metrics: one view each time the page is shown, and which sign up button was pressed where.
+onMounted(() =>
+  sendEvent({
+    event: "Welcome Viewed",
+    anonymousId: anonymousId(),
+    referrer: referrerOrigin(document.referrer),
+  }),
+);
+function signUp(place: "hero" | "bottom") {
+  signUpClicked("email", place);
+  void router.push("/sign-up");
+}
 
 const problems: { icon: IconName; problem: string; fix: string }[] = [
   { icon: "message", problem: t.p1Problem, fix: t.p1Fix },
@@ -68,8 +83,8 @@ const faq = [
           </h1>
           <p class="mt-4 max-w-xl text-lg text-base-content/70">{{ t.text }}</p>
           <div class="mt-8 grid w-full max-w-md gap-3 sm:grid-cols-2">
-            <AppButton @click="router.push('/sign-up')">{{ t.start }}</AppButton>
-            <GoogleButton intent="sign-up" />
+            <AppButton @click="signUp('hero')">{{ t.start }}</AppButton>
+            <GoogleButton intent="sign-up" place="hero" />
           </div>
           <p class="mt-4 text-sm text-base-content/70">
             {{ t.haveAccountText }}
@@ -195,8 +210,8 @@ const faq = [
         <h2 class="text-3xl font-semibold tracking-tight">{{ t.ctaTitle }}</h2>
         <p class="text-lg text-base-content/70">{{ t.ctaText }}</p>
         <div class="flex w-full max-w-sm flex-col gap-3">
-          <AppButton @click="router.push('/sign-up')">{{ t.start }}</AppButton>
-          <GoogleButton intent="sign-up" />
+          <AppButton @click="signUp('bottom')">{{ t.start }}</AppButton>
+          <GoogleButton intent="sign-up" place="bottom" />
         </div>
       </div>
     </section>
