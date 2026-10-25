@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { appOpenedId, roleAddedId, signedUpId } from "../src/analytics/events";
 import { runMaintenance } from "../src/maintenance/jobs";
 import { newToken } from "../src/repos/tokens";
 import {
@@ -88,6 +89,22 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("Mixpanel insert ids", () => {
+  it("only use the characters Mixpanel accepts, at most 36, and differ by event and day", () => {
+    const user = "01a0ba80-7f6d-74dd-b612-1e7326035b66";
+    const ids = [
+      signedUpId(user),
+      roleAddedId(user, "teacher"),
+      roleAddedId(user, "student"),
+      appOpenedId(user, "2026-10-25"),
+      appOpenedId(user, "2026-10-26"),
+      appOpenedId(user, "2099-12-31"),
+    ];
+    for (const id of ids) expect(id).toMatch(/^[A-Za-z0-9!#$%^&*+_-]{1,36}$/);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
 describe("Mixpanel events", () => {
   it("sends nothing anywhere when no token is set", async () => {
     const off = { MIXPANEL_TOKEN: undefined };
@@ -128,7 +145,7 @@ describe("Mixpanel events", () => {
       distinct_id: userId,
       $user_id: userId,
       $device_id: ANON1,
-      $insert_id: `signed-up:${userId}`,
+      $insert_id: signedUpId(userId),
       role: "teacher",
       method: "email",
     });
@@ -188,7 +205,7 @@ describe("Mixpanel events", () => {
         distinct_id: t.userId,
         $user_id: t.userId,
         role: "student",
-        $insert_id: `role-added:${t.userId}:student`,
+        $insert_id: roleAddedId(t.userId, "student"),
       }),
     ]);
     expect(profiles()).toEqual([
@@ -309,11 +326,11 @@ describe("Mixpanel events", () => {
     expect(opened).toEqual([
       expect.objectContaining({
         distinct_id: t.userId,
-        $insert_id: `app-opened:${t.userId}:${day}`,
+        $insert_id: appOpenedId(t.userId, day),
         is_teacher: true,
         is_student: false,
       }),
-      expect.objectContaining({ distinct_id: t.userId, $insert_id: `app-opened:${t.userId}:${next}` }),
+      expect.objectContaining({ distinct_id: t.userId, $insert_id: appOpenedId(t.userId, next) }),
     ]);
   });
 

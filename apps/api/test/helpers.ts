@@ -81,10 +81,18 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
       url,
       body: JSON.parse(String(init?.body)),
     });
-    // With strict=1 /track answers with JSON; a rejected event is a 400.
-    const ok = mixpanelFake.status === 200;
+    // With strict=1 /track answers with JSON; a rejected event is a 400. Like the real service, an event whose
+    // $insert_id is not 1-36 of the allowed characters is rejected.
+    const body = mixpanelFake.sent.at(-1)!.body as unknown;
+    const badId = (Array.isArray(body) ? body : [body]).some(
+      (e: { properties?: { $insert_id?: unknown } }) => {
+        const id = e?.properties?.$insert_id;
+        return id !== undefined && !/^[A-Za-z0-9!#$%^&*+_-]{1,36}$/.test(String(id));
+      },
+    );
+    const ok = mixpanelFake.status === 200 && !badId;
     return new Response(ok ? (url.includes("strict=1") ? '{"code":200,"status":"OK"}' : "1") : "nope", {
-      status: mixpanelFake.status,
+      status: badId ? 400 : mixpanelFake.status,
     });
   }
   if (url.includes("challenges.cloudflare.com")) return Response.json(turnstileAnswer);

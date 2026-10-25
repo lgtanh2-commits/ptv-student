@@ -30,6 +30,21 @@ function identity(userId: string, anonymousId?: string | null): Record<string, s
   };
 }
 
+/**
+ * Mixpanel's `$insert_id` allows only letters, digits and a few symbols, at most 36 characters. A user id without its
+ * dashes is 32 hex digits; a short prefix (or the day) keeps each event's id fixed and distinct.
+ * scripts/mixpanel/import-users.mjs builds the Signed Up id the same way, so an imported and a live one never both count.
+ */
+const compact = (userId: string) => userId.replace(/-/g, "").toLowerCase();
+export const signedUpId = (userId: string) => `su${compact(userId)}`;
+export const roleAddedId = (userId: string, role: Role) =>
+  `ra${role === "teacher" ? "t" : "s"}${compact(userId)}`;
+/** The day ("YYYY-MM-DD") as a 4-character count of days since 1970, so the id stays within 36 characters. */
+export const appOpenedId = (userId: string, day: string) =>
+  `${compact(userId)}${Math.round(Date.parse(`${day}T00:00:00Z`) / 86_400_000)
+    .toString(36)
+    .padStart(4, "0")}`;
+
 function event(name: string, insertId: string, properties: MixpanelEvent["properties"]): MixpanelEvent {
   return { event: name, properties: { ...properties, time: Date.now(), $insert_id: insertId } };
 }
@@ -45,7 +60,7 @@ interface SignedUp {
 const sendSignedUp = (env: EventCtx["env"], o: SignedUp) =>
   Promise.all([
     track(env, [
-      event("Signed Up", `signed-up:${o.userId}`, {
+      event("Signed Up", signedUpId(o.userId), {
         ...identity(o.userId, o.anonymousId),
         role: o.role,
         method: o.method,
@@ -66,7 +81,7 @@ export async function roleAdded(ctx: EventCtx, o: { userId: string; role: Role }
   await ctx.defer(
     Promise.all([
       track(ctx.env, [
-        event("Role Added", `role-added:${o.userId}:${o.role}`, { ...identity(o.userId), role: o.role }),
+        event("Role Added", roleAddedId(o.userId, o.role), { ...identity(o.userId), role: o.role }),
       ]),
       setProfile(ctx.env, o.userId, { [flagOf(o.role)]: true }),
     ]),
@@ -110,7 +125,7 @@ export async function appOpened(ctx: EventCtx, actor: Actor): Promise<void> {
       if (!(await markActiveDay(ctx.env.DB, actor.userId, day))) return;
       const roles = actor.memberships.map((m) => m.role);
       await track(ctx.env, [
-        event("App Opened", `app-opened:${actor.userId}:${day}`, {
+        event("App Opened", appOpenedId(actor.userId, day), {
           ...identity(actor.userId),
           is_teacher: roles.includes("teacher"),
           is_student: roles.includes("student"),
