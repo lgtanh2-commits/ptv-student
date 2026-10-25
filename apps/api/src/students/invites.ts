@@ -1,4 +1,6 @@
 import type { InviteInfo } from "@lms/shared";
+import { emailSignUpConfirmed, roleAdded, signedUp } from "../analytics/events";
+import { signupAnonIdOf } from "../repos/analytics";
 import { requireTeacherTenant, type Actor } from "../auth/actor";
 import { openSession, sendMail, type Ctx } from "../auth/service";
 import type { NewSession } from "../auth/session";
@@ -23,6 +25,7 @@ import {
   insertMembership,
   insertUser,
   markEmailVerified,
+  membershipsOf,
   tenantIsActive,
 } from "../repos/users";
 import { hit } from "../security/rate-limit";
@@ -194,16 +197,34 @@ export async function acceptInvite(ctx: Ctx, token: string, trustDevice: boolean
   if (existing?.disabled_at) throw new AppError("ACCOUNT_PAUSED");
 
   const userId = existing?.id ?? uuidv7();
+  // For product metrics (only asked when they are on): was this person a student anywhere before this invite?
+  const wasStudent =
+    existing && ctx.env.MIXPANEL_TOKEN
+      ? (await membershipsOf(db, existing.id)).some((m) => m.role === "student")
+      : false;
+  // Confirming the address clears the anonymous id kept from an email sign up, so it is read first.
+  const keptAnonId =
+    existing && existing.email_verified_at === null && ctx.env.MIXPANEL_TOKEN
+      ? await signupAnonIdOf(db, userId)
+      : null;
   const before = joinStatements(db, {
     tenantId: row.tenant_id,
     student,
     userId,
     userExists: existing !== null,
   });
-  return openSession(ctx, userId, {
+  const session = await openSession(ctx, userId, {
     trustDevice,
     before,
     action: "student.invite_accepted",
     tenantId: row.tenant_id,
   });
+  if (!existing) {
+    await signedUp(ctx, { userId, role: "student", method: "invite", createdAt: new Date().toISOString() });
+  } else {
+    // A teacher who signed up by email but never confirmed: the invite to the same address confirms it.
+    if (existing.email_verified_at === null) await emailSignUpConfirmed(ctx, userId, keptAnonId);
+    if (!wasStudent) await roleAdded(ctx, { userId, role: "student" });
+  }
+  return session;
 }

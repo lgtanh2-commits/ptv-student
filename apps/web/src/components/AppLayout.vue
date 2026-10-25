@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppToaster from "@/components/AppToaster.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
+import { signUpClicked } from "@/features/analytics/anon";
 import { useSession } from "@/features/auth/session";
 import { useUnreadPolling } from "@/features/notifications/useNotifications";
 import { messages } from "@/messages";
@@ -21,6 +22,12 @@ const route = useRoute();
 const t = messages.nav;
 useUnreadPolling(() => session.me !== null);
 const role = computed(() => (session.isTeacher ? t.teacher : t.student));
+
+// The top bar's sign up button. On the welcome page, the click is counted (product metrics).
+function signUp() {
+  if (route.path === "/") signUpClicked("email", "top");
+  void router.push("/sign-up");
+}
 
 const signingOut = ref(false);
 async function signOut() {
@@ -88,7 +95,7 @@ async function signOut() {
         }}</a>
       </nav>
       <AppButton variant="ghost" compact @click="router.push('/sign-in')">{{ t.signIn }}</AppButton>
-      <AppButton compact @click="router.push('/sign-up')">{{ t.signUp }}</AppButton>
+      <AppButton compact @click="signUp">{{ t.signUp }}</AppButton>
     </template>
     <slot />
     <template #footer>{{ t.footer }}</template>

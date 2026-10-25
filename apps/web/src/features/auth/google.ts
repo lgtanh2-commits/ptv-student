@@ -11,12 +11,14 @@ export type GoogleIntent = "sign-in" | "sign-up" | "invite";
  * language header, so the page's language goes in the address (a new account starts in it).
  */
 export function googleStartUrl(
-  o: { intent: GoogleIntent; invite?: string; keep?: boolean },
+  o: { intent: GoogleIntent; invite?: string; keep?: boolean; anon?: string },
   lang = language,
 ): string {
   const q = new URLSearchParams({ intent: o.intent, keep: o.keep === false ? "0" : "1" });
   if (o.invite) q.set("invite", o.invite);
   q.set("lang", lang);
+  // The browser's anonymous id (product metrics), so a new account can be joined to the visits before it.
+  if (o.anon) q.set("anon", o.anon);
   return `/api/auth/google/start?${q}`;
 }
 

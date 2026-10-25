@@ -1,4 +1,5 @@
 import type { Env } from "../env";
+import { deleteOldActiveDaysStatement } from "../repos/analytics";
 import {
   deleteOldCountersStatement,
   deleteOldOutboxStatement,
@@ -20,7 +21,7 @@ export interface MaintenanceResult {
 /**
  * Once an hour: removes what is old, so the database does not grow for ever with things nobody reads.
  * Sessions that ended more than a week ago (an idle one only if it has no push address), sign in links older than 30 days, counters of finished windows,
- * and dev emails older than a week. Returns how many rows went from each table.
+ * dev emails older than a week, and the days people used the app (product metrics) older than 400 days. Returns how many rows went from each table.
  */
 export async function runMaintenance(env: Env, now: Date = new Date()): Promise<MaintenanceResult> {
   const db = env.DB;
@@ -33,6 +34,7 @@ export async function runMaintenance(env: Env, now: Date = new Date()): Promise<
     deleteOldCountersStatement(db, Math.floor((now.getTime() - 2 * DAY_MS) / 1000)),
     deleteOldOutboxStatement(db, iso(7)),
     deleteOldQueueStatement(db, new Date(now.getTime() - DAY_MS).toISOString()),
+    deleteOldActiveDaysStatement(db, iso(400).slice(0, 10)),
   ]);
   return {
     sessions: sessions?.meta.changes ?? 0,

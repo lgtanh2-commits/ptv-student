@@ -1,5 +1,7 @@
 import { DEFAULT_LANGUAGE, LIMITS, type Language, type SignUpBody } from "@lms/shared";
 import type { Context } from "hono";
+import { emailSignUpConfirmed } from "../analytics/events";
+import { signupAnonIdOf } from "../repos/analytics";
 import { auditStatement } from "../audit";
 import { getEmailProvider } from "../email/provider";
 import type { EmailMessage } from "../email/provider";
@@ -41,28 +43,33 @@ export interface Ctx {
   defer: (work: Promise<unknown>) => Promise<void>;
 }
 
-export async function makeCtx(c: Context<AppBindings>): Promise<Ctx> {
-  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+/** `Ctx.defer` for this request (see there). */
+export function deferFor(c: Context<AppBindings>): Ctx["defer"] {
   let waitUntil: ((p: Promise<unknown>) => void) | undefined;
   try {
     waitUntil = c.executionCtx.waitUntil.bind(c.executionCtx);
   } catch {
     waitUntil = undefined; // no execution context (tests)
   }
+  return async (work) => {
+    // A failed email must never turn into an error for the person, and must not be silent for us.
+    const safe = work.catch((err) =>
+      console.error(JSON.stringify({ msg: "deferred work failed", err: String(err) })),
+    );
+    if (waitUntil) waitUntil(safe);
+    else await safe;
+  };
+}
+
+export async function makeCtx(c: Context<AppBindings>): Promise<Ctx> {
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
   return {
     env: c.env,
     ip,
     ipHash: await hmacHex(hmacKey(c.env), `ip:${ip}`),
     userAgent: c.req.header("user-agent")?.slice(0, 200) ?? null,
     language: languageOf(c),
-    defer: async (work) => {
-      // A failed email must never turn into an error for the person, and must not be silent for us.
-      const safe = work.catch((err) =>
-        console.error(JSON.stringify({ msg: "deferred work failed", err: String(err) })),
-      );
-      if (waitUntil) waitUntil(safe);
-      else await safe;
-    },
+    defer: deferFor(c),
   };
 }
 
@@ -187,6 +194,8 @@ export async function signUp(ctx: Ctx, input: SignUpBody): Promise<void> {
         passwordHash: null,
         verified: false,
         language: ctx.language, // the language they signed up in
+        // Kept until the email is confirmed, when "Signed Up" is sent (analytics/events.ts).
+        signupAnonId: input.anonymousId ?? null,
       }),
       insertMembership(db, { userId, tenantId, role: "teacher" }),
       auditStatement(db, { action: "auth.sign_up", actorUserId: userId, tenantId, ipHash: ctx.ipHash }),
@@ -209,11 +218,18 @@ export async function verifyEmail(ctx: Ctx, token: string): Promise<NewSession> 
   await limitTokenTries(ctx);
   const row = await consumeToken(ctx.env.DB, token, "verify_email");
   if (!row?.user_id) throw new AppError("LINK_EXPIRED");
-  return openSession(ctx, row.user_id, {
+  // Only the first confirmation turns the sign up into an account (product metrics).
+  const firstTime = (await findUserById(ctx.env.DB, row.user_id))?.email_verified_at === null;
+  // Confirming clears the kept anonymous id, so it is read first.
+  const anonymousId =
+    firstTime && ctx.env.MIXPANEL_TOKEN ? await signupAnonIdOf(ctx.env.DB, row.user_id) : null;
+  const session = await openSession(ctx, row.user_id, {
     trustDevice: true, // they just made this account on this device
     before: [markEmailVerified(ctx.env.DB, row.user_id)],
     action: "auth.email_verified",
   });
+  if (firstTime) await emailSignUpConfirmed(ctx, row.user_id, anonymousId);
+  return session;
 }
 
 // ---------------------------------------------------------------- sign in

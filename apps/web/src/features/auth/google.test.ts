@@ -22,6 +22,12 @@ describe("googleStartUrl", () => {
     expect(new URL(vi, "https://x.test").searchParams.get("lang")).toBe("vi");
   });
 
+  it("carries the browser's anonymous id when given one", () => {
+    const url = googleStartUrl({ intent: "sign-up", anon: "0b7c2f4e-9a1d-4c3b" });
+    expect(new URL(url, "https://x.test").searchParams.get("anon")).toBe("0b7c2f4e-9a1d-4c3b");
+    expect(googleStartUrl({ intent: "sign-in" })).not.toContain("anon=");
+  });
+
   it("carries the invite link, safely encoded", () => {
     const url = googleStartUrl({ intent: "invite", invite: "a-b_c&d=e" });
     expect(new URL(url, "https://x.test").searchParams.get("invite")).toBe("a-b_c&d=e");

@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { LANGUAGES } from "@lms/shared";
+import { LANGUAGES, anonymousId } from "@lms/shared";
 import { z } from "zod";
 import type { AppBindings, Env } from "../env";
 import { hmacKey, isLocalOrTest } from "../lib/config";
@@ -22,6 +22,8 @@ export const flowSchema = z.object({
   invite: z.string().optional(),
   /** The language of the page that started the trip, for a new account. Only a known language. */
   language: z.enum(LANGUAGES).optional(),
+  /** The browser's anonymous id (product metrics), so "Signed Up" can be joined to the visits before it. */
+  anonymousId: anonymousId.optional(),
   /** The person said this is their own device. */
   keep: z.boolean(),
   /** When this stops being valid (milliseconds). */

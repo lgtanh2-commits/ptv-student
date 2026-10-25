@@ -99,6 +99,9 @@
         // Not a secret: browsers receive it. Its own pair, not staging's. Push stays off until VAPID_PRIVATE_KEY is
         // also set (docs/deploy.md).
         "VAPID_PUBLIC_KEY": "BNPTNJwwZ5tFqXzwMZ3PTRkW_hGZYSbuqkI_sIKdKBV0eGaS2UbDH6FlfdDP1f8zH9Vdd1ZDYb29I4vLgKEU0wo",
+        // Not a secret: a Mixpanel project token only lets someone send events. Product metrics (project Tutorio)
+        // go to Mixpanel only from production; local, tests and staging have no token, so they send nothing.
+        "MIXPANEL_TOKEN": "03e57604a295fa0876d150754c47ace0",
       },
       "d1_databases": [
         {

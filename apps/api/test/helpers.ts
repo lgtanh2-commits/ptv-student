@@ -41,6 +41,15 @@ export const pushFake: {
   onSend?: () => void | Promise<void>;
 } = { sent: [], status: 201, throws: false, delayMs: 0, inFlight: 0, maxInFlight: 0 };
 
+/**
+ * Every request the app made to Mixpanel: the path (`/track` or `/engage`), the full address and the JSON body
+ * (a list of events or profile updates). `status`: what Mixpanel answers back.
+ */
+export const mixpanelFake: {
+  sent: { path: string; url: string; body: unknown }[];
+  status: number;
+} = { sent: [], status: 200 };
+
 const PUSH_HOSTS =
   /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[^/]+\.push\.apple\.com|[^/]+\.notify\.windows\.com)\//;
 
@@ -65,6 +74,18 @@ vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
       pushFake.inFlight--;
     }
     return new Response(null, { status: pushFake.status });
+  }
+  if (url.startsWith("https://api.mixpanel.com/")) {
+    mixpanelFake.sent.push({
+      path: new URL(url).pathname,
+      url,
+      body: JSON.parse(String(init?.body)),
+    });
+    // With strict=1 /track answers with JSON; a rejected event is a 400.
+    const ok = mixpanelFake.status === 200;
+    return new Response(ok ? (url.includes("strict=1") ? '{"code":200,"status":"OK"}' : "1") : "nope", {
+      status: mixpanelFake.status,
+    });
   }
   if (url.includes("challenges.cloudflare.com")) return Response.json(turnstileAnswer);
   if (url === "https://oauth2.googleapis.com/token" && googleFake.answer) {
@@ -346,9 +367,12 @@ export async function googleSignIn(o: {
   env?: Partial<Env>;
   /** The `?lang=` the web adds when starting. */
   lang?: string;
+  /** The `?anon=` (the browser's anonymous id) the web adds when starting. */
+  anon?: string;
 }): Promise<GoogleTrip> {
   const q = new URLSearchParams({ intent: o.intent ?? "sign-in", keep: o.keep === false ? "0" : "1" });
   if (o.invite) q.set("invite", o.invite);
+  if (o.anon !== undefined) q.set("anon", o.anon);
   if (o.lang !== undefined) q.set("lang", o.lang);
   const ip = o.ip ?? randomIp();
   const start = await call(`/api/auth/google/start?${q}`, { ip, env: o.env });

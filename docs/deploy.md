@@ -71,6 +71,29 @@ sensitive actions itself; this rule covers the rest.
 
 Pushes to `develop` deploy to staging. Production is a manual run of the workflow.
 
+## Product metrics (Mixpanel)
+
+Counts of people (sign-ups, who opened the app each day, welcome page views and sign-up clicks) go to Mixpanel so the owner can see growth.
+
+- `MIXPANEL_TOKEN` (the project token, not a secret) is set in `vars` for **production only** in `apps/api/wrangler.jsonc`. Staging and local development have no token and send nothing, so test traffic never mixes with real numbers. Without the token every call returns at once.
+- Only ids and role go out: the user id, `role`, `method` (`email`, `google`, `invite`), the day, and for the welcome page a random browser id, the language and the host of the referrer. No name, email, phone or IP (`ip=0`). The browser id lives in `localStorage` (`lms.anon`), no cookie. The content security policy does not change: the browser only talks to our own API.
+- A failed send is logged as `mixpanel send failed` and never fails the action.
+- **One-off import of existing people** (once, after the first production deploy, with the owner's go-ahead). Create a Mixpanel service account (project role: Admin or Owner is needed for `/import`), then from the repository root:
+
+```bash
+# the service account username and secret, the project id and the project token; never put them in a file in the repository
+export MIXPANEL_SA_USERNAME=... MIXPANEL_SA_SECRET=... MIXPANEL_PROJECT_ID=... MIXPANEL_TOKEN=...
+# --before: the time the production deploy with the Mixpanel events went live (note it when you deploy)
+node scripts/mixpanel/import-users.mjs --env production --before 2026-10-26T03:00:00Z --dry-run   # counts and one sample, sends nothing
+node scripts/mixpanel/import-users.mjs --env production --before 2026-10-26T03:00:00Z             # the real import
+```
+
+**Note the time of the production deploy and pass it as `--before`** (required; the script refuses to run, even with `--dry-run`, without it). From that moment the app sends `Signed Up` live, dated at the moment it happens, while the import dates it at the account's creation, so Mixpanel would not see them as the same event. The import therefore takes only accounts made before the deploy, and teachers confirmed before it. `--env staging` works only with `--dry-run`.
+
+It reads production D1 read-only and sends one profile and one `Signed Up` event (dated at the account's creation, `$insert_id` `signed-up:<userId>`) per confirmed teacher and per student with an account, made before `--before`. Running it twice does not count anyone twice. The sign-up path is not stored, so `method` is inferred: a teacher with a linked Google account is `google`, other teachers `email`, students `invite`.
+
+- **Afterwards delete the service account** in Mixpanel (Organization settings, Service accounts) and unset the variables.
+
 ## Telegram notifications (optional)
 
 Since 2026-10-24 (owner decision) Telegram is **only used to tell the owner about new feedback** (see "Telegram

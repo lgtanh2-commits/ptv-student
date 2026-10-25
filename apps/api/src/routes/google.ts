@@ -1,4 +1,4 @@
-import { parseLanguage, type ErrorCode } from "@lms/shared";
+import { anonymousId, parseLanguage, type ErrorCode } from "@lms/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { signInWithGoogle } from "../auth/google";
@@ -77,6 +77,8 @@ google.get("/auth/google/start", async (c) => {
       invite: q.data.invite,
       // Anything but a known language is dropped here, so it never reaches the cookie or the account.
       language: parseLanguage(c.req.query("lang")) ?? undefined,
+      // A missing or malformed id is simply left out: it never stops the sign in.
+      anonymousId: anonymousId.safeParse(c.req.query("anon")).data,
       keep: q.data.keep === "1",
       until: Date.now() + FLOW_MINUTES * 60_000,
     };

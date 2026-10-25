@@ -35,6 +35,8 @@ export interface Env {
   VAPID_PRIVATE_KEY?: string;
   /** The Telegram chat that gets every new feedback (needs TELEGRAM_BOT_TOKEN too). Without it the owner is not told. */
   FEEDBACK_TELEGRAM_CHAT_ID?: string;
+  /** Mixpanel project token (public by design). Set only in production; without it no event is sent anywhere. */
+  MIXPANEL_TOKEN?: string;
 }
 
 export interface Variables {

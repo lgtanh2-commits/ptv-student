@@ -3,6 +3,7 @@ import { signUpBody } from "@lms/shared";
 import { ref } from "vue";
 import DevEmailHint from "@/components/DevEmailHint.vue";
 import GoogleButton from "@/components/GoogleButton.vue";
+import { anonymousId } from "@/features/analytics/anon";
 import { authApi } from "@/features/auth/api";
 import { useSignInOptions } from "@/features/auth/google";
 import { useForm } from "@/features/forms/useForm";
@@ -29,7 +30,8 @@ const form = useForm(
     schema: signUpBody,
     submit: async (v) => {
       try {
-        await authApi.signUp({ ...v, captcha: captcha.value || undefined });
+        // The anonymous id joins the account to the visits before it (product metrics).
+        await authApi.signUp({ ...v, captcha: captcha.value || undefined, anonymousId: anonymousId() });
         done.value = true;
       } finally {
         turnstile.value?.reset();
