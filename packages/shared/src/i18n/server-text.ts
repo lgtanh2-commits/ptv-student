@@ -486,11 +486,6 @@ export const SERVER_TEXT: readonly ServerText[] = [
     vi: "Một trong các điểm số không thuộc câu hỏi nào của bài tập này.",
   },
   {
-    id: "Question {i + 1}: the system scored this question, so its points cannot be changed.",
-    en: "Question {i + 1}: the system scored this question, so its points cannot be changed.",
-    vi: "Câu hỏi {i + 1}: hệ thống đã chấm câu hỏi này nên không thể thay đổi điểm.",
-  },
-  {
     id: "Question {i + 1}: please give points.",
     en: "Question {i + 1}: please give points.",
     vi: "Câu hỏi {i + 1}: vui lòng nhập điểm.",

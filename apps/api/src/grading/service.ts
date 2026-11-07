@@ -150,8 +150,9 @@ export async function grade(
   const current = await submissionOf(ctx, tenantId, assignmentId, studentId);
   if (current.version !== body.version) throw new AppError("CONFLICT", { message: conflictText });
 
-  // The points of every question. A question the system scored keeps the points of the system: the teacher
-  // gives points only to the others. (Sending the same points for a scored question is fine.)
+  // The points of every question. The teacher may change the points the system gave too (for example half
+  // points for a near miss). A question left out keeps what is saved, and a scored question with nothing saved
+  // keeps the points of the system.
   const questions = questionsOf(a);
   const stored = parsePoints(current.question_points);
   const auto = gradeAuto(questions, parseList<AnswerItem>(current.responses));
@@ -164,15 +165,8 @@ export async function grade(
   }
   const points: Record<string, number> = {};
   questions.forEach((q, i) => {
-    if (!auto.manualIds.includes(q.id)) {
-      const given = body.points[q.id];
-      if (given !== undefined && given !== auto.points[q.id]) {
-        fail(`Question ${i + 1}: the system scored this question, so its points cannot be changed.`);
-      }
-      points[q.id] = auto.points[q.id]!;
-      return;
-    }
-    const given = body.points[q.id] ?? stored[q.id];
+    const isAuto = !auto.manualIds.includes(q.id);
+    const given = body.points[q.id] ?? stored[q.id] ?? (isAuto ? auto.points[q.id] : undefined);
     if (given === undefined) fail(`Question ${i + 1}: please give points.`);
     if (given! > q.points) fail(`Question ${i + 1}: the most is ${q.points}.`);
     points[q.id] = given!;

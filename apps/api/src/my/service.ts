@@ -85,12 +85,15 @@ function resultsOf(r: MyWorkRow, questions: QuestionInfo[], answers: AnswerItem[
   const returned = r.sub_status === "returned";
   // The teacher's comments show with the returned work, like the points do.
   const notes = returned ? parseNotes(r.question_notes) : {};
+  // The teacher may change the points the system gave. Like their other points, the change shows once the work
+  // is returned; until then the student sees what the system gave.
+  const autoPoints = (qid: string): number => (returned ? saved[qid] : undefined) ?? auto.points[qid] ?? 0;
   const perQuestion: QuestionResult[] = questions.map((q) => {
     if (isAutoQuestion(q)) {
       return {
         questionId: q.id,
         correct: auto.correct[q.id] ?? false,
-        awarded: saved[q.id] ?? auto.points[q.id] ?? 0,
+        awarded: autoPoints(q.id),
         correctAnswer: correctAnswerText(q),
         note: notes[q.id] ?? "",
       };
@@ -105,7 +108,7 @@ function resultsOf(r: MyWorkRow, questions: QuestionInfo[], answers: AnswerItem[
   });
   return {
     perQuestion,
-    autoAwarded: auto.autoAwarded,
+    autoAwarded: questions.reduce((sum, q) => (isAutoQuestion(q) ? sum + autoPoints(q.id) : sum), 0),
     autoMax: auto.autoMax,
     waitingForTeacher: returned ? 0 : auto.manualIds.length,
   };

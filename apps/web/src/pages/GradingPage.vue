@@ -50,6 +50,8 @@ async function send() {
 const canReturn = computed(() => d.value?.status === "graded" && !g.dirty.value);
 const answerOf = (qid: string) => d.value?.answers.find((a) => a.questionId === qid);
 const info = (qid: string) => d.value?.perQuestion.find((p) => p.questionId === qid);
+/** The points the system gives a question it scores: all of them when right, none when wrong. */
+const systemPoints = (qid: string, max: number) => (info(qid)?.correct ? max : 0);
 
 /** One line of the history in plain words. */
 function historyText(h: {
@@ -121,7 +123,6 @@ const stateNote = computed(() => {
                 v-model="g.points[q.id]!"
                 :label="fill(t.pointsOf, { max: q.points })"
                 inputmode="decimal"
-                :disabled="g.isAuto(q.id)"
                 inline
               />
             </div>
@@ -185,7 +186,11 @@ const stateNote = computed(() => {
               <AppBadge :tone="info(q.id)?.correct ? 'success' : 'error'">{{
                 info(q.id)?.correct ? t.correct : t.incorrect
               }}</AppBadge>
-              <span class="text-base-content/60">{{ messages.homework.scoredBySystem }}</span>
+              <span class="text-base-content/60">{{
+                systemPoints(q.id, q.points) === d.points[q.id] || d.points[q.id] === undefined
+                  ? messages.homework.scoredBySystemCanChange
+                  : fill(messages.homework.changedFromSystem, { n: systemPoints(q.id, q.points) })
+              }}</span>
             </template>
             <span v-else class="text-base-content/60">{{ messages.homework.scoredByYou }}</span>
           </p>
