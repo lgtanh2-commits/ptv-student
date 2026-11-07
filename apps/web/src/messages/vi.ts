@@ -755,6 +755,8 @@ export const vi: Messages = {
     removeAccepted: "Xóa đáp án được chấp nhận",
     scoredBySystem: "Hệ thống chấm điểm",
     scoredByYou: "Bạn tự chấm điểm",
+    scoredBySystemCanChange: "Hệ thống chấm điểm, bạn vẫn có thể sửa",
+    changedFromSystem: "Bạn đã sửa điểm (hệ thống chấm {n})",
     correctIs: "Đáp án đúng: {answer}",
     acceptButton: "Chấp nhận đáp án khác",
     acceptTitle: "Chấp nhận đáp án khác",

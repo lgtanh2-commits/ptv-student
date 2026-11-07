@@ -543,7 +543,7 @@ export function useGrading(
       0,
     ),
   );
-  /** The system scored this question, so its points are fixed. */
+  /** The system scored this question. The teacher can still change its points. */
   const isAuto = (qid: string) => detail.value?.perQuestion.find((p) => p.questionId === qid)?.auto === true;
   /** Every question the teacher scores has points, so a score can be saved. */
   const complete = computed(() =>
@@ -554,7 +554,7 @@ export function useGrading(
   const save = () => {
     const given: Record<string, number> = {};
     for (const q of detail.value?.assignment.questions ?? [])
-      if (!isAuto(q.id) && (points[q.id] ?? "").trim() !== "") given[q.id] = num(points[q.id]!);
+      if ((points[q.id] ?? "").trim() !== "") given[q.id] = num(points[q.id]!);
     return run(
       "/grade",
       "PUT",

@@ -725,6 +725,8 @@ export const en = {
     removeAccepted: "Remove accepted answer",
     scoredBySystem: "Scored by the system",
     scoredByYou: "You score it",
+    scoredBySystemCanChange: "Scored by the system. You can still change it",
+    changedFromSystem: "You changed the points (the system gave {n})",
     correctIs: "Correct answer: {answer}",
     acceptButton: "Accept another answer",
     acceptTitle: "Accept another answer",
