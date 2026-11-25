@@ -2,8 +2,10 @@
 import type { QuestionKind } from "@lms/shared";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import HomeworkImageGallery from "@/components/HomeworkImageGallery.vue";
+import HomeworkImagePicker from "@/components/HomeworkImagePicker.vue";
 import { kindIcon, kindText } from "@/components/homeworkLabels";
-import { useAssignmentForm, useHomeworkImport } from "@/features/homework/useHomework";
+import { useAssignmentForm, useHomeworkImport, type QuestionValues } from "@/features/homework/useHomework";
 import { downloadSampleHomework } from "@/features/homework/sample";
 import { goBack } from "@/features/navigation/back";
 import { usePaging } from "@/features/paging";
@@ -41,6 +43,26 @@ const f = useAssignmentForm(courseId.value, id.value, (a) => {
 // The students to choose from, ten on a page. The ticks of every page count.
 const studentsPaging = usePaging(() => f.students.value);
 const v = f.form.values;
+const questionKeys = new WeakMap<QuestionValues, number>();
+let nextQuestionKey = 0;
+function questionKey(question: QuestionValues) {
+  const existing = questionKeys.get(question);
+  if (existing !== undefined) return existing;
+  const key = nextQuestionKey++;
+  questionKeys.set(question, key);
+  return key;
+}
+
+const uploads = ref(new Set<number>());
+const uploadingImages = computed(() => uploads.value.size > 0);
+function setUploading(key: number, busy: boolean) {
+  if (busy) uploads.value.add(key);
+  else uploads.value.delete(key);
+}
+const imageCourseId = computed(() => f.assignment.value?.courseId ?? courseId.value);
+function submit() {
+  if (!uploadingImages.value) void f.form.submit();
+}
 const err = f.form.errors;
 const who = [
   { value: "all", label: t.forAll, tone: "neutral" as const },
@@ -89,7 +111,7 @@ function confirmImport() {
   >
     <AppLoading v-if="f.loading.value" :label="messages.common.loading" />
     <AppAlert v-else-if="f.notFound.value" kind="error">{{ t.notFound }}</AppAlert>
-    <form v-else class="flex flex-col gap-6" novalidate @submit.prevent="f.form.submit">
+    <form v-else class="flex flex-col gap-6" novalidate @submit.prevent="submit">
       <AppAlert v-if="f.form.formError.value" kind="error">{{ f.form.formError.value }}</AppAlert>
 
       <AppCard>
@@ -99,7 +121,12 @@ function confirmImport() {
 
       <AppCard :title="t.questions" :description="t.questionsText">
         <template #actions>
-          <AppButton variant="secondary" compact :disabled="f.wordsOnly.value" @click="openImport">
+          <AppButton
+            variant="secondary"
+            compact
+            :disabled="f.wordsOnly.value || uploadingImages"
+            @click="openImport"
+          >
             <AppIcon name="upload" :size="16" />{{ t.importOpen }}
           </AppButton>
           <AppBadge tone="info">{{ fill(t.totalPoints, { n: f.total.value }) }}</AppBadge>
@@ -109,7 +136,7 @@ function confirmImport() {
 
         <div
           v-for="(q, qi) in v.questions"
-          :key="qi"
+          :key="questionKey(q)"
           class="flex flex-col gap-4 rounded-box border border-base-300 p-4"
         >
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -124,6 +151,7 @@ function confirmImport() {
               variant="ghost"
               compact
               :aria-label="t.removeQuestion"
+              :disabled="uploadingImages"
               @click="f.removeQuestion(qi)"
               ><AppIcon name="trash" :size="16" />{{ messages.common.remove }}</AppButton
             >
@@ -145,6 +173,14 @@ function confirmImport() {
               />
             </div>
           </div>
+          <HomeworkImagePicker
+            v-if="imageCourseId"
+            v-model="q.imageIds"
+            :label="messages.homeworkImages.question"
+            :upload-path="`/courses/${imageCourseId}/homework-images`"
+            :disabled="f.form.submitting.value"
+            @busy="setUploading(questionKey(q), $event)"
+          />
           <p class="flex items-start gap-2 text-sm text-base-content/60">
             <AppIcon :name="kindIcon[q.kind]" :size="16" class="mt-0.5" />{{ hints[q.kind] }}
           </p>
@@ -242,6 +278,15 @@ function confirmImport() {
         </div>
       </AppCard>
 
+      <AppCard v-if="v.imageIds.length" :title="messages.homeworkImages.assignment">
+        <HomeworkImageGallery
+          :ids="v.imageIds"
+          removable
+          :disabled="f.form.submitting.value"
+          @remove="v.imageIds = v.imageIds.filter((id) => id !== $event)"
+        />
+      </AppCard>
+
       <AppCard :title="t.links" :description="t.linksHint">
         <AppAlert v-if="err.links" kind="error">{{ err.links }}</AppAlert>
         <!-- On a phone the delete button sits at the right of the title field; on a wide screen at the end of the row. -->
@@ -305,7 +350,9 @@ function confirmImport() {
 
       <AppFormActions>
         <AppButton variant="ghost" @click="goBack(router, backTo)">{{ messages.common.cancel }}</AppButton>
-        <AppButton type="submit" :loading="f.form.submitting.value">{{ t.save }}</AppButton>
+        <AppButton type="submit" :loading="f.form.submitting.value" :disabled="uploadingImages">{{
+          t.save
+        }}</AppButton>
       </AppFormActions>
     </form>
 

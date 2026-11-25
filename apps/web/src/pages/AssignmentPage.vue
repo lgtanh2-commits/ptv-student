@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HomeworkImageGallery from "@/components/HomeworkImageGallery.vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
@@ -154,8 +155,13 @@ const deleteWords = computed(() => {
     <template v-else-if="a">
       <AppCard>
         <p v-if="a.instructions" class="whitespace-pre-wrap break-words">{{ a.instructions }}</p>
+        <HomeworkImageGallery :ids="a.imageIds" />
         <ol class="flex flex-col gap-2 text-sm">
-          <li v-for="(q, i) in a.questions" :key="q.id" class="rounded-field bg-base-200 px-3 py-2">
+          <li
+            v-for="(q, i) in a.questions"
+            :key="q.id"
+            class="flex flex-col gap-2 rounded-field bg-base-200 px-3 py-2"
+          >
             <!-- On a phone the question has its own line and the meta line (which breaks only between its items)
                  is under it; on a wide screen the meta is on the right. -->
             <span class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
@@ -180,6 +186,7 @@ const deleteWords = computed(() => {
                 </AppBadge>
               </span>
             </span>
+            <HomeworkImageGallery :ids="q.imageIds" />
             <span v-if="q.kind === 'choice'" class="mt-1 block text-base-content/70">
               <template v-for="(o, oi) in q.options" :key="oi"
                 ><span :class="{ 'font-semibold text-success': q.correct === oi }">{{ o }}</span

@@ -81,15 +81,18 @@ async function detailOf(
   const zone = await tenantTimezone(ctx.env.DB, tenantId);
   const ids = a.target_mode === "selected" ? await targetIds(ctx.env.DB, tenantId, assignmentId) : [];
   const questions = questionsOf(a);
-  const answers = questions.map(
-    (q) =>
-      parseList<AnswerItem>(sub.responses).find((r) => r.questionId === q.id) ?? {
-        questionId: q.id,
-        choice: null,
-        text: "",
-        link: null,
-      },
-  );
+  const savedAnswers = parseList<AnswerItem>(sub.responses);
+  const photos = JSON.parse(sub.submitted_images) as Record<string, string[]>;
+  const answers = questions.map((q) => {
+    const saved = savedAnswers.find((r) => r.questionId === q.id);
+    const answer = {
+      questionId: q.id,
+      choice: saved?.choice ?? null,
+      text: saved?.text ?? "",
+      link: saved?.link ?? null,
+    };
+    return photos[q.id]?.length ? { ...answer, imageIds: photos[q.id] } : answer;
+  });
   const auto = gradeAuto(questions, answers);
   return {
     assignment: toAssignmentInfo(a, zone, ids),

@@ -1326,3 +1326,40 @@ describe("lessons that repeat", () => {
     expect(await count("SELECT ended AS n FROM lesson_series WHERE id = ?", lessons[0]!.seriesId)).toBe(0);
   });
 });
+
+describe("deleting lessons", () => {
+  const remove = (teacher: Person, lesson: Lesson, scope: "this" | "following" = "this") =>
+    call(`/api/lessons/${lesson.id}`, {
+      method: "DELETE",
+      cookie: teacher.cookie,
+      body: { version: lesson.version, scope },
+    });
+
+  it("deletes a single occurrence without the cron recreating it", async () => {
+    const teacher = await createTeacher();
+    const { course, lessons } = await lessonsOf(teacher, { date: FUTURE, repeat: "weekly" });
+    const last = lessons.at(-1)!;
+    const student = await joinedKid(teacher, course.id);
+    expect((await remove(student, last)).status).toBe(403);
+    expect((await remove(teacher, { ...last, version: last.version + 1 })).status).toBe(409);
+    expect((await remove(teacher, last)).json.deleted).toBe(1);
+    expect((await sheet(teacher, last.id)).status).toBe(404);
+    await extendOpenSeries(env, new Date(`${plusDays(FUTURE, 70)}T05:00:00Z`));
+    const visible = await list(teacher, course.id);
+    expect(visible).toHaveLength(36);
+    expect(visible.some((lesson) => lesson.date === last.date)).toBe(false);
+  });
+
+  it("deletes later upcoming occurrences and stops the repeating series", async () => {
+    const teacher = await createTeacher();
+    const { course, lessons } = await lessonsOf(teacher, { date: FUTURE, repeat: "weekly" });
+    const other = await createTeacher();
+    expect((await remove(other, lessons[1]!, "following")).status).toBe(404);
+    const result = await remove(teacher, lessons[1]!, "following");
+    expect(result.status, JSON.stringify(result.json)).toBe(200);
+    expect(result.json.deleted).toBe(lessons.length - 1);
+    expect((await list(teacher, course.id)).map((lesson) => lesson.id)).toEqual([lessons[0]!.id]);
+    await extendOpenSeries(env, new Date(`${plusDays(FUTURE, 70)}T05:00:00Z`));
+    expect((await list(teacher, course.id)).map((lesson) => lesson.id)).toEqual([lessons[0]!.id]);
+  });
+});

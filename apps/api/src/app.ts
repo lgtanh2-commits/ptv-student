@@ -19,6 +19,7 @@ import { feedback } from "./routes/feedback";
 import { google } from "./routes/google";
 import { grading } from "./routes/grading";
 import { health } from "./routes/health";
+import { homeworkImages } from "./routes/homework-images";
 import { invites } from "./routes/invites";
 import { invoices } from "./routes/invoices";
 import { lessons } from "./routes/lessons";
@@ -44,18 +45,26 @@ export function createApp() {
   app.use("/api/*", csrfProtection);
   // Nothing the app sends is bigger than a few thousand characters, except a homework or a list of students to import.
   // A bigger request is refused before it is read, so nobody can fill the memory of the server.
-  app.use(
-    "/api/*",
-    bodyLimit({
-      maxSize: MAX_REQUEST_BYTES,
-      onError: (c) => c.json(errorBody(new AppError("TOO_LARGE"), c.get("requestId"), languageOf(c)), 413),
-    }),
-  );
+  const limitRequest = bodyLimit({
+    maxSize: MAX_REQUEST_BYTES,
+    onError: (c) => c.json(errorBody(new AppError("TOO_LARGE"), c.get("requestId"), languageOf(c)), 413),
+  });
+  app.use("/api/*", (c, next) => {
+    // Dedicated upload routes apply their own limit after checking the session.
+    if (
+      c.req.method === "POST" &&
+      /^\/api\/(courses\/[^/]+\/homework-images|my\/work\/[^/]+\/images)$/.test(c.req.path)
+    ) {
+      return next();
+    }
+    return limitRequest(c, next);
+  });
   app.use("/api/*", loadActor);
   app.use("/api/*", requestLanguage);
 
   const api = new OpenAPIHono<AppBindings>();
   api.route("/", health);
+  api.route("/", homeworkImages);
   api.route("/", auth);
   api.route("/", google);
   api.route("/", invites);

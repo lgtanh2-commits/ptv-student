@@ -344,6 +344,8 @@ export const updateLessonBody = lessonFields
     path: ["repeatUntil"],
   });
 export const cancelLessonBody = z.object({ scope });
+export const deleteLessonBody = cancelLessonBody.extend({ version: z.number().int().min(1) });
+export type DeleteLessonBody = z.infer<typeof deleteLessonBody>;
 
 export const attendanceBody = z.object({
   records: z
@@ -463,6 +465,13 @@ const points = z
   .max(100, "Use at most 100 points for one question.")
   .refine((v) => Number.isInteger(v * 2), "Use whole numbers or halves, for example 2 or 1.5.");
 
+export const HOMEWORK_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const HOMEWORK_IMAGE_MAX_COUNT = 5;
+export const HOMEWORK_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
+export const homeworkImageId = z.uuid();
+const homeworkImageIds = z.array(homeworkImageId).max(HOMEWORK_IMAGE_MAX_COUNT);
+
 export const QUESTION_KINDS = ["choice", "short", "written", "speaking"] as const;
 export type QuestionKind = (typeof QUESTION_KINDS)[number];
 
@@ -478,6 +487,7 @@ const questionInput = z.object({
   /** Kept when a question is edited. A new question gets one from the server. */
   id: z.string().min(1).max(40).optional(),
   kind: z.enum(QUESTION_KINDS),
+  imageIds: homeworkImageIds.optional(),
   text: z.string().trim().max(1000, "This question is too long."),
   points,
   options: z
@@ -494,6 +504,7 @@ const questionInput = z.object({
 
 export interface QuestionInfo {
   id: string;
+  imageIds?: string[];
   kind: QuestionKind;
   text: string;
   points: number;
@@ -517,6 +528,7 @@ export const assignmentFields = z
     instructions: z.string().trim().max(5000, "This text is too long.").default(""),
     questions: z.array(questionInput).min(1, "Add at least 1 question.").max(50, "Use at most 50 questions."),
     links: z.array(linkItem).max(10, "Use at most 10 links.").default([]),
+    imageIds: homeworkImageIds.optional(),
     /** Due day and time, in the teacher's time zone. Both, or neither. */
     dueDate: isoDate.nullable().default(null),
     dueTime: hhmm.nullable().default(null),
@@ -573,6 +585,7 @@ export interface AssignmentInfo {
   instructions: string;
   questions: QuestionInfo[];
   links: LinkInfo[];
+  imageIds?: string[];
   dueDate: string | null;
   dueTime: string | null;
   dueAt: string | null;
@@ -599,6 +612,7 @@ export const answerItem = z.object({
   text: z.string().max(10000, "This text is too long.").default(""),
   /** speaking: the link to the video. */
   link: httpsLink.nullable().default(null),
+  imageIds: homeworkImageIds.optional(),
 });
 export const answerBody = z.object({ answers: z.array(answerItem).max(50).default([]) });
 export type AnswerItem = z.infer<typeof answerItem>;
@@ -631,6 +645,7 @@ export interface MyWorkItem {
 /** A question as a student sees it. The correct answer is not in it. */
 export interface MyQuestion {
   id: string;
+  imageIds?: string[];
   kind: QuestionKind;
   text: string;
   points: number;
@@ -652,6 +667,7 @@ export interface QuestionResult {
 
 export interface MyWorkDetail extends MyWorkItem {
   instructions: string;
+  imageIds?: string[];
   questions: MyQuestion[];
   links: LinkInfo[];
   /** What the student saved or handed in so far, one entry for each question. */

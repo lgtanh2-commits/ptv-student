@@ -11,6 +11,7 @@ export interface AssignmentRow {
   instructions: string;
   questions: string;
   links: string;
+  image_ids: string;
   due_at: string | null;
   allow_late: number;
   max_score: number;
@@ -32,7 +33,7 @@ const TARGETED = `CASE a.target_mode
   ELSE (SELECT COUNT(*) FROM assignment_targets t WHERE t.assignment_id = a.id) END`;
 
 const COLUMNS = `a.id, a.tenant_id, a.course_id, c.name AS course_name, a.type, a.title, a.instructions,
-  a.questions, a.links, a.due_at, a.allow_late, a.max_score, a.target_mode, a.status, a.version,
+  a.questions, a.links, a.image_ids, a.due_at, a.allow_late, a.max_score, a.target_mode, a.status, a.version,
   (${TARGETED}) AS targeted,
   (SELECT COUNT(*) FROM submissions x WHERE x.assignment_id = a.id AND x.status IN ('submitted', 'graded', 'returned')) AS handed_in,
   (SELECT COUNT(*) FROM submissions x WHERE x.assignment_id = a.id AND x.status = 'submitted') AS to_grade
@@ -116,6 +117,7 @@ export interface AssignmentWrite {
   instructions: string;
   questions: QuestionInfo[];
   links: LinkInfo[];
+  imageIds: string[];
   dueAt: string | null;
   allowLate: boolean;
   maxScore: number;
@@ -131,9 +133,19 @@ export const insertAssignmentStatement = (
   return db
     .prepare(
       `INSERT INTO assignments (id, tenant_id, course_id, type, title, instructions, questions, links, due_at,
-         allow_late, max_score, target_mode, created_at, updated_at)
-       SELECT ?1, c.tenant_id, c.id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11 FROM courses c
-       WHERE c.tenant_id = ?12 AND c.id = ?13 AND c.status != 'archived'`,
+         allow_late, max_score, target_mode, created_at, updated_at, image_ids)
+       SELECT ?1, c.tenant_id, c.id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?14 FROM courses c
+       WHERE c.tenant_id = ?12 AND c.id = ?13 AND c.status != 'archived'
+         AND NOT EXISTS (
+           SELECT 1 FROM (
+             SELECT value AS image_id FROM json_each(?14)
+             UNION ALL
+             SELECT photo.value FROM json_each(?5) q, json_each(q.value, '$.imageIds') photo
+           ) j WHERE NOT EXISTS (
+             SELECT 1 FROM homework_images i WHERE i.id = j.image_id AND i.ready = 1 AND i.deleting = 0
+               AND i.tenant_id = c.tenant_id AND i.course_id = c.id AND i.assignment_id IS NULL
+           )
+         )`,
     )
     .bind(
       o.id,
@@ -149,6 +161,7 @@ export const insertAssignmentStatement = (
       now,
       o.tenantId,
       o.courseId,
+      JSON.stringify(o.imageIds),
     );
 };
 
@@ -178,8 +191,19 @@ export const updateAssignmentStatement = (
   db
     .prepare(
       `UPDATE assignments SET type = ?1, title = ?2, instructions = ?3, questions = ?4, links = ?5, due_at = ?6,
-         allow_late = ?7, max_score = ?8, target_mode = ?9, version = version + 1, updated_at = ?10
-       WHERE tenant_id = ?11 AND id = ?12 AND version = ?13`,
+         allow_late = ?7, max_score = ?8, target_mode = ?9, version = version + 1, updated_at = ?10, image_ids = ?14
+       WHERE tenant_id = ?11 AND id = ?12 AND version = ?13
+         AND NOT EXISTS (
+           SELECT 1 FROM (
+             SELECT value AS image_id FROM json_each(?14)
+             UNION ALL
+             SELECT photo.value FROM json_each(?4) q, json_each(q.value, '$.imageIds') photo
+           ) j WHERE NOT EXISTS (
+             SELECT 1 FROM homework_images i WHERE i.id = j.image_id AND i.ready = 1 AND i.deleting = 0
+               AND i.tenant_id = assignments.tenant_id AND i.course_id = assignments.course_id
+               AND i.assignment_id IS NULL
+           )
+         )`,
     )
     .bind(
       o.type,
@@ -195,6 +219,7 @@ export const updateAssignmentStatement = (
       o.tenantId,
       o.id,
       o.version,
+      JSON.stringify(o.imageIds),
     );
 
 /**

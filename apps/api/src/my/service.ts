@@ -137,8 +137,10 @@ function toDetail(r: MyWorkRow, now: string): MyWorkDetail {
       text: q.text,
       points: q.points,
       options: q.options,
+      ...(q.imageIds?.length ? { imageIds: q.imageIds } : {}),
     })),
     links: linksOf(r),
+    imageIds: parseList<string>(r.image_ids),
     answers,
     results: handedIn ? resultsOf(r, questions, answers) : null,
     // The teacher's words show with a returned score, or as the reason for a new try. Never before.
@@ -167,7 +169,12 @@ export async function workGet(ctx: Ctx, actor: Actor, id: string): Promise<MyWor
  * Checks what the student wrote against each question and keeps only the parts that belong to its kind.
  * Returns one entry for each question, in order. A draft may be incomplete; handing in needs every question answered.
  */
-function shapeAnswers(questions: QuestionInfo[], body: AnswerBody, handIn: boolean): AnswerItem[] {
+function shapeAnswers(
+  questions: QuestionInfo[],
+  body: AnswerBody,
+  handIn: boolean,
+  saved: AnswerItem[],
+): AnswerItem[] {
   const fail = (message: string): never => {
     throw new AppError("VALIDATION_FAILED", { fields: { answers: message } });
   };
@@ -182,23 +189,28 @@ function shapeAnswers(questions: QuestionInfo[], body: AnswerBody, handIn: boole
     const a = byId.get(q.id) ?? { questionId: q.id, choice: null, text: "", link: null };
     const n = `Question ${i + 1}: `;
     const text = a.text.trim();
+    const imageIds = [
+      ...new Set(a.imageIds ?? saved.find((answer) => answer.questionId === q.id)?.imageIds ?? []),
+    ];
+    const photos = imageIds.length ? { imageIds } : {};
     if (q.kind === "choice") {
       if (a.choice !== null && a.choice >= q.options.length) fail(`${n}this answer is not on the list.`);
       if (handIn && a.choice === null) fail(`${n}please choose an answer.`);
-      return { questionId: q.id, choice: a.choice, text: "", link: null };
+      return { questionId: q.id, choice: a.choice, text: "", link: null, ...photos };
     }
     if (q.kind === "short") {
       if (text.length > 500) fail(`${n}this answer is too long.`);
       if (handIn && text === "") fail(`${n}please write your answer.`);
-      return { questionId: q.id, choice: null, text, link: null };
+      return { questionId: q.id, choice: null, text, link: null, ...photos };
     }
     if (q.kind === "written") {
-      if (handIn && text === "") fail(`${n}please write your answer.`);
-      return { questionId: q.id, choice: null, text, link: null };
+      if (handIn && text === "" && imageIds.length === 0)
+        fail(`${n}please write your answer or attach a photo.`);
+      return { questionId: q.id, choice: null, text, link: null, ...photos };
     }
     if (text.length > 2000) fail(`${n}this note is too long.`);
     if (handIn && !a.link) fail(`${n}please add the link to your video.`);
-    return { questionId: q.id, choice: null, text, link: a.link };
+    return { questionId: q.id, choice: null, text, link: a.link, ...photos };
   });
 }
 
@@ -213,7 +225,7 @@ async function save(
   const row = await loadWork(ctx, actor, id);
   authorize(actor, "submission", row.sub_status ? "update" : "create", own(actor, row.tenant_id));
   const questions = questionsOf(row);
-  const answers = shapeAnswers(questions, body, handIn);
+  const answers = shapeAnswers(questions, body, handIn, answersOf(row));
 
   // The system scores the questions that have a correct answer at the moment the work is handed in.
   // When there is nothing left for the teacher, the student gets the result at once.
@@ -234,12 +246,15 @@ async function save(
 
   if (!res.meta.changes) {
     // Say why, from what is true now.
-    const now = toDetail((await findMyWork(db, actor.userId, id)) ?? row, nowIso());
+    const now = toDetail(await loadWork(ctx, actor, id), nowIso());
     if (now.blocked === "deadline") throw new AppError("DEADLINE_PASSED");
     if (now.blocked === "closed") {
       throw new AppError("CONFLICT", { message: "The teacher closed this work, so you cannot change it." });
     }
-    throw new AppError("CONFLICT", { message: "You already handed this in, so you cannot change it." });
+    if (now.blocked === "handed_in") {
+      throw new AppError("CONFLICT", { message: "You already handed this in, so you cannot change it." });
+    }
+    throw new AppError("CONFLICT");
   }
   if (handIn) {
     await audit(db, {

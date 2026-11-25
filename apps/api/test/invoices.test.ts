@@ -1225,3 +1225,29 @@ describe("the audit log", () => {
     expect(text).not.toContain("Secret reason");
   });
 });
+
+it("removes a deleted held lesson from billing while preserving the issued receipt", async () => {
+  const { t, hoa, nam, lessons } = await setup();
+  const invoices = await drafts(t);
+  expect((await send(t, invoices.Hoa!)).status).toBe(200);
+
+  const lessonId = lessons[0]!.id;
+  const current = await call(`/api/lessons/${lessonId}`, { cookie: t.cookie });
+  const deleted = await call(`/api/lessons/${lessonId}`, {
+    method: "DELETE",
+    cookie: t.cookie,
+    body: { version: current.json.lesson.version },
+  });
+  expect(deleted.status, JSON.stringify(deleted.json)).toBe(200);
+  expect(await open(t, invoices.Hoa!.id)).toMatchObject({ total: 400_000, attendanceChanged: true });
+  expect((await send(t, invoices.Nam!)).status).toBe(409);
+  expect(await count("SELECT COUNT(*) AS n FROM attendance WHERE lesson_id = ?", lessonId)).toBe(2);
+  const history = await call(`/api/students/${hoa.studentId}/attendance`, { cookie: t.cookie });
+  expect(history.json.attendance.attended).toBe(3);
+  expect(
+    await put(t, `invoices/${invoices.Nam!.id}/lessons`, {
+      lessonIds: [lessons[1]!.id],
+      version: invoices.Nam!.version,
+    }),
+  ).toMatchObject({ status: 200, json: { invoice: { total: 100_000, studentId: nam.studentId } } });
+});

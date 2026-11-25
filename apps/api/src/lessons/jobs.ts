@@ -18,7 +18,6 @@ export async function extendOpenSeries(env: Env, now: Date = new Date()): Promis
   const horizon = new Date(now.getTime() + LIMITS.openSeriesWeeks * 7 * 86_400_000).toISOString();
   const rows = await seriesToExtend(db, horizon, PER_RUN);
   const statements: D1PreparedStatement[] = [];
-  let made = 0;
   for (const r of rows) {
     const last = utcToLocal(r.starts_at, r.timezone);
     const step = 7 * r.every_weeks;
@@ -41,12 +40,12 @@ export async function extendOpenSeries(env: Env, now: Date = new Date()): Promis
         endsAt: new Date(new Date(startsAt).getTime() + length).toISOString(),
       };
     });
-    made += lessons.length;
     statements.push(
       insertLessonsStatement(db, {
         tenantId: r.tenant_id,
         courseId: r.course_id,
         seriesId: r.series_id,
+        requireOpenSeries: true,
         title: r.title,
         place: r.place,
         onlineUrl: r.online_url,
@@ -54,6 +53,7 @@ export async function extendOpenSeries(env: Env, now: Date = new Date()): Promis
       }),
     );
   }
-  if (statements.length > 0) await db.batch(statements);
-  return made;
+  if (statements.length === 0) return 0;
+  const results = await db.batch(statements);
+  return results.reduce((sum, result) => sum + (result.meta.changes ?? 0), 0);
 }

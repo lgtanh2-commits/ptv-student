@@ -142,7 +142,7 @@ export async function pickLessons(
        JOIN lessons l ON l.id = a.lesson_id AND l.tenant_id = a.tenant_id
        JOIN courses c ON c.id = l.course_id AND c.tenant_id = l.tenant_id
        LEFT JOIN enrollments e ON e.tenant_id = l.tenant_id AND e.course_id = l.course_id AND e.student_id = a.student_id
-       WHERE a.tenant_id = ?1 AND a.status = 'attended' AND l.status != 'cancelled'
+       WHERE a.tenant_id = ?1 AND a.status = 'attended' AND l.status != 'cancelled' AND l.deleted_at IS NULL
          AND (?2 IS NULL OR l.starts_at >= ?2) AND (?3 IS NULL OR l.starts_at < ?3)
          AND (?4 IS NULL OR a.student_id = ?4)
          AND (?5 IS NULL OR l.id IN (SELECT value FROM json_each(?5)))
@@ -173,7 +173,7 @@ export async function unbilledStudents(db: D1Database, tenantId: string) {
        JOIN courses c ON c.id = l.course_id AND c.tenant_id = l.tenant_id
        JOIN students s ON s.id = a.student_id AND s.tenant_id = a.tenant_id
        LEFT JOIN enrollments e ON e.tenant_id = l.tenant_id AND e.course_id = l.course_id AND e.student_id = a.student_id
-       WHERE a.tenant_id = ?1 AND a.status = 'attended' AND l.status != 'cancelled'
+       WHERE a.tenant_id = ?1 AND a.status = 'attended' AND l.status != 'cancelled' AND l.deleted_at IS NULL
          AND COALESCE(e.custom_price, c.price_per_lesson) > 0 AND NOT ${BILLED_ANY}
        GROUP BY s.id ORDER BY s.name COLLATE NOCASE, s.id`,
     )
@@ -192,7 +192,7 @@ export async function stillAttended(
   const res = await db
     .prepare(
       `SELECT l.id FROM attendance a JOIN lessons l ON l.id = a.lesson_id AND l.tenant_id = a.tenant_id
-       WHERE a.tenant_id = ?1 AND a.student_id = ?2 AND a.status = 'attended' AND l.status != 'cancelled'
+       WHERE a.tenant_id = ?1 AND a.student_id = ?2 AND a.status = 'attended' AND l.status != 'cancelled' AND l.deleted_at IS NULL
          AND l.id IN (SELECT value FROM json_each(?3))`,
     )
     .bind(tenantId, studentId, JSON.stringify(lessonIds))
@@ -220,6 +220,20 @@ const linesTakenElsewhere = (lines: string, student: string, tenant: string, sel
      WHERE o.tenant_id = ${tenant} AND o.student_id = ${student} AND o.status != 'void' AND o.id != ${self}
        AND json_extract(ox.value, '$.id') = json_extract(x.value, '$.id'))`;
 const TAKEN_ON_INSERT = linesTakenElsewhere("json_extract(j.value, '$.lines')", "s.id", "s.tenant_id", "''");
+const containsDeletedLesson = (lines: string, tenant: string) =>
+  `EXISTS (SELECT 1 FROM json_each(${lines}) ln, json_each(ln.value, '$.lessons') x
+    JOIN lessons l ON l.id = json_extract(x.value, '$.id') AND l.tenant_id = ${tenant}
+    WHERE l.deleted_at IS NOT NULL)`;
+const DELETED_ON_INSERT = containsDeletedLesson("json_extract(j.value, '$.lines')", "s.tenant_id");
+const DELETED_ON_UPDATE = containsDeletedLesson("?1", "invoices.tenant_id");
+const DELETED_ON_SEND = containsDeletedLesson("invoices.lines", "invoices.tenant_id");
+
+export const hasDeletedReceiptLessons = (db: D1Database, tenantId: string, invoiceId: string) =>
+  db
+    .prepare(`SELECT 1 FROM invoices WHERE tenant_id = ? AND id = ? AND ${DELETED_ON_SEND}`)
+    .bind(tenantId, invoiceId)
+    .first();
+
 const TAKEN_ON_UPDATE = linesTakenElsewhere("?1", "invoices.student_id", "invoices.tenant_id", "invoices.id");
 
 /**
@@ -240,7 +254,7 @@ export const insertDraftsStatement = (
        SELECT json_extract(j.value, '$.id'), s.tenant_id, s.id, json_extract(j.value, '$.period'), json_extract(j.value, '$.lines'),
          json_extract(j.value, '$.total'), 'draft', 1, ?2, ?3, ?3
        FROM json_each(?1) j JOIN students s ON s.tenant_id = ?4 AND s.id = json_extract(j.value, '$.studentId')
-       WHERE NOT ${TAKEN_ON_INSERT}`,
+       WHERE NOT ${TAKEN_ON_INSERT} AND NOT ${DELETED_ON_INSERT}`,
     )
     .bind(JSON.stringify(o.drafts), o.userId, nowIso(), o.tenantId);
 
@@ -263,7 +277,7 @@ export const updateDraftStatement = (
   db
     .prepare(
       `UPDATE invoices SET lines = ?1, total = ?2, note = ?3, due_date = ?4, version = version + 1, updated_at = ?5
-       WHERE tenant_id = ?6 AND id = ?7 AND version = ?8 AND status = 'draft' AND NOT ${TAKEN_ON_UPDATE}`,
+       WHERE tenant_id = ?6 AND id = ?7 AND version = ?8 AND status = 'draft' AND NOT ${TAKEN_ON_UPDATE} AND NOT ${DELETED_ON_UPDATE}`,
     )
     .bind(JSON.stringify(o.lines), o.total, o.note, o.dueDate, nowIso(), o.tenantId, o.id, o.version);
 
@@ -288,7 +302,7 @@ export const sendStatement = (
          number = 'INV-' || REPLACE(period, '-', '') || '-' || printf('%04d',
            (SELECT COUNT(*) + 1 FROM invoices n WHERE n.tenant_id = invoices.tenant_id AND n.period = invoices.period AND n.number IS NOT NULL)),
          issued = ?1, sent_at = ?2, version = version + 1, updated_at = ?2
-       WHERE tenant_id = ?3 AND id = ?4 AND version = ?5 AND status = 'draft' AND total > 0 AND json_array_length(lines) > 0`,
+       WHERE tenant_id = ?3 AND id = ?4 AND version = ?5 AND status = 'draft' AND total > 0 AND json_array_length(lines) > 0 AND NOT ${DELETED_ON_SEND}`,
     )
     .bind(JSON.stringify(o.issued), nowIso(), o.tenantId, o.id, o.version);
 
@@ -449,7 +463,7 @@ export const studentsWithUnbilled = async (
          FROM attendance a JOIN lessons l ON l.id = a.lesson_id AND l.tenant_id = a.tenant_id
            JOIN courses c ON c.id = l.course_id AND c.tenant_id = l.tenant_id
            LEFT JOIN enrollments e ON e.tenant_id = l.tenant_id AND e.course_id = l.course_id AND e.student_id = a.student_id
-         WHERE a.tenant_id = ?1 AND a.status = 'attended' AND l.status != 'cancelled' AND l.starts_at >= ?2 AND l.starts_at < ?3
+         WHERE a.tenant_id = ?1 AND a.status = 'attended' AND l.status != 'cancelled' AND l.deleted_at IS NULL AND l.starts_at >= ?2 AND l.starts_at < ?3
            AND COALESCE(e.custom_price, c.price_per_lesson) > 0 AND NOT ${BILLED_ANY}`,
       )
       .bind(tenantId, fromUtc, toUtc)

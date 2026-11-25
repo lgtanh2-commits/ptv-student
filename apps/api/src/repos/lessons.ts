@@ -19,7 +19,7 @@ export interface LessonRow {
 /** Fixed text, used in every lesson query. Nothing from a request can reach it. */
 const COLUMNS = `l.id, l.tenant_id, l.course_id, c.name AS course_name, l.series_id, l.title, l.starts_at,
   l.ends_at, l.place, l.online_url, l.status, l.version
-  FROM lessons l JOIN courses c ON c.id = l.course_id AND c.tenant_id = l.tenant_id`;
+  FROM lessons l JOIN courses c ON c.id = l.course_id AND c.tenant_id = l.tenant_id AND l.deleted_at IS NULL`;
 
 export const tenantTimezone = async (db: D1Database, tenantId: string): Promise<string> =>
   (await db.prepare("SELECT timezone FROM tenants WHERE id = ?").bind(tenantId).first<{ timezone: string }>())
@@ -92,7 +92,7 @@ export async function hasOverlap(
   const row = await db
     .prepare(
       `SELECT 1 FROM lessons l, json_each(?1) j
-       WHERE l.tenant_id = ?2 AND l.status != 'cancelled' AND l.id NOT IN (SELECT value FROM json_each(?3))
+       WHERE l.tenant_id = ?2 AND l.deleted_at IS NULL AND l.status != 'cancelled' AND l.id NOT IN (SELECT value FROM json_each(?3))
          AND l.starts_at < json_extract(j.value, '$.endsAt') AND l.ends_at > json_extract(j.value, '$.startsAt')
        LIMIT 1`,
     )
@@ -124,6 +124,7 @@ export const insertLessonsStatement = (
     tenantId: string;
     courseId: string;
     seriesId: string | null;
+    requireOpenSeries?: boolean;
     title: string;
     place: string;
     onlineUrl: string | null;
@@ -137,7 +138,12 @@ export const insertLessonsStatement = (
          json_extract(j.value, '$.endsAt'), ?5, ?6, ?7, ?7
        FROM courses c, json_each(?1) j
        WHERE c.tenant_id = ?2 AND c.id = ?8 AND c.status != 'archived'
-         AND (SELECT COUNT(*) FROM lessons x WHERE x.course_id = c.id) + json_array_length(?1) <= ?9`,
+         AND (SELECT COUNT(*) FROM lessons x WHERE x.course_id = c.id AND x.deleted_at IS NULL) + json_array_length(?1) <= ?9
+         AND (?10 = 0 OR (
+           EXISTS (SELECT 1 FROM lesson_series s WHERE s.id = ?3 AND s.tenant_id = ?2 AND s.ended = 0)
+           AND NOT EXISTS (SELECT 1 FROM lessons existing WHERE existing.series_id = ?3
+             AND existing.starts_at = json_extract(j.value, '$.startsAt'))
+         ))`,
     )
     .bind(
       JSON.stringify(o.lessons),
@@ -149,6 +155,7 @@ export const insertLessonsStatement = (
       nowIso(),
       o.courseId,
       LIMITS.maxLessonsPerCourse,
+      o.requireOpenSeries ? 1 : 0,
     );
 
 /**
@@ -174,8 +181,8 @@ export const updateLessonsStatement = (
          version = lessons.version + 1, updated_at = ?4
        FROM (SELECT json_extract(value, '$.id') AS id, json_extract(value, '$.startsAt') AS starts_at,
                json_extract(value, '$.endsAt') AS ends_at FROM json_each(?5)) j
-       WHERE lessons.id = j.id AND lessons.tenant_id = ?6 AND lessons.status = 'scheduled'
-         AND (SELECT version FROM lessons t WHERE t.id = ?7 AND t.tenant_id = ?6 AND t.status = 'scheduled') = ?8`,
+       WHERE lessons.id = j.id AND lessons.tenant_id = ?6 AND lessons.status = 'scheduled' AND lessons.deleted_at IS NULL
+         AND (SELECT version FROM lessons t WHERE t.id = ?7 AND t.tenant_id = ?6 AND t.status = 'scheduled' AND t.deleted_at IS NULL) = ?8`,
     )
     .bind(
       o.title,
@@ -200,8 +207,8 @@ export const deleteScheduledLessonsStatement = (
   db
     .prepare(
       `DELETE FROM lessons
-       WHERE tenant_id = ?1 AND status = 'scheduled' AND id IN (SELECT value FROM json_each(?2))
-         AND (SELECT version FROM lessons t WHERE t.id = ?3 AND t.tenant_id = ?1 AND t.status = 'scheduled') = ?4`,
+       WHERE tenant_id = ?1 AND status = 'scheduled' AND deleted_at IS NULL AND id IN (SELECT value FROM json_each(?2))
+         AND (SELECT version FROM lessons t WHERE t.id = ?3 AND t.tenant_id = ?1 AND t.status = 'scheduled' AND t.deleted_at IS NULL) = ?4`,
     )
     .bind(o.tenantId, JSON.stringify(o.ids), o.targetId, o.version);
 
@@ -282,7 +289,7 @@ export const cancelLessonsStatement = (
   db
     .prepare(
       `UPDATE lessons SET status = 'cancelled', version = version + 1, updated_at = ?1
-       WHERE tenant_id = ?2 AND status = 'scheduled'
+       WHERE tenant_id = ?2 AND status = 'scheduled' AND deleted_at IS NULL
          AND (id = ?3 OR (?4 = 1 AND series_id = ?5 AND starts_at >= ?6))`,
     )
     .bind(nowIso(), o.tenantId, o.id, o.following ? 1 : 0, o.seriesId, o.startsAt);
@@ -291,6 +298,41 @@ export const restoreLessonStatement = (db: D1Database, tenantId: string, id: str
   db
     .prepare(
       `UPDATE lessons SET status = 'scheduled', version = version + 1, updated_at = ?
-       WHERE tenant_id = ? AND id = ? AND status = 'cancelled'`,
+       WHERE tenant_id = ? AND id = ? AND status = 'cancelled' AND deleted_at IS NULL`,
     )
     .bind(nowIso(), tenantId, id);
+
+/** Hide the selected lesson and, optionally, later upcoming occurrences of its series. */
+export const deleteLessonStatement = (
+  db: D1Database,
+  tenantId: string,
+  id: string,
+  version: number,
+  following: boolean,
+) =>
+  db
+    .prepare(
+      `WITH target AS MATERIALIZED (
+       SELECT id, series_id, starts_at FROM lessons
+       WHERE tenant_id = ?2 AND id = ?3 AND version = ?4 AND deleted_at IS NULL
+     )
+     UPDATE lessons SET deleted_at = ?1, updated_at = ?1, version = version + 1
+     WHERE tenant_id = ?2 AND deleted_at IS NULL AND EXISTS (
+       SELECT 1 FROM target
+       WHERE lessons.id = target.id OR (
+         ?5 = 1 AND lessons.series_id = target.series_id AND lessons.starts_at > target.starts_at
+         AND lessons.starts_at >= ?1
+       )
+     )`,
+    )
+    .bind(nowIso(), tenantId, id, version, following ? 1 : 0);
+
+/** Used in the same batch before deleting a series from a specific occurrence. */
+export const endSeriesForDeletion = (db: D1Database, tenantId: string, id: string, version: number) =>
+  db
+    .prepare(
+      `UPDATE lesson_series SET ended = 1 WHERE tenant_id = ?1 AND id = (
+       SELECT series_id FROM lessons WHERE tenant_id = ?1 AND id = ?2 AND version = ?3 AND deleted_at IS NULL
+     )`,
+    )
+    .bind(tenantId, id, version);

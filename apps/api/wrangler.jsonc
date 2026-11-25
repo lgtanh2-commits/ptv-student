@@ -33,6 +33,7 @@
 
   // Local development uses a local D1 database. The ids below are placeholders:
   // run `wrangler d1 create ptv-lms-<env>` and paste the real id (see docs/deploy.md).
+  "r2_buckets": [{ "binding": "HOMEWORK_IMAGES", "bucket_name": "ptv-lms-homework-local" }],
   "d1_databases": [
     {
       "binding": "DB",
@@ -65,6 +66,7 @@
         // Not a secret: browsers receive it. Push stays off until VAPID_PRIVATE_KEY is also set (docs/deploy.md).
         "VAPID_PUBLIC_KEY": "BE2xW21F1Sl_Uv__-dI_5TMRGDKA5KQ_qvNeuP0gLNL8i8C9yTRgs2PNH1durzjQNME44GAwIhTUWH50Cm5Qt_8",
       },
+      "r2_buckets": [{ "binding": "HOMEWORK_IMAGES", "bucket_name": "ptv-lms-homework-staging" }],
       "d1_databases": [
         {
           "binding": "DB",
@@ -103,6 +105,7 @@
         // go to Mixpanel only from production; local, tests and staging have no token, so they send nothing.
         "MIXPANEL_TOKEN": "03e57604a295fa0876d150754c47ace0",
       },
+      "r2_buckets": [{ "binding": "HOMEWORK_IMAGES", "bucket_name": "ptv-lms-homework-production" }],
       "d1_databases": [
         {
           "binding": "DB",

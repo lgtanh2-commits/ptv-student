@@ -100,6 +100,7 @@ export function useMyWork(id: string, text: { handedIn: string }) {
       questionId: a.questionId,
       choice: a.choice,
       text: a.text,
+      imageIds: a.imageIds,
       link: a.link && a.link.trim() !== "" ? a.link.trim() : null,
     })),
   });

@@ -14,6 +14,7 @@ import {
   LESSON_LENGTHS,
   useEditLesson,
   useLessonCancel,
+  useLessonDelete,
   useLessonRestore,
   useNewLesson,
 } from "@/features/lessons/useLessons";
@@ -24,6 +25,9 @@ import AppAlert from "@/ui/AppAlert.vue";
 import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppCard from "@/ui/AppCard.vue";
+import LessonDeleteDialog from "@/components/LessonDeleteDialog.vue";
+import AppMenu from "@/ui/AppMenu.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
@@ -68,6 +72,7 @@ const edit = useEditLesson({ updated: (n) => (n === 1 ? l.updatedOne : fill(l.up
 const cancelledText = (n: number) => (n === 1 ? l.cancelled : fill(l.cancelledMany, { n }));
 const { asking, confirmingScope, askCancel, doCancel } = useLessonCancel({ cancelled: cancelledText }, load);
 const { restoringId, restore } = useLessonRestore({ restored: l.restored }, load);
+const deletion = useLessonDelete((n) => (n === 1 ? l.deleted : fill(l.deletedMany, { n })), load);
 const lengthText: Record<number, string> = { 30: l.len30, 60: l.len60, 90: l.len90, 120: l.len120 };
 const lengths = LESSON_LENGTHS.map((m) => ({ value: String(m), label: lengthText[m]! }));
 const scopeOptions = [
@@ -190,28 +195,39 @@ const statusTone = {
                   statusText[lessonLabel(lesson)]
                 }}</AppBadge>
               </template>
-              <template v-if="lesson.status === 'scheduled'" #actions>
-                <AppButton variant="ghost" compact @click="edit.open(lesson)"
-                  ><AppIcon name="edit" :size="16" />{{ l.edit }}</AppButton
-                >
-                <AppButton variant="ghost" compact @click="askCancel(lesson)"
-                  ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppButton
-                >
-              </template>
-              <template v-else-if="lesson.status === 'cancelled'" #actions>
+              <template #actions>
+                <template v-if="lesson.status === 'scheduled'">
+                  <AppButton variant="ghost" compact @click="edit.open(lesson)"
+                    ><AppIcon name="edit" :size="16" />{{ l.edit }}</AppButton
+                  >
+                  <AppButton variant="ghost" compact @click="askCancel(lesson)"
+                    ><AppIcon name="ban" :size="16" />{{ l.cancel }}</AppButton
+                  >
+                </template>
+
                 <AppButton
+                  v-else-if="lesson.status === 'cancelled'"
                   variant="ghost"
                   compact
                   :loading="restoringId === lesson.id"
                   @click="restore(lesson.id)"
                   ><AppIcon name="restore" :size="16" />{{ l.restore }}</AppButton
                 >
+                <AppMenu compact :label="messages.common.moreActions">
+                  <AppMenuItem danger @click="deletion.selected.value = lesson">{{ l.delete }}</AppMenuItem>
+                </AppMenu>
               </template>
             </AppListRow>
           </ul>
         </section>
       </template>
     </div>
+
+    <LessonDeleteDialog
+      v-model="deletion.selected.value"
+      :busy="deletion.busy.value"
+      @confirm="deletion.remove"
+    />
 
     <AppModal
       :model-value="asking !== null"

@@ -24,6 +24,7 @@ import { authorize } from "../policy";
 import {
   deleteDraftStatement,
   findInvoice,
+  hasDeletedReceiptLessons,
   findMyInvoice,
   insertDraftsStatement,
   invoiceCounts,
@@ -559,7 +560,14 @@ export async function invoiceSend(ctx: Ctx, actor: Actor, id: string, version: n
     payee: paymentOf(current),
   };
   const res = await sendStatement(db, { tenantId, id, version, issued }).run();
-  if (!res.meta.changes) throw new AppError("CONFLICT", { message: conflictText });
+  if (!res.meta.changes) {
+    if (await hasDeletedReceiptLessons(db, tenantId, id)) {
+      throw new AppError("CONFLICT", {
+        message: "This receipt includes a deleted lesson. Choose the lessons again before sending it.",
+      });
+    }
+    throw new AppError("CONFLICT", { message: conflictText });
+  }
   await audit(db, {
     action: "invoice.sent",
     actorUserId: actor.userId,

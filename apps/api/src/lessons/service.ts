@@ -4,6 +4,7 @@ import {
   type AttendanceSheet,
   type CancelLessonBody,
   type CreateLessonsBody,
+  type DeleteLessonBody,
   type LessonInfo,
   type ScheduleLesson,
   type StudentAttendanceInfo,
@@ -30,8 +31,10 @@ import {
   activeStudentNames,
   cancelLessonsStatement,
   deleteEmptySeriesStatement,
+  deleteLessonStatement,
   deleteScheduledLessonsStatement,
   endSeriesStatement,
+  endSeriesForDeletion,
   hasOverlap,
   insertSeriesStatement,
   findLesson,
@@ -432,6 +435,35 @@ export async function lessonCancel(
     ),
     zone,
   );
+}
+
+export async function lessonDelete(
+  ctx: Ctx,
+  actor: Actor,
+  id: string,
+  body: DeleteLessonBody,
+): Promise<number> {
+  const db = ctx.env.DB;
+  const tenantId = requireTeacherTenant(actor);
+  authorize(actor, "lesson", "delete", { tenantId });
+  const lesson = await load(ctx, tenantId, id);
+  const following = body.scope === "following" && lesson.series_id !== null;
+  const results = await db.batch([
+    ...(following ? [endSeriesForDeletion(db, tenantId, id, body.version)] : []),
+    deleteLessonStatement(db, tenantId, id, body.version, following),
+  ]);
+  const count = results.at(-1)?.meta.changes ?? 0;
+  if (!count) throw new AppError("CONFLICT");
+  await audit(db, {
+    action: "lesson.deleted",
+    actorUserId: actor.userId,
+    tenantId,
+    targetType: "lesson",
+    targetId: id,
+    ipHash: ctx.ipHash,
+    meta: { count, scope: following ? "following" : "this" },
+  });
+  return count;
 }
 
 export async function lessonRestore(ctx: Ctx, actor: Actor, id: string): Promise<LessonInfo> {

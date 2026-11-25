@@ -436,9 +436,9 @@ export const SERVER_TEXT: readonly ServerText[] = [
     vi: "Khóa học này đang được lưu trữ. Vui lòng khôi phục khóa học trước.",
   },
   {
-    id: "Students already started, so only the wording of the questions can change.",
-    en: "Students already started, so only the wording of the questions can change.",
-    vi: "Học viên đã bắt đầu làm bài nên chỉ có thể sửa nội dung câu hỏi.",
+    id: "Students already started. You can edit the question text and photos.",
+    en: "Students already started. You can edit the question text and photos.",
+    vi: "Học sinh đã bắt đầu làm bài. Bạn có thể sửa nội dung và ảnh của câu hỏi.",
   },
   {
     id: "This work is already published, or its course is archived.",
@@ -626,6 +626,21 @@ export const SERVER_TEXT: readonly ServerText[] = [
     id: "{n}please write your answer.",
     en: "{n}please write your answer.",
     vi: "{n}vui lòng nhập câu trả lời.",
+  },
+  {
+    id: "{n}please write your answer or attach a photo.",
+    en: "{n}please write your answer or attach a photo.",
+    vi: "{n}vui lòng nhập câu trả lời hoặc đính kèm ảnh.",
+  },
+  {
+    id: "Choose a JPG, PNG, or WebP image.",
+    en: "Choose a JPG, PNG, or WebP image.",
+    vi: "Chọn ảnh JPG, PNG hoặc WebP.",
+  },
+  {
+    id: "This receipt includes a deleted lesson. Choose the lessons again before sending it.",
+    en: "This receipt includes a deleted lesson. Choose the lessons again before sending it.",
+    vi: "Phiếu thu có buổi học đã xóa. Hãy chọn lại các buổi học trước khi gửi phiếu.",
   },
   { id: "{n}this note is too long.", en: "{n}this note is too long.", vi: "{n}ghi chú này quá dài." },
   {

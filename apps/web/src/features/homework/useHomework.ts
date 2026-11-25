@@ -130,6 +130,7 @@ export function useMaterials(courseId: string, text: { added: string; saved: str
 /** One question as it is typed. Numbers are kept as text until they are sent. */
 export interface QuestionValues {
   id?: string;
+  imageIds: string[];
   kind: QuestionKind;
   text: string;
   points: string;
@@ -147,11 +148,13 @@ interface Values extends Record<string, unknown> {
   studentIds: string[];
   questions: QuestionValues[];
   links: { title: string; url: string }[];
+  imageIds: string[];
 }
 
 /** A new empty question of this kind. Questions the teacher scores by hand start at 5 points, the others at 1. */
 export const newQuestion = (kind: QuestionKind): QuestionValues => ({
   kind,
+  imageIds: [],
   text: "",
   points: kind === "written" || kind === "speaking" ? "5" : "1",
   options: kind === "choice" ? ["", ""] : [],
@@ -167,6 +170,7 @@ export function questionPayload(q: QuestionValues) {
   return {
     ...(q.id ? { id: q.id } : {}),
     kind: q.kind,
+    imageIds: q.imageIds,
     text: q.text,
     points: blank(q.points) ? undefined : Number(q.points.replace(",", ".")),
     options: q.kind === "choice" ? keep.map((x) => x.o) : [],
@@ -202,6 +206,7 @@ export function useAssignmentForm(
   const payload = (v: Values) => ({
     title: v.title,
     instructions: v.instructions,
+    imageIds: v.imageIds,
     questions: v.questions.map(questionPayload),
     links: v.links.filter((l) => l.title.trim() !== "" || l.url.trim() !== ""),
     // A day with no time means the usual time. No day means no due date at all.
@@ -224,6 +229,7 @@ export function useAssignmentForm(
       studentIds: [],
       questions: [newQuestion("written")],
       links: [],
+      imageIds: [],
     },
     {
       schema: () => (assignment.value ? updateAssignmentBody : createAssignmentBody),
@@ -273,6 +279,7 @@ export function useAssignmentForm(
           studentIds: [...a.studentIds],
           questions: a.questions.map((q) => ({
             id: q.id,
+            imageIds: q.imageIds ?? [],
             kind: q.kind,
             text: q.text,
             points: String(q.points),
@@ -281,6 +288,7 @@ export function useAssignmentForm(
             accepted: q.kind === "short" && q.accepted.length === 0 ? [""] : [...q.accepted],
           })),
           links: a.links.map((l) => ({ ...l })),
+          imageIds: a.imageIds ?? [],
         });
       }
       await loadStudents();
@@ -317,9 +325,13 @@ export function useAssignmentForm(
    */
   function importQuestions(parsed: ParsedQuestion[]) {
     const isUntouched = (v: QuestionValues) =>
-      v.text.trim() === "" && v.options.every((o) => o.trim() === "") && v.accepted.every((a) => a === "");
+      v.imageIds.length === 0 &&
+      v.text.trim() === "" &&
+      v.options.every((o) => o.trim() === "") &&
+      v.accepted.every((a) => a === "");
     const added: QuestionValues[] = parsed.map((p) => ({
       kind: p.kind,
+      imageIds: [],
       text: p.text,
       points: p.points,
       options: p.kind === "choice" ? (p.options.length >= 2 ? p.options : [...p.options, "", ""]) : [],

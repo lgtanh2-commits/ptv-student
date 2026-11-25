@@ -8,6 +8,7 @@ import {
 } from "@lms/shared";
 import { computed, onMounted, ref } from "vue";
 import { api } from "@/api/client";
+import { messageOf } from "@/features/errors";
 import { today } from "@/features/format";
 import { useForm } from "@/features/forms/useForm";
 import { useToast } from "@/features/toast/useToast";
@@ -295,4 +296,31 @@ export function useNewLesson(text: { added: (n: number) => string }, done: (less
     }
   }
   return { courses, courseId, loadingCourses, courseError, form, open };
+}
+
+/** Deletes either the confirmed lesson or the confirmed lesson and the future ones in its series. */
+export function useLessonDelete(deletedText: (count: number) => string, reload: () => Promise<void>) {
+  const toast = useToast();
+  const selected = ref<LessonInfo | null>(null);
+  const busy = ref<"this" | "following" | null>(null);
+
+  async function remove(scope: "this" | "following") {
+    const lesson = selected.value;
+    if (!lesson || busy.value) return;
+    busy.value = scope;
+    try {
+      const { deleted } = await api<{ deleted: number }>(`/lessons/${lesson.id}`, {
+        method: "DELETE",
+        body: { version: lesson.version, scope },
+      });
+      selected.value = null;
+      toast.success(deletedText(deleted));
+      await reload();
+    } catch (err) {
+      toast.error(messageOf(err));
+    } finally {
+      busy.value = null;
+    }
+  }
+  return { busy, selected, remove };
 }

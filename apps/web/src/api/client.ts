@@ -31,7 +31,8 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const method = options.method ?? "GET";
   const headers: Record<string, string> = { accept: "application/json", "x-lms-lang": language };
   if (method !== "GET") headers["x-lms-client"] = "web";
-  if (options.body !== undefined) headers["content-type"] = "application/json";
+  const file = options.body instanceof Blob ? options.body : undefined;
+  if (options.body !== undefined) headers["content-type"] = file?.type || "application/json";
   if (options.idempotencyKey) headers["idempotency-key"] = options.idempotencyKey;
 
   let res: Response;
@@ -39,7 +40,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
     res = await fetch(`/api${path}`, {
       method,
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: file ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       credentials: "same-origin",
       signal: options.signal,
     });

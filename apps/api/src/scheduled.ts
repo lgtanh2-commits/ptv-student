@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import { cleanHomeworkImages } from "./homework-images/service";
 import { extendOpenSeries } from "./lessons/jobs";
 import { runMaintenance } from "./maintenance/jobs";
 import { drainQueue } from "./notifications/delivery";
@@ -28,6 +29,7 @@ export async function runScheduled(cron: string, env: Env): Promise<void> {
     ["reminders", async (e) => void (reminders = await makeReminders(e))],
     ["repeating lessons", extendOpenSeries],
     ["clean up", runMaintenance],
+    ["unused homework images", cleanHomeworkImages],
     ["send reminders", (e) => sendReminders(e, reminders)],
   ];
   for (const [name, job] of jobs) {

@@ -29,7 +29,7 @@ export async function sheetRows(db: D1Database, tenantId: string, lessonId: stri
        LEFT JOIN enrollments e ON e.tenant_id = l.tenant_id AND e.course_id = l.course_id AND e.student_id = s.id
          AND e.status != 'pending' AND (e.ended_at IS NULL OR e.ended_at >= l.starts_at)
        LEFT JOIN attendance a ON a.lesson_id = l.id AND a.student_id = s.id
-       WHERE l.tenant_id = ?1 AND l.id = ?2 AND ((e.student_id IS NOT NULL AND s.status != 'archived') OR a.id IS NOT NULL)
+       WHERE l.tenant_id = ?1 AND l.id = ?2 AND l.deleted_at IS NULL AND ((e.student_id IS NOT NULL AND s.status != 'archived') OR a.id IS NOT NULL)
        ORDER BY s.name COLLATE NOCASE, s.id`,
     )
     .bind(tenantId, lessonId)
@@ -57,7 +57,7 @@ export const saveMarksStatement = (
        SELECT json_extract(j.value, '$.id'), l.tenant_id, l.id, json_extract(j.value, '$.studentId'),
          json_extract(j.value, '$.status'), ?3, ?4
        FROM lessons l, json_each(?1) j
-       WHERE l.tenant_id = ?2 AND l.id = ?5 AND l.status != 'cancelled' AND l.starts_at <= ?3
+       WHERE l.tenant_id = ?2 AND l.id = ?5 AND l.deleted_at IS NULL AND l.status != 'cancelled' AND l.starts_at <= ?3
        ON CONFLICT (lesson_id, student_id) DO UPDATE SET
          status = excluded.status, marked_at = excluded.marked_at, marked_by = excluded.marked_by
        WHERE attendance.status != excluded.status`,
@@ -73,7 +73,7 @@ export const markLessonHeldStatement = (
   db
     .prepare(
       `UPDATE lessons SET status = 'held', version = version + 1, updated_at = ?1
-       WHERE tenant_id = ?2 AND id = ?3 AND status = 'scheduled' AND starts_at <= ?1`,
+       WHERE tenant_id = ?2 AND id = ?3 AND deleted_at IS NULL AND status = 'scheduled' AND starts_at <= ?1`,
     )
     .bind(nowIso(), tenantId, lessonId);
 
@@ -87,8 +87,9 @@ export async function attendanceOfStudent(
 ) {
   const counts = await db
     .prepare(
-      `SELECT COALESCE(SUM(status = 'attended'), 0) AS attended, COALESCE(SUM(status = 'absent'), 0) AS absent
-       FROM attendance WHERE tenant_id = ? AND student_id = ?`,
+      `SELECT COALESCE(SUM(a.status = 'attended'), 0) AS attended, COALESCE(SUM(a.status = 'absent'), 0) AS absent
+       FROM attendance a JOIN lessons l ON l.id = a.lesson_id AND l.tenant_id = a.tenant_id
+       WHERE a.tenant_id = ? AND a.student_id = ? AND l.deleted_at IS NULL`,
     )
     .bind(tenantId, studentId)
     .first<{ attended: number; absent: number }>();
@@ -97,7 +98,7 @@ export async function attendanceOfStudent(
       `SELECT l.id AS lesson_id, c.name AS course_name, l.title, l.starts_at, a.status
        FROM attendance a JOIN lessons l ON l.id = a.lesson_id AND l.tenant_id = a.tenant_id
          JOIN courses c ON c.id = l.course_id AND c.tenant_id = l.tenant_id
-       WHERE a.tenant_id = ? AND a.student_id = ?
+       WHERE a.tenant_id = ? AND a.student_id = ? AND l.deleted_at IS NULL
        ORDER BY l.starts_at DESC, l.id LIMIT ? OFFSET ?`,
     )
     .bind(tenantId, studentId, limit, offset)

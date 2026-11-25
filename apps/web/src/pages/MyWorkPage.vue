@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import HomeworkImagePicker from "@/components/HomeworkImagePicker.vue";
+import HomeworkImageGallery from "@/components/HomeworkImageGallery.vue";
 import { kindText } from "@/components/homeworkLabels";
 import { formatWhen, hostOf } from "@/features/format";
 import { dueWords, scoreText } from "@/features/homework/dates";
@@ -28,9 +30,15 @@ const id = String(route.params.id);
 const m = useMyWork(id, { handedIn: t.handedIn });
 const w = computed(() => m.work.value);
 const confirming = ref(false);
+const uploads = ref(new Set<string>());
+function setUploading(questionId: string, busy: boolean) {
+  if (busy) uploads.value.add(questionId);
+  else uploads.value.delete(questionId);
+}
 
 const handingIn = ref(false);
 async function handIn() {
+  if (uploads.value.size) return;
   handingIn.value = true;
   try {
     if (await m.handIn()) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -42,7 +50,7 @@ async function handIn() {
 
 // Leaving with words that are not saved yet: the browser asks first.
 const warn = (e: BeforeUnloadEvent) => {
-  if (m.unsaved.value) e.preventDefault();
+  if (m.unsaved.value || uploads.value.size) e.preventDefault();
 };
 onMounted(() => window.addEventListener("beforeunload", warn));
 onBeforeUnmount(() => window.removeEventListener("beforeunload", warn));
@@ -153,8 +161,12 @@ const setLink = (qi: number, v: string) => {
         </AppFormActions>
       </section>
 
-      <AppCard v-if="w.instructions || w.links.length || w.dueAt" :title="t.instructions">
+      <AppCard
+        v-if="w.instructions || w.links.length || w.imageIds?.length || w.dueAt"
+        :title="t.instructions"
+      >
         <p v-if="w.instructions" class="whitespace-pre-wrap break-words">{{ w.instructions }}</p>
+        <HomeworkImageGallery :ids="w.imageIds" :assignment-id="id" />
         <ul v-if="w.links.length" class="flex flex-col gap-1">
           <li v-for="l in w.links" :key="l.url">
             <!-- The title wraps as text; the host stays whole after it. -->
@@ -184,6 +196,8 @@ const setLink = (qi: number, v: string) => {
           </div>
           <AppBadge>{{ pointsText(q.points) }}</AppBadge>
         </div>
+
+        <HomeworkImageGallery :ids="q.imageIds" :assignment-id="id" />
 
         <fieldset v-if="q.kind === 'choice'" class="flex flex-col gap-2" :disabled="!w.canEdit">
           <legend class="sr-only">{{ q.text }}</legend>
@@ -258,6 +272,19 @@ const setLink = (qi: number, v: string) => {
           />
         </template>
 
+        <HomeworkImagePicker
+          v-if="w.canEdit"
+          :model-value="m.answers[qi]!.imageIds ?? []"
+          :upload-path="`/my/work/${id}/images`"
+          :disabled="m.submitting.value"
+          @busy="setUploading(q.id, $event)"
+          @update:model-value="
+            m.answers[qi]!.imageIds = $event;
+            m.changed();
+          "
+        />
+        <HomeworkImageGallery v-else :ids="m.answers[qi]?.imageIds" />
+
         <!-- How this question went, once handed in -->
         <div
           v-if="resultOf(q.id)"
@@ -298,7 +325,7 @@ const setLink = (qi: number, v: string) => {
             {{ saveText }}
           </p>
         </template>
-        <AppButton :loading="m.submitting.value" @click="confirming = true"
+        <AppButton :loading="m.submitting.value" :disabled="uploads.size > 0" @click="confirming = true"
           ><AppIcon name="send" :size="18" />{{ t.handIn }}</AppButton
         >
       </AppActionBar>
@@ -308,7 +335,9 @@ const setLink = (qi: number, v: string) => {
       <p>{{ t.handInText }}</p>
       <template #actions>
         <AppButton variant="ghost" @click="confirming = false">{{ messages.common.cancel }}</AppButton>
-        <AppButton :loading="handingIn" @click="handIn">{{ t.handInYes }}</AppButton>
+        <AppButton :loading="handingIn" :disabled="uploads.size > 0" @click="handIn">{{
+          t.handInYes
+        }}</AppButton>
       </template>
     </AppModal>
   </AppPage>

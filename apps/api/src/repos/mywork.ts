@@ -1,3 +1,4 @@
+import type { AnswerItem } from "@lms/shared";
 import { nowIso } from "../lib/time";
 
 /**
@@ -17,7 +18,7 @@ const VISIBLE = `FROM assignments a
     AND (a.target_mode = 'all' OR EXISTS (SELECT 1 FROM assignment_targets g WHERE g.assignment_id = a.id AND g.student_id = s.id))`;
 
 const COLUMNS = `a.id, a.tenant_id, a.course_id, c.name AS course_name, a.title, a.instructions, a.questions,
-  a.links, a.due_at, a.allow_late, a.max_score, a.status AS assignment_status, t.timezone, s.id AS student_id,
+  a.links, a.image_ids, a.due_at, a.allow_late, a.max_score, a.status AS assignment_status, t.timezone, s.id AS student_id,
   sub.status AS sub_status, sub.responses, sub.question_points, sub.question_notes, sub.submitted_at, sub.is_late, sub.score,
   sub.feedback, x.until_at`;
 
@@ -30,6 +31,7 @@ export interface MyWorkRow {
   instructions: string;
   questions: string;
   links: string;
+  image_ids: string;
   due_at: string | null;
   allow_late: number;
   max_score: number;
@@ -116,7 +118,7 @@ export async function myUpcomingLessons(
        FROM lessons l
        JOIN courses co ON co.id = l.course_id AND co.tenant_id = l.tenant_id
        JOIN tenants tn ON tn.id = l.tenant_id
-       WHERE l.status = 'scheduled' AND l.ends_at >= ?2
+       WHERE l.status = 'scheduled' AND l.deleted_at IS NULL AND l.ends_at >= ?2
          AND l.course_id IN (SELECT c.id ${COURSE_FROM})
        ORDER BY l.starts_at, l.id LIMIT ?3`,
     )
@@ -161,7 +163,7 @@ export const saveAnswerStatement = (
     studentId: string;
     assignmentId: string;
     status: "drafted" | "submitted" | "returned";
-    responses: unknown[];
+    responses: AnswerItem[];
     points: Record<string, number>;
     score: number | null;
   },
@@ -173,15 +175,28 @@ export const saveAnswerStatement = (
   return db
     .prepare(
       `INSERT INTO submissions (id, tenant_id, assignment_id, student_id, status, responses, question_points, score,
-         submitted_at, graded_at, returned_at, is_late, created_at, updated_at)
+         submitted_at, graded_at, returned_at, is_late, created_at, updated_at, submitted_images)
        SELECT ?1, a.tenant_id, a.id, s.id, ?2, ?3, ?4, ?5,
          CASE WHEN ?2 != 'drafted' THEN ?6 END, CASE WHEN ?2 = 'returned' THEN ?6 END, CASE WHEN ?2 = 'returned' THEN ?6 END,
-         CASE WHEN ?2 != 'drafted' AND NOT ${onTime} THEN 1 ELSE 0 END, ?6, ?6
+         CASE WHEN ?2 != 'drafted' AND NOT ${onTime} THEN 1 ELSE 0 END, ?6, ?6, ?11
        FROM assignments a JOIN students s ON s.tenant_id = a.tenant_id AND s.id = ?7 AND s.user_id = ?8 AND s.status != 'archived'
        WHERE a.tenant_id = ?9 AND a.id = ?10 AND a.deleted_at IS NULL AND a.status = 'published' AND (a.allow_late = 1 OR ${onTime})
+         AND EXISTS (SELECT 1 FROM enrollments e WHERE e.tenant_id = a.tenant_id AND e.course_id = a.course_id
+           AND e.student_id = s.id AND e.status = 'active')
+         AND (a.target_mode = 'all' OR EXISTS (SELECT 1 FROM assignment_targets g
+           WHERE g.assignment_id = a.id AND g.student_id = s.id))
+         AND EXISTS (SELECT 1 FROM courses c WHERE c.id = a.course_id AND c.status != 'archived')
+         AND NOT EXISTS (
+           SELECT 1 FROM json_each(?3) answer, json_each(answer.value, '$.imageIds') j WHERE NOT EXISTS (
+             SELECT 1 FROM homework_images i WHERE i.id = j.value AND i.ready = 1 AND i.deleting = 0
+               AND i.tenant_id = a.tenant_id AND i.assignment_id = a.id AND i.student_id = s.id
+               AND i.user_id = ?8
+           )
+         )
        ON CONFLICT (assignment_id, student_id) DO UPDATE SET
          status = CASE WHEN ?2 != 'drafted' THEN ?2 ELSE submissions.status END,
          responses = excluded.responses,
+         submitted_images = CASE WHEN ?2 != 'drafted' THEN excluded.submitted_images ELSE submissions.submitted_images END,
          question_points = CASE WHEN ?2 != 'drafted' THEN excluded.question_points ELSE submissions.question_points END,
          score = CASE WHEN ?2 != 'drafted' THEN excluded.score ELSE submissions.score END,
          submitted_at = CASE WHEN ?2 != 'drafted' THEN excluded.submitted_at ELSE submissions.submitted_at END,
@@ -204,5 +219,12 @@ export const saveAnswerStatement = (
       o.userId,
       o.tenantId,
       o.assignmentId,
+      JSON.stringify(
+        o.status === "drafted"
+          ? {}
+          : Object.fromEntries(
+              o.responses.filter((a) => a.imageIds?.length).map((a) => [a.questionId, a.imageIds]),
+            ),
+      ),
     );
 };

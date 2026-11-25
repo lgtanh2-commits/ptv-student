@@ -1,4 +1,11 @@
-import { attendanceBody, cancelLessonBody, createLessonsBody, isoDate, updateLessonBody } from "@lms/shared";
+import {
+  attendanceBody,
+  cancelLessonBody,
+  createLessonsBody,
+  deleteLessonBody,
+  isoDate,
+  updateLessonBody,
+} from "@lms/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { makeCtx } from "../auth/service";
@@ -9,6 +16,7 @@ import {
   courseLessons,
   createLessons,
   lessonCancel,
+  lessonDelete,
   lessonGet,
   lessonRestore,
   lessonUpdate,
@@ -53,6 +61,12 @@ lessons.put("/lessons/:id", requireTeacher, async (c) => {
 lessons.post("/lessons/:id/cancel", requireTeacher, async (c) => {
   const body = await parseBody(c, cancelLessonBody);
   return c.json({ lessons: await lessonCancel(await makeCtx(c), actorOf(c), c.req.param("id"), body) });
+});
+
+lessons.delete("/lessons/:id", requireTeacher, async (c) => {
+  const body = await parseBody(c, deleteLessonBody);
+  const deleted = await lessonDelete(await makeCtx(c), actorOf(c), c.req.param("id"), body);
+  return c.json({ deleted });
 });
 
 lessons.post("/lessons/:id/restore", requireTeacher, async (c) => {

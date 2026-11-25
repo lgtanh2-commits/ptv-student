@@ -1,5 +1,6 @@
 export interface Env {
   DB: D1Database;
+  HOMEWORK_IMAGES: R2Bucket;
   ASSETS?: Fetcher;
   ENVIRONMENT: "local" | "test" | "staging" | "production";
   /** "dev" stores emails in the outbox table. "smtp" sends them through an SMTP server (see docs/deploy.md). */

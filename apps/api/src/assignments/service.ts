@@ -56,6 +56,7 @@ export function toAssignmentInfo(r: AssignmentRow, zone: string, studentIds: str
     instructions: r.instructions,
     questions: questionsOf(r),
     links: linksOf(r),
+    imageIds: parseList<string>(r.image_ids),
     dueDate: due?.date ?? null,
     dueTime: due?.time ?? null,
     dueAt: r.due_at,
@@ -92,22 +93,34 @@ async function checkChosen(ctx: Ctx, tenantId: string, courseId: string, ids: st
 }
 
 /** Gives every new question an id, and keeps the ids of the ones that were already there. */
-export function withIds(input: CreateAssignmentBody["questions"]): QuestionInfo[] {
-  return input.map((q) => ({
-    id: q.id ?? `q_${crypto.randomUUID().slice(0, 8)}`,
-    kind: q.kind,
-    text: q.text,
-    points: q.points,
-    options: q.kind === "choice" ? q.options : [],
-    correct: q.kind === "choice" ? q.correct : null,
-    accepted: q.kind === "short" ? q.accepted.filter((x) => x.trim() !== "") : [],
-  }));
+export function withIds(
+  input: CreateAssignmentBody["questions"],
+  previous: QuestionInfo[] = [],
+): QuestionInfo[] {
+  const photosByQuestion = new Map(previous.map((q) => [q.id, q.imageIds]));
+  return input.map((q) => {
+    const imageIds = [...new Set(q.imageIds ?? (q.id ? photosByQuestion.get(q.id) : undefined) ?? [])];
+    return {
+      id: q.id ?? `q_${crypto.randomUUID().slice(0, 8)}`,
+      kind: q.kind,
+      text: q.text,
+      points: q.points,
+      options: q.kind === "choice" ? q.options : [],
+      correct: q.kind === "choice" ? q.correct : null,
+      accepted: q.kind === "short" ? q.accepted.filter((x) => x.trim() !== "") : [],
+      ...(imageIds.length ? { imageIds } : {}),
+    };
+  });
 }
 
-/** The same questions in the same order, apart from the words of the question. */
-const sameExceptWording = (a: QuestionInfo[], b: QuestionInfo[]) =>
+/** The same questions in the same order, apart from the text and images of the prompt. */
+const sameExceptPrompt = (a: QuestionInfo[], b: QuestionInfo[]) =>
   a.length === b.length &&
-  a.every((q, i) => JSON.stringify({ ...q, text: "" }) === JSON.stringify({ ...b[i]!, text: "" }));
+  a.every(
+    (q, i) =>
+      JSON.stringify({ ...q, text: "", imageIds: undefined }) ===
+      JSON.stringify({ ...b[i]!, text: "", imageIds: undefined }),
+  );
 
 const writeOf = (body: CreateAssignmentBody, questions: QuestionInfo[], zone: string) => ({
   type: summaryKind(questions),
@@ -115,6 +128,7 @@ const writeOf = (body: CreateAssignmentBody, questions: QuestionInfo[], zone: st
   instructions: body.instructions,
   questions,
   links: body.links,
+  imageIds: [...new Set(body.imageIds ?? [])],
   dueAt: body.dueDate && body.dueTime ? localToUtc(body.dueDate, body.dueTime, zone) : null,
   allowLate: body.allowLate,
   maxScore: totalPoints(questions),
@@ -186,12 +200,12 @@ export async function updateAssignment(
   authorize(actor, "assignment", "update", { tenantId });
   const current = await load(ctx, tenantId, id);
   if (current.version !== body.version) throw new AppError("CONFLICT");
-  const questions = withIds(body.questions);
-  // Once students started answering, only the wording of a question may change. The kind, the points, the
-  // answers and the correct answer stay, because the answers and scores that exist depend on them.
-  if (!sameExceptWording(questionsOf(current), questions) && (await hasSubmissions(db, tenantId, id))) {
+  const previous = questionsOf(current);
+  const questions = withIds(body.questions, previous);
+  // The question's scoring stays fixed once students start answering.
+  if (!sameExceptPrompt(previous, questions) && (await hasSubmissions(db, tenantId, id))) {
     throw new AppError("CONFLICT", {
-      message: "Students already started, so only the wording of the questions can change.",
+      message: "Students already started. You can edit the question text and photos.",
     });
   }
   if (body.targetMode === "selected") await checkChosen(ctx, tenantId, current.course_id, body.studentIds);
@@ -199,7 +213,16 @@ export async function updateAssignment(
   const zone = await tenantTimezone(db, tenantId);
   const next = body.version + 1;
   const [changed] = await db.batch([
-    updateAssignmentStatement(db, { tenantId, id, version: body.version, ...writeOf(body, questions, zone) }),
+    updateAssignmentStatement(db, {
+      tenantId,
+      id,
+      version: body.version,
+      ...writeOf(
+        { ...body, imageIds: body.imageIds ?? parseList<string>(current.image_ids) },
+        questions,
+        zone,
+      ),
+    }),
     clearTargetsStatement(db, tenantId, id, next),
     ...(body.targetMode === "selected"
       ? [insertTargetsAfterUpdateStatement(db, tenantId, id, next, body.studentIds)]

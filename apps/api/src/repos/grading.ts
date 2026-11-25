@@ -48,6 +48,7 @@ export interface SubmissionRowFull {
   student_name: string;
   status: SubmissionStatus;
   responses: string;
+  submitted_images: string;
   question_points: string;
   question_notes: string;
   submitted_at: string | null;
@@ -63,7 +64,7 @@ export interface SubmissionRowFull {
 export const findSubmission = (db: D1Database, tenantId: string, assignmentId: string, studentId: string) =>
   db
     .prepare(
-      `SELECT sub.id, sub.student_id, s.name AS student_name, sub.status, sub.responses, sub.question_points, sub.question_notes,
+      `SELECT sub.id, sub.student_id, s.name AS student_name, sub.status, sub.responses, sub.submitted_images, sub.question_points, sub.question_notes,
          sub.submitted_at, sub.is_late, sub.revision_count, sub.score, sub.feedback, sub.version, x.until_at
        FROM submissions sub JOIN students s ON s.id = sub.student_id AND s.tenant_id = sub.tenant_id
        LEFT JOIN submission_extensions x ON x.assignment_id = sub.assignment_id AND x.student_id = sub.student_id

@@ -42,6 +42,17 @@ The address is printed at the end, like `https://ptv-lms-staging.<your-account>.
 
 Telegram (below) is optional: only the feedback message to the owner uses it now.
 
+## Homework photo storage
+
+Create the private R2 bucket for each deployed environment before deploying the Worker.
+
+```bash
+pnpm --filter @lms/api exec wrangler r2 bucket create ptv-lms-homework-staging
+pnpm --filter @lms/api exec wrangler r2 bucket create ptv-lms-homework-production
+```
+
+The `HOMEWORK_IMAGES` binding in Wrangler config gives the Worker access to the bucket. Keep public bucket access disabled so the app can check who may see each image. Local development and tests use simulated R2 storage. The D1 migration creates the image metadata and attachment fields.
+
 ## Sign in with Google
 
 Students and teachers can sign in with one click, so nobody has to wait for an email each time. It is free.

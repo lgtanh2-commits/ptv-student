@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HomeworkImageGallery from "@/components/HomeworkImageGallery.vue";
 import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { kindText, submissionText, submissionTone } from "@/components/homeworkLabels";
@@ -109,6 +110,10 @@ const stateNote = computed(() => {
           }}<template v-if="d.revisionCount > 0"> · {{ fill(t.tryN, { n: d.revisionCount + 1 }) }}</template>
         </p>
 
+        <AppCard v-if="d.assignment.imageIds?.length" :title="messages.homeworkImages.title">
+          <HomeworkImageGallery :ids="d.assignment.imageIds" />
+        </AppCard>
+
         <AppCard v-for="(q, qi) in d.assignment.questions" :key="q.id">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
@@ -127,6 +132,8 @@ const stateNote = computed(() => {
               />
             </div>
           </div>
+
+          <HomeworkImageGallery :ids="q.imageIds" />
 
           <template v-if="q.kind === 'choice'">
             <ul class="flex flex-col gap-1">
@@ -173,12 +180,15 @@ const stateNote = computed(() => {
             >
               {{ answerOf(q.id)!.text }}
             </p>
-            <p v-else class="text-sm text-base-content/60">{{ t.noAnswer }}</p>
+            <p v-else-if="!answerOf(q.id)?.imageIds?.length" class="text-sm text-base-content/60">
+              {{ t.noAnswer }}
+            </p>
             <p v-if="q.kind === 'short' && q.accepted.length" class="text-sm text-base-content/60">
               {{ fill(messages.homework.correctIs, { answer: q.accepted.join(" / ") }) }}
             </p>
           </template>
 
+          <HomeworkImageGallery :ids="answerOf(q.id)?.imageIds" />
           <AppTextarea v-model="g.notes[q.id]!" :label="t.noteLabel" :hint="t.noteHint" :rows="2" />
 
           <p class="flex items-center gap-2 text-sm">

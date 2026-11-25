@@ -7,6 +7,7 @@ import {
   useCourseLessons,
   useEditLesson,
   useLessonCancel,
+  useLessonDelete,
   useLessonRestore,
 } from "@/features/lessons/useLessons";
 import { usePaging } from "@/features/paging";
@@ -18,6 +19,9 @@ import AppBadge from "@/ui/AppBadge.vue";
 import AppButton from "@/ui/AppButton.vue";
 import AppFormActions from "@/ui/AppFormActions.vue";
 import AppCard from "@/ui/AppCard.vue";
+import LessonDeleteDialog from "@/components/LessonDeleteDialog.vue";
+import AppMenu from "@/ui/AppMenu.vue";
+import AppMenuItem from "@/ui/AppMenuItem.vue";
 import AppCheckbox from "@/ui/AppCheckbox.vue";
 import AppEmpty from "@/ui/AppEmpty.vue";
 import AppIcon from "@/ui/AppIcon.vue";
@@ -59,6 +63,7 @@ const groups = computed(() => [
 const cancelledText = (n: number) => (n === 1 ? t.cancelled : fill(t.cancelledMany, { n }));
 const { asking, confirmingScope, askCancel, doCancel } = useLessonCancel({ cancelled: cancelledText }, load);
 const { restoringId, restore } = useLessonRestore({ restored: t.restored }, load);
+const deletion = useLessonDelete((n) => (n === 1 ? t.deleted : fill(t.deletedMany, { n })), load);
 const statusText = {
   scheduled: t.statusScheduled,
   held: t.statusHeld,
@@ -140,24 +145,39 @@ const statusTone = {
             <template #trailing>
               <AppBadge :tone="statusTone[lessonLabel(l)]">{{ statusText[lessonLabel(l)] }}</AppBadge>
             </template>
-            <template v-if="l.status === 'scheduled'" #actions>
-              <AppButton variant="ghost" compact @click="edit.open(l)"
-                ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
-              >
-              <AppButton variant="ghost" compact @click="askCancel(l)"
-                ><AppIcon name="ban" :size="16" />{{ t.cancel }}</AppButton
-              >
-            </template>
-            <template v-else-if="l.status === 'cancelled'" #actions>
-              <AppButton variant="ghost" compact :loading="restoringId === l.id" @click="restore(l.id)"
+            <template #actions>
+              <template v-if="l.status === 'scheduled'">
+                <AppButton variant="ghost" compact @click="edit.open(l)"
+                  ><AppIcon name="edit" :size="16" />{{ t.edit }}</AppButton
+                >
+                <AppButton variant="ghost" compact @click="askCancel(l)"
+                  ><AppIcon name="ban" :size="16" />{{ t.cancel }}</AppButton
+                >
+              </template>
+
+              <AppButton
+                v-else-if="l.status === 'cancelled'"
+                variant="ghost"
+                compact
+                :loading="restoringId === l.id"
+                @click="restore(l.id)"
                 ><AppIcon name="restore" :size="16" />{{ t.restore }}</AppButton
               >
+              <AppMenu compact :label="messages.common.moreActions">
+                <AppMenuItem danger @click="deletion.selected.value = l">{{ t.delete }}</AppMenuItem>
+              </AppMenu>
             </template>
           </AppListRow>
         </ul>
         <AppPager v-model:page="group.paging.page.value" :pages="group.paging.pages.value" />
       </AppCard>
     </template>
+
+    <LessonDeleteDialog
+      v-model="deletion.selected.value"
+      :busy="deletion.busy.value"
+      @confirm="deletion.remove"
+    />
 
     <AppModal
       :model-value="asking !== null"
